@@ -7241,9 +7241,358 @@
           },
           "position": {
             "x": 0,
-            "y": 0,
+            "y": 1,
             "width": 7,
             "height": 11
+          }
+        },
+        {
+          "widget": {
+            "name": "57c5c793",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color: #E8ECF0;\">Forecast Snapshot</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "1baa7e7d",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color:#E8ECF0\">UCO Coverage</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "incremental",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "solution_architect",
+                      "expression": "`solution_architect`"
+                    },
+                    {
+                      "name": "sum(FY27_Q1)",
+                      "expression": "SUM(`FY27_Q1`)"
+                    },
+                    {
+                      "name": "sum(FY27_Q2)",
+                      "expression": "SUM(`FY27_Q2`)"
+                    },
+                    {
+                      "name": "sum(FY27_Q3)",
+                      "expression": "SUM(`FY27_Q3`)"
+                    },
+                    {
+                      "name": "sum(FY27_Q4)",
+                      "expression": "SUM(`FY27_Q4`)"
+                    }
+                  ],
+                  "cubeGroupingSets": {
+                    "sets": [
+                      {
+                        "fieldNames": [
+                          "solution_architect"
+                        ]
+                      },
+                      {}
+                    ]
+                  },
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`solution_architect`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "**Incremental** $DBUs by SA"
+              },
+              "widgetType": "pivot",
+              "encodings": {
+                "rows": [
+                  {
+                    "fieldName": "solution_architect",
+                    "total": {
+                      "show": true
+                    }
+                  }
+                ],
+                "cell": {
+                  "type": "multi-cell",
+                  "fields": [
+                    {
+                      "fieldName": "sum(FY27_Q1)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q1",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "colorRamp": {
+                              "mode": "custom-sequential",
+                              "colors": {
+                                "start": "#FFFFFF",
+                                "end": "#08519C"
+                              }
+                            },
+                            "reverse": false,
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "fieldName": "sum(FY27_Q2)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q2",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "colorRamp": {
+                              "mode": "custom-sequential",
+                              "colors": {
+                                "start": "#FFFFFF",
+                                "end": "#08519C"
+                              }
+                            },
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "fieldName": "sum(FY27_Q3)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q3",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "colorRamp": {
+                              "mode": "custom-sequential",
+                              "colors": {
+                                "start": "#FFFFFF",
+                                "end": "#08519C"
+                              }
+                            },
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "fieldName": "sum(FY27_Q4)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q4",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "colorRamp": {
+                              "mode": "custom-sequential",
+                              "colors": {
+                                "start": "#FFFFFF",
+                                "end": "#08519C"
+                              }
+                            },
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "displayAs": "columns"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 7,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "stage",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_stage",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "stage",
+                      "expression": "`stage`"
+                    },
+                    {
+                      "name": "stage_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Stage"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "stage",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_stage"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 13,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "sa",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_solution_architect",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "solution_architect",
+                      "expression": "`solution_architect`"
+                    },
+                    {
+                      "name": "solution_architect_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "SA"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "solution_architect",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_solution_architect"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 2,
+            "height": 1
           }
         }
       ],
