@@ -20,10 +20,10 @@
         "      ('2025-07-01', 'FY26-Q2', 2026, 2),\n",
         "      ('2025-08-01', 'FY26-Q3', 2026, 3),\n",
         "      ('2025-09-01', 'FY26-Q3', 2026, 3),\n",
-        "      ('2025-10-01', 'FY26-Q3', 2026, 3),*/\n",
+        "      ('2025-10-01', 'FY26-Q3', 2026, 3),\n",
         "      ('2025-11-01', 'FY26-Q4', 2026, 4),\n",
         "      ('2025-12-01', 'FY26-Q4', 2026, 4),\n",
-        "      ('2026-01-01', 'FY26-Q4', 2026, 4),\n",
+        "      ('2026-01-01', 'FY26-Q4', 2026, 4),*/\n",
         "      ('2026-02-01', 'FY27-Q1', 2027, 1),\n",
         "      ('2026-03-01', 'FY27-Q1', 2027, 1),\n",
         "      ('2026-04-01', 'FY27-Q1', 2027, 1),\n",
@@ -39,20 +39,6 @@
         "  ) as dates(m, fq, fy, q)\n",
         "),\n",
         "\n",
-        "-- Resolve :ae_email to a list of AE emails.\n",
-        "-- If :ae_email is an AE, returns just that email. If a manager, returns all AEs reporting to them.\n",
-        "ae_list as (\n",
-        "  select Email as ae_email, user_name, IsAE, level as sales_level\n",
-        "  from main.gtm_silver.individual_hierarchy_salesforce\n",
-        "  where snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)\n",
-        "  --and IsAE = true\n",
-        "  and IsActive = true\n",
-        "  and Business_Unit = :business_unit\n",
-        "  and Region_Level_1 = :region_level_1\n",
-        "  and Region_Level_2 = :region_level_2\n",
-        "  and concatenated_emails like '%' || :ae_email || '%'\n",
-        "),\n",
-        "\n",
         "financial_quarters as (\n",
         "  select fq, fy, q\n",
         "    , max(last_day_of_month) as fiscal_quarter_end_date\n",
@@ -61,89 +47,25 @@
         "    , case when getdate() > fiscal_quarter_end_date then true else false end as is_quarter_closed\n",
         "    , sum(day(last_day_of_month)) as days_in_quarter\n",
         "    , case when getdate() >= fiscal_quarter_start_date and current_date() <= fiscal_quarter_end_date then true else false end as is_current_fiscal_quarter\n",
-        "    , case when current_date() >= make_date(fy - 1, 2, 1) and current_date() <= make_date(fy, 1, 31) then 1 else 0 end as is_current_fiscal_year\n",
         "    , (select max(usage_date) from main.gtm_gold.individual_consumption_daily)  as latest_usage_date\n",
         "    , greatest(0, least(days_in_quarter, datediff(fiscal_quarter_end_date, latest_usage_date))) as days_left_in_quarter\n",
-        "    , case when is_current_fiscal_quarter then q else 0 end as current_quarter_number\n",
         "  from dates\n",
         "  group by fq, fy, q\n",
         "),\n",
         "\n",
-        "targets as (\n",
-        "  SELECT ae.ae_email, t.Region_Level_1, t.Region_Level_2, t.Region_Level_3, t.user_id, t.Email, t.dollars as fin_target, t.fiscal_year, t.fiscal_quarter\n",
-        "  FROM gtm_silver.targets_individual t\n",
-        "  INNER JOIN ae_list ae ON t.Email = ae.ae_email\n",
-        "  where t.Business_Unit = :business_unit\n",
-        "  and t.Region_Level_1 = :region_level_1\n",
-        "  and t.Region_Level_2 = :region_level_2\n",
-        "  and t.type_target = 'dbu'\n",
-        "  and t.snapshot_date = (select max(snapshot_date) from gtm_silver.targets_individual where Region_Level_1 = :region_level_1 and Region_Level_2 = :region_level_2)\n",
-        "),\n",
-        "\n",
-        "sales_forecast as (\n",
-        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date, f.submitted_my_call, f.submitted_my_call_w_closed_month_actuals\n",
-        "    , submitted_direct_field_consumption_forecast, current_ds_forecast_all_accounts, submitted_weighted_projection\n",
-        "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
-        "  inner join ae_list ae on f.Email = ae.ae_email\n",
-        "  where f.Business_Unit = :business_unit\n",
-        "  and f.Region_Level_1 = :region_level_1\n",
-        "  and f.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select max(snapshot_date) from gtm_silver.forecast_consumption_mcp_individual where Region_Level_1 = :region_level_1 and Region_Level_2 = :region_level_2)\n",
-        "),\n",
-        "\n",
-        "actuals as (\n",
-        "  select ae.ae_email, c.fiscal_quarter_start_date, sum(c.dbu_dollars_qtd) as dbu_actuals\n",
-        "  , sum(c.dbu_dollars_t7d_avg) as dbu_dollars_t7d_avg, sum(c.dbu_dollars_t28d_avg) as dbu_dollars_t28d_avg\n",
-        "  , sum(c.dbu_dollars_t7d_avg_prev) as dbu_dollars_t7d_avg_prev, sum(c.dbu_dollars_t28d_avg_prev) as dbu_dollars_t28d_avg_prev\n",
-        "  from ae_list ae\n",
-        "  inner join main.gtm_gold.materialized__view_account_obt as c\n",
-        "    on c.concatenated_emails like '%' || ae.ae_email || '%'\n",
-        "  left outer join main.gtm_silver.account_dim as b\n",
-        "    on c.account_id = b.account_id\n",
-        "  where b.business_unit = :business_unit\n",
-        "  and b.region_level_1 = :region_level_1\n",
-        "  and b.region_level_2 = :region_level_2\n",
-        "  group by ae.ae_email, c.fiscal_quarter_start_date\n",
-        "),\n",
-        "\n",
-        "target_forecast_actuals as (\n",
-        "  select d.fy, d.q, a.ae_email, a.fiscal_quarter_start_date, a.dbu_actuals\n",
-        "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
-        "    , t.fin_target\n",
-        "    , f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast_all_accounts, f.submitted_weighted_projection\n",
-        "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
-        "    , case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end dbu_actuals_or_forecast\n",
-        "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
-        "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
-        "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
-        "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
-        "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
-        "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
-        "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
-        "    , try_divide(f.submitted_my_call - dbu_actuals_coalesced, d.days_left_in_quarter) as target_t7d  \n",
-        "\n",
-        "  from actuals as a\n",
-        "  inner join financial_quarters d\n",
-        "  on d.fiscal_quarter_start_date = a.fiscal_quarter_start_date\n",
-        "  left outer join sales_forecast as f \n",
-        "  on f.fiscal_quarter_end_date = d.fiscal_quarter_end_date and f.ae_email = a.ae_email\n",
-        "  left outer join targets as t \n",
-        "  on t.fiscal_year = d.fy and t.fiscal_quarter = d.q and t.ae_email = a.ae_email\n",
-        "),\n",
-        "\n",
         "usecases_filtered as (\n",
-        "  select ae.ae_email, usecase_id, usecase_name, estimated_monthly_dollar_dbus, target_onboarding_date, target_live_date\n",
+        "  select usecase_id, usecase_name, estimated_monthly_dollar_dbus, target_onboarding_date, target_live_date\n",
         "    , dateadd(day, 14, date_trunc('month',target_onboarding_date)) as target_onboarding_date_15 \n",
         "    , dateadd(day, 14, date_trunc('month',target_live_date)) as target_live_date_15\n",
         "    , datediff(target_live_date, target_onboarding_date) as total_ramping_days \n",
         "    , date_format(dateadd(year, +1, dateadd(month, -1, target_onboarding_date)), \"'FY'yy'-Q'Q\") as target_onboarding_date_fq\n",
         "    , date_format(dateadd(year, +1, dateadd(month, -1, target_live_date)), \"'FY'yy'-Q'Q\") as target_live_date_fq\n",
-        "    , concat('<a href=\"https://databricks.lightning.force.com/lightning/r/UseCase__c/', usecase_id, '/view\" targe=\"_blank\">',usecase_name,'</a>') as usecase_url\n",
+        "    , concat('<a href=\"https://databricks.lightning.force.com/lightning/r/UseCase__c/', usecase_id, '/view\" targe=\"_blank\">', usecase_name, '</a>') as usecase_url\n",
+        "    \n",
         "    , coalesce(num_of_blockers, 0) as num_of_blockers\n",
+        "    , coalesce(implementation_status, 'Unknown') as impl_status\n",
+        "    , concat('<a href=\"', get(FILTER(usecase_documents, doc -> doc.document_type = 'Eval Doc'), 0).document_link, '\" target=\"_blank\">Eval Doc</a>') as eval_doc_link\n",
+        "    , concat('<a href=\"', get(FILTER(usecase_documents, doc -> doc.document_type = 'Onboarding Doc'), 0).document_link, '\" target=\"_blank\">Onboarding Doc</a>') as onboarding_doc_link\n",
         "    , case\n",
         "        when days_in_stage <= 30 or days_in_stage is null then '0-30 days'\n",
         "        when days_in_stage > 30 and days_in_stage <= 60 then '31-60 days'\n",
@@ -154,35 +76,39 @@
         "    , case when days_to_go_live < 0 then true else false end go_live_in_the_past\n",
         "    , date_diff(DAY, current_date(), last_day(target_onboarding_date)) as days_to_onboarding\n",
         "\n",
-        "     --Check hygiene issues and risks\n",
-        "    ,case\n",
-        "      -- Hygiene Issues\n",
-        "      when go_live_in_the_past then named_struct('category', 'Hygiene', 'msg', 'Go live date in the past')\n",
-        "      when implementation_status is null then named_struct('category', 'Hygiene', 'msg', 'Health status not defined')\n",
-        "      when days_to_onboarding < 0 and stage_number < 5 then named_struct('category', 'Hygiene', 'msg', 'Onboarding date in the past but stage not in Onboarding yet') \n",
-        "      -- Risks\n",
-        "      when days_to_go_live < 30 and stage_number < 5 then named_struct('category', 'Warning', 'msg', 'Go live < 30 days but stage not in Onboarding yet')\n",
-        "      when days_to_go_live < 30 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days with Red health status')\n",
-        "      when days_to_go_live < 30 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days with Yellow health status')\n",
-        "      when days_to_go_live < 30 then named_struct('category', 'Warning', 'msg', 'Go live < 30 days')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <5 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days with Red health status')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <5 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days with Yellow health status')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <=3 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days but evaluation not won yet')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number =4 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days and stage still in Confirming')      \n",
-        "      -- opportunities to accelerate\n",
-        "      when days_to_go_live < 90 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 days and stage in Confirming')\n",
-        "      when days_to_onboarding between 0 and 90 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
-        "    end as uco_info\n",
-        "  , coalesce(implementation_status, 'Unknown') as implementation_status\n",
+        "    --Collect all warnings\n",
+        "    , flatten(array(                \n",
+        "        case when days_to_go_live between 0 and 30 and stage_number < 5 then array('Go live < 30 / Not U5') else array() end,\n",
+        "        case when days_to_go_live between 0 and 30 and implementation_status = 'Red' then array('Go live < 30 days / Red') else array() end,\n",
+        "        case when days_to_go_live between 0 and 30 and implementation_status = 'Yellow' then array('Go live < 30 days / Yellow') else array() end,\n",
+        "        case when days_to_go_live between 0 and 30 then array('Go live < 30') else array() end,\n",
+        "        case when days_to_onboarding between 0 and 30 and stage_number < 5 and implementation_status = 'Red' then array('Onboarding < 30 / Red') else array() end,\n",
+        "        case when days_to_onboarding between 0 and 30 and stage_number < 5 and implementation_status = 'Yellow' then array('Onboarding < 30 / Yellow') else array() end,\n",
+        "        case when days_to_onboarding between 0 and 30 and stage_number <= 3 then array('Onboarding < 30 / <=U3') else array() end,\n",
+        "        case when days_to_onboarding between 0 and 30 and stage_number = 4 then array('Onboarding < 30 / U4') else array() end\n",
+        "      )) as warning_rules\n",
+        "\n",
+        "    -- Collect all Hygiene checks\n",
+        "    , flatten(array(\n",
+        "        case when implementation_status is null then array('Health status not defined') else array() end,\n",
+        "        case when days_to_go_live < 0 then array('Go live date in the past') else array() end,\n",
+        "        case when days_to_onboarding < 0 and stage_number < 5 then array('Past Onboarding date / not U5') else array() end,\n",
+        "        case when days_to_go_live between 0 and 30 and implementation_status = 'Red' then array('Go live < 30 days / Red') else array() end,\n",
+        "        case when eval_doc_link is null and estimated_monthly_dollar_dbus >= 10000 and stage_number between 2 and 4 then array('Eval doc required') else array() end,\n",
+        "        case when onboarding_doc_link is null and estimated_monthly_dollar_dbus >= 10000 and stage_number between 4 and 4 then array('Onboarding doc required') else array() end\n",
+        "      )) as hygiene_rules,\n",
+        "      \n",
+        "  case when array_size(warning_rules) = 0 then false else true end as has_warnings,\n",
+        "  case when array_size(hygiene_rules) = 0 then false else true end as has_hygiene_issues\n",
         "    \n",
         "  from gtm_silver.use_case_detail\n",
-        "  inner join ae_list ae on use_case_detail.concatenated_emails like '%' || ae.ae_email || '%'\n",
         "  where Business_Unit = :business_unit\n",
         "  and sales_subregion_level_1 = :region_level_1\n",
         "  and sales_subregion_level_2 = :region_level_2\n",
         "  and is_incremental = true --Excludes upgrades\n",
         "  and stage_number <= 5 --Filter out 'Disqualified', 'Lost' and 'Live' UCOs.\n",
         "  and coalesce(estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.\n",
+        "  and concatenated_emails like '%' || :ae_email || '%'\n",
         "  --and usecase_id = 'aAv8Y000000CsLuSAK' \n",
         "  /* test cases \n",
         "  aAv8Y000000CsLuSAK (Feb25->Sep25), aAvVp000000Uc6IKAS (May25->Sep25), aAv8Y000000lD0ySAE (Jun25->Dec25)\n",
@@ -191,9 +117,9 @@
         "),\n",
         "\n",
         "incremental_projections as (\n",
-        "  select uco.ae_email, uco.usecase_id, d.fq, d.fy, d.q, d.m, d.cm, d.last_day_of_month\n",
+        "  select uco.usecase_id, d.fq, d.fy, d.q, d.m, d.cm, d.last_day_of_month\n",
         "    , uco.target_onboarding_date, uco.target_onboarding_date_fq, uco.target_live_date, uco.target_live_date_fq, uco.target_onboarding_date_15, uco.target_live_date_15\n",
-        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.implementation_status, uco.usecase_url, uco.num_of_blockers \n",
+        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.impl_status, uco.usecase_url, uco.num_of_blockers \n",
         "    , datediff(getdate(), target_onboarding_date_15) as current_ramping_days \n",
         "    -- Calculate this month's baseline for each use case, .i.e. how much are they consuming today? This is used to calculate the actual incremental consumption at the next step.\n",
         "    -- We assume that the onboarding date and live date occur on day 15 of the month.\n",
@@ -235,17 +161,17 @@
         "\n",
         "quarterly_projection_by_use_case as (\n",
         "  select              \n",
-        "    i.ae_email, i.usecase_id, i.fy, i.fq, i.q\n",
+        "    i.usecase_id, i.fy, i.fq, i.q\n",
         "    , sum(i.ramping_dbus) as quarterly_ramping_dbus    \n",
         "    , sum(i.dbus_generated) as quarterly_dbus_generated\n",
-        "    , lag(max(i.ramping_dbus)) over (partition by i.ae_email, i.usecase_id order by i.fq asc) as last_day_of_prev_quarter_dbus\n",
+        "    , lag(max(i.ramping_dbus)) over (partition by i.usecase_id order by i.fq asc) as last_day_of_prev_quarter_dbus\n",
         "    from incremental_projections as i    \n",
         "    group by all\n",
         "),\n",
         "\n",
         "monthly_projection as (\n",
         "  select\n",
-        "    ip.ae_email, ip.usecase_id, ip.fy, ip.fq, ip.q, ip.m, ip.cm, ip.ramping_dbus, ip.current_dbu_baseline, ip.is_onboarding\n",
+        "    ip.usecase_id, ip.fy, ip.fq, ip.q, ip.m, ip.cm, ip.ramping_dbus, ip.current_dbu_baseline, ip.is_onboarding\n",
         "    , f.last_closed_q, f.days_left_in_quarter, f.is_quarter_closed, f.is_current_fiscal_quarter\n",
         "    , qp.last_day_of_prev_quarter_dbus    \n",
         "    , greatest(qp.last_day_of_prev_quarter_dbus, ip.current_dbu_baseline) as quarter_dbu_baseline\n",
@@ -258,75 +184,63 @@
         "        else ip.ramping_dbus - greatest(qp.last_day_of_prev_quarter_dbus, ip.current_dbu_baseline)\n",
         "     end as quarterly_incremental_dbus\n",
         "\n",
-        "    , case when ip.implementation_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_green \n",
-        "    , case when ip.implementation_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_yellow \n",
-        "    , case when ip.implementation_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_red\n",
-        "    , case when ip.implementation_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_unknown\n",
+        "    , case when ip.impl_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_green \n",
+        "    , case when ip.impl_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_yellow \n",
+        "    , case when ip.impl_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_red\n",
+        "    , case when ip.impl_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_unknown\n",
         "  \n",
         "  from incremental_projections as ip\n",
         "  inner join quarterly_projection_by_use_case as qp\n",
         "  on ip.usecase_id = qp.usecase_id\n",
         "  and ip.fq = qp.fq\n",
-        "  and ip.ae_email = qp.ae_email\n",
         "  inner join financial_quarters as f\n",
         "  on ip.fq = f.fq\n",
         "),\n",
         "\n",
+        "-- Note: monthly pivot column aliases are prefixed with m_ to avoid digit-starting identifier issues\n",
+        "-- when referencing them via table alias (e.g. mp.m_2025_02 instead of mp.`2025_02`)\n",
         "monthly_projection_pivoted as (\n",
-        "  select ae_email, usecase_id\n",
-        "  , coalesce(`2025_02`, 0) as `2025_02`, coalesce(`2025_03`, 0) as `2025_03`, coalesce(`2025_04`, 0) as `2025_04`, coalesce(`2025_05`, 0) as `2025_05`, coalesce(`2025_06`, 0) as `2025_06`, coalesce(`2025_07`, 0) as `2025_07`\n",
-        "  , coalesce(`2025_08`, 0) as `2025_08`, coalesce(`2025_09`, 0) as `2025_09`, coalesce(`2025_10`, 0) as `2025_10`, coalesce(`2025_11`, 0) as `2025_11`, coalesce(`2025_12`, 0) as `2025_12`, coalesce(`2026_01`, 0) as `2026_01`\n",
-        "  , coalesce(`2026_02`, 0) as `2026_02`, coalesce(`2026_03`, 0) as `2026_03`, coalesce(`2026_04`, 0) as `2026_04`, coalesce(`2026_05`, 0) as `2026_05`, coalesce(`2026_06`, 0) as `2026_06`, coalesce(`2026_07`, 0) as `2026_07`\n",
-        "  , coalesce(`2026_08`, 0) as `2026_08`, coalesce(`2026_09`, 0) as `2026_09`, coalesce(`2026_10`, 0) as `2026_10`, coalesce(`2026_11`, 0) as `2026_11`, coalesce(`2026_12`, 0) as `2026_12`, coalesce(`2027_01`, 0) as `2027_01`\n",
+        "  select usecase_id\n",
+        "  , coalesce(m_2025_02, 0) as m_2025_02, coalesce(m_2025_03, 0) as m_2025_03, coalesce(m_2025_04, 0) as m_2025_04, coalesce(m_2025_05, 0) as m_2025_05, coalesce(m_2025_06, 0) as m_2025_06, coalesce(m_2025_07, 0) as m_2025_07\n",
+        "  , coalesce(m_2025_08, 0) as m_2025_08, coalesce(m_2025_09, 0) as m_2025_09, coalesce(m_2025_10, 0) as m_2025_10, coalesce(m_2025_11, 0) as m_2025_11, coalesce(m_2025_12, 0) as m_2025_12, coalesce(m_2026_01, 0) as m_2026_01\n",
+        "  , coalesce(m_2026_02, 0) as m_2026_02, coalesce(m_2026_03, 0) as m_2026_03, coalesce(m_2026_04, 0) as m_2026_04, coalesce(m_2026_05, 0) as m_2026_05, coalesce(m_2026_06, 0) as m_2026_06, coalesce(m_2026_07, 0) as m_2026_07\n",
+        "  , coalesce(m_2026_08, 0) as m_2026_08, coalesce(m_2026_09, 0) as m_2026_09, coalesce(m_2026_10, 0) as m_2026_10, coalesce(m_2026_11, 0) as m_2026_11, coalesce(m_2026_12, 0) as m_2026_12, coalesce(m_2027_01, 0) as m_2027_01\n",
         "  from \n",
         "  (\n",
-        "    select ae_email, usecase_id, m, ramping_dbus from monthly_projection\n",
+        "    select usecase_id, m, ramping_dbus from monthly_projection\n",
         "  )\n",
         "  pivot (sum(ramping_dbus) AS dbus\n",
         "      for m in (\n",
-        "        '2025-02-01' as `2025_02`,\n",
-        "        '2025-03-01' as `2025_03`,\n",
-        "        '2025-04-01' as `2025_04`,\n",
-        "        '2025-05-01' as `2025_05`,\n",
-        "        '2025-06-01' as `2025_06`,\n",
-        "        '2025-07-01' as `2025_07`,\n",
-        "        '2025-08-01' as `2025_08`,\n",
-        "        '2025-09-01' as `2025_09`,\n",
-        "        '2025-10-01' as `2025_10`,\n",
-        "        '2025-11-01' as `2025_11`,\n",
-        "        '2025-12-01' as `2025_12`,\n",
-        "        '2026-01-01' as `2026_01`,\n",
-        "        '2026-02-01' as `2026_02`,\n",
-        "        '2026-03-01' as `2026_03`,\n",
-        "        '2026-04-01' as `2026_04`,\n",
-        "        '2026-05-01' as `2026_05`,\n",
-        "        '2026-06-01' as `2026_06`,\n",
-        "        '2026-07-01' as `2026_07`,\n",
-        "        '2026-08-01' as `2026_08`,\n",
-        "        '2026-09-01' as `2026_09`,\n",
-        "        '2026-10-01' as `2026_10`,\n",
-        "        '2026-11-01' as `2026_11`,\n",
-        "        '2026-12-01' as `2026_12`,\n",
-        "        '2027-01-01' as `2027_01`\n",
+        "        '2025-02-01' as m_2025_02,\n",
+        "        '2025-03-01' as m_2025_03,\n",
+        "        '2025-04-01' as m_2025_04,\n",
+        "        '2025-05-01' as m_2025_05,\n",
+        "        '2025-06-01' as m_2025_06,\n",
+        "        '2025-07-01' as m_2025_07,\n",
+        "        '2025-08-01' as m_2025_08,\n",
+        "        '2025-09-01' as m_2025_09,\n",
+        "        '2025-10-01' as m_2025_10,\n",
+        "        '2025-11-01' as m_2025_11,\n",
+        "        '2025-12-01' as m_2025_12,\n",
+        "        '2026-01-01' as m_2026_01,\n",
+        "        '2026-02-01' as m_2026_02,\n",
+        "        '2026-03-01' as m_2026_03,\n",
+        "        '2026-04-01' as m_2026_04,\n",
+        "        '2026-05-01' as m_2026_05,\n",
+        "        '2026-06-01' as m_2026_06,\n",
+        "        '2026-07-01' as m_2026_07,\n",
+        "        '2026-08-01' as m_2026_08,\n",
+        "        '2026-09-01' as m_2026_09,\n",
+        "        '2026-10-01' as m_2026_10,\n",
+        "        '2026-11-01' as m_2026_11,\n",
+        "        '2026-12-01' as m_2026_12,\n",
+        "        '2027-01-01' as m_2027_01\n",
         "      )\n",
         "  )\n",
         "),\n",
         "\n",
-        "quarterly_projection as (\n",
-        "  select p.ae_email, p.fy, p.fq, p.q, p.last_closed_q, p.days_left_in_quarter, p.is_quarter_closed, p.is_current_fiscal_quarter\n",
-        "    , sum(p.quarterly_incremental_dbus) as quarterly_incremental_dbus\n",
-        "    , sum(p.dbus_in_pipeline_green) as dbus_in_pipeline_green \n",
-        "    , sum(p.dbus_in_pipeline_yellow) as dbus_in_pipeline_yellow \n",
-        "    , sum(p.dbus_in_pipeline_red) as dbus_in_pipeline_red\n",
-        "    , sum(p.dbus_in_pipeline_unknown) as dbus_in_pipeline_unknown\n",
-        "    , sum(last_day_of_prev_quarter_dbus) as last_day_of_prev_quarter_dbus\n",
-        "\n",
-        "    from monthly_projection as p\n",
-        "    group by all\n",
-        "),\n",
-        "\n",
         "quartely_projection_pivoted as (\n",
-        "  select ae_email, usecase_id\n",
+        "  select usecase_id\n",
         "  , coalesce(FY26_Q1, 0) FY26_Q1\n",
         "  , coalesce(FY26_Q2, 0) FY26_Q2\n",
         "  , coalesce(FY26_Q3, 0) FY26_Q3\n",
@@ -337,7 +251,7 @@
         "  , coalesce(FY27_Q4, 0) FY27_Q4\n",
         "  from \n",
         "  (\n",
-        "    select ae_email, usecase_id, fq, sum(quarterly_incremental_dbus) as quarterly_incremental_dbus \n",
+        "    select usecase_id, fq, sum(quarterly_incremental_dbus) as quarterly_incremental_dbus \n",
         "    from monthly_projection\n",
         "    group by all\n",
         "  )\n",
@@ -356,148 +270,30 @@
         "),\n",
         "\n",
         "uco_view as (\n",
-        "  select b.ae_email, c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.account_executive, c.solution_architect, c.dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
+        "  select c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.account_executive, c.solution_architect, c.dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
         "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq, c.target_cloud, c.is_migration_usecase, c.is_incremental\n",
         "    , c.stage, c.stage_number, c.stage_name_ui, c.days_in_stage, c.days_in_validating, c.days_in_scoping, c.days_in_evaluating, c.days_in_confirming, c.days_in_onboarding\n",
         "    , c.usecase_description, c.demand_plan_next_steps, c.implementation_notes\n",
         "    , c.implementation_partner_name, c.has_ps_project, c.use_case_product_enriched\n",
-        "    , b.estimated_monthly_dollar_dbus, c.estimated_monthly_dollar_dbus_weighted, b.total_ramping_days --, b.current_dbu_baseline, b.current_ramping_days\n",
+        "    , b.estimated_monthly_dollar_dbus, c.estimated_monthly_dollar_dbus_weighted, b.total_ramping_days\n",
         "    , c.estimated_quarterly_dollar_dbus, c.estimated_quarterly_dollar_dbus_weighted\n",
-        "    , b.days_in_stage_bucket, b.usecase_url, b.implementation_status, b.num_of_blockers\n",
+        "    , b.days_in_stage_bucket, b.usecase_url, b.eval_doc_link, b.onboarding_doc_link, b.impl_status as implementation_status, b.num_of_blockers\n",
         "    , qp.FY26_Q1, qp.FY26_Q2, qp.FY26_Q3, qp.FY26_Q4, qp.FY27_Q1, qp.FY27_Q2, qp.FY27_Q3, qp.FY27_Q4\n",
-        "    , mp.`2025_02`, mp.`2025_03`, mp.`2025_04`, mp.`2025_05`, mp.`2025_06`, mp.`2025_07`, mp.`2025_08`, mp.`2025_09`, mp.`2025_10`, mp.`2025_11`, mp.`2025_12`\n",
-        "    , mp.`2026_01`, mp.`2026_02`, mp.`2026_03`, mp.`2026_04`, mp.`2026_05`, mp.`2026_06`, mp.`2026_07`, mp.`2026_08`, mp.`2026_09`, mp.`2026_10`, mp.`2026_11`, mp.`2026_12`, mp.`2027_01`\n",
-        "    , b.days_to_go_live\n",
-        "    , b.days_to_onboarding\n",
-        "    , uco_info.category\n",
-        "    , uco_info.msg\n",
+        "    , mp.m_2025_02, mp.m_2025_03, mp.m_2025_04, mp.m_2025_05, mp.m_2025_06, mp.m_2025_07, mp.m_2025_08, mp.m_2025_09, mp.m_2025_10, mp.m_2025_11, mp.m_2025_12\n",
+        "    , mp.m_2026_01, mp.m_2026_02, mp.m_2026_03, mp.m_2026_04, mp.m_2026_05, mp.m_2026_06, mp.m_2026_07, mp.m_2026_08, mp.m_2026_09, mp.m_2026_10, mp.m_2026_11, mp.m_2026_12, mp.m_2027_01\n",
+        "    , b.days_to_go_live, b.days_to_onboarding\n",
+        "    , b.warning_rules, b.has_warnings, b.hygiene_rules, b.has_hygiene_issues\n",
         "\n",
         "    from gtm_silver.use_case_detail as c\n",
         "    inner join usecases_filtered as b\n",
         "    on c.usecase_id = b.usecase_id\n",
         "    inner join quartely_projection_pivoted as qp\n",
-        "    on qp.usecase_id = c.usecase_id and qp.ae_email = b.ae_email\n",
+        "    on qp.usecase_id = c.usecase_id\n",
         "    inner join monthly_projection_pivoted as mp\n",
-        "    on mp.usecase_id = c.usecase_id and mp.ae_email = b.ae_email\n",
-        "), \n",
-        "\n",
-        "--this is used to build a Gantt Chart\n",
-        "uco_view_unpivoted as (\n",
-        "  select b.ae_email, mp.m, mp.fq, mp.cm, mp.is_onboarding, c.account_name, c.account_executive, c.solution_architect, c.arr_band, c.usecase_name \n",
-        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq\n",
-        "    , c.stage, c.days_in_stage, b.days_in_stage_bucket, b.implementation_status, b.num_of_blockers\n",
-        "    , c.estimated_monthly_dollar_dbus\n",
-        "    from gtm_silver.use_case_detail as c\n",
-        "    inner join usecases_filtered as b\n",
-        "    on c.usecase_id = b.usecase_id\n",
-        "    inner join monthly_projection as mp\n",
-        "    on mp.usecase_id = c.usecase_id and mp.ae_email = b.ae_email\n",
-        "    where mp.is_onboarding > 0\n",
-        "), \n",
-        "\n",
-        "quarterly_summary as (\n",
-        "  SELECT \n",
-        "  p.ae_email, ae.sales_level, ae.user_name, p.fy, p.fq, p.days_left_in_quarter, p.is_quarter_closed , p.is_current_fiscal_quarter\n",
-        "  , f.fin_target, f.submitted_my_call \n",
-        "  , f.submitted_direct_field_consumption_forecast, f.current_ds_forecast_all_accounts, f.submitted_weighted_projection\n",
-        "  , f.dbu_actuals_coalesced as dbu_actuals, f.dbu_actuals_or_forecast, f.dbu_actuals_current_quarter\n",
-        "  , f.dbu_dollars_t7d_adj, f.dbu_dollars_t7d_prev_adj, f.t7d_proj_left_in_quarter, f.target_t7d\n",
-        "  , f.dbu_dollars_t28d_adj, f.dbu_dollars_t28d_prev_adj, f.t28d_proj_left_in_quarter\n",
-        "\n",
-        "  , coalesce(lag(f.dbu_actuals_or_forecast) over (partition by p.ae_email order by p.fq asc), 0) as dbu_actuals_or_forecast_prev_quarter\n",
-        "  , try_divide(f.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter) as qoq_target_growth\n",
-        "\n",
-        "  --incremental pipeline\n",
-        "  , p.quarterly_incremental_dbus \n",
-        "  , p.dbus_in_pipeline_green, p.dbus_in_pipeline_yellow, p.dbus_in_pipeline_red, p.dbus_in_pipeline_unknown\n",
-        "  , p.dbus_in_pipeline_green * :green_confidence_pct as dbus_in_pipeline_green_in_plan\n",
-        "  , p.dbus_in_pipeline_yellow * :yellow_confidence_pct as dbus_in_pipeline_yellow_in_plan\n",
-        "  , p.dbus_in_pipeline_red * :red_confidence_pct as dbus_in_pipeline_red_in_plan\n",
-        "  , p.dbus_in_pipeline_unknown * :unknown_confidence_pct as dbus_in_pipeline_unknown_in_plan\n",
-        "\n",
-        "  --set the baseline: \n",
-        "  --for the current quarter, use the T7D because more precise. \n",
-        "  --for future quarters use \n",
-        "  , case when p.is_quarter_closed then 0 when p.is_current_fiscal_quarter then f.t7d_proj_left_in_quarter else dbu_actuals_or_forecast_prev_quarter  end as baseline\n",
-        "  , case when p.is_quarter_closed then \"Baseline\" when p.is_current_fiscal_quarter then \"Baseline (T7D Projection + OG)\" else \"Baseline (previous quarter's forecast) + OG\" end as baseline_label -- used as a label in the dashboard\n",
-        "\n",
-        "  , case when p.is_quarter_closed then 0 else f.dbu_actuals_coalesced + f.t7d_proj_left_in_quarter end as t7d_flat_projection \n",
-        "  , case when p.is_quarter_closed then 0 else f.dbu_actuals_coalesced + f.t28d_proj_left_in_quarter end as t28d_flat_projection\n",
-        "\n",
-        "  --best case\n",
-        "  , baseline * :best_case_qoq_organic_growth as best_case_proj_with_og_left_in_quarter\n",
-        "  , dbus_in_pipeline_green_in_plan + dbus_in_pipeline_yellow_in_plan + dbus_in_pipeline_red_in_plan + dbus_in_pipeline_unknown_in_plan as best_case_pipe_left_in_quarter\n",
-        "  , f.dbu_actuals_coalesced + best_case_proj_with_og_left_in_quarter + best_case_pipe_left_in_quarter + :best_case_adjustments as best_case_projection\n",
-        "\n",
-        "  --worst case\n",
-        "  , baseline * :worst_case_qoq_organic_growth as worst_case_proj_with_og_left_in_quarter\n",
-        "  , dbus_in_pipeline_green_in_plan as worst_case_pipe_left_in_quarter\n",
-        "  , f.dbu_actuals_coalesced + worst_case_proj_with_og_left_in_quarter + worst_case_pipe_left_in_quarter + :worst_case_adjustments as worst_case_projection\n",
-        "  \n",
-        "  --labels\n",
-        "  , format_number(try_divide(f.submitted_my_call, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(f.submitted_my_call - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(f.submitted_my_call - f.fin_target, '$,###.#') as my_call_text\n",
-        "  , format_number(try_divide(f.submitted_direct_field_consumption_forecast, f.fin_target), '#.#%') ||\n",
-        "    \" | \" || format_number(try_divide(f.submitted_direct_field_consumption_forecast - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') ||\n",
-        "    \" | \" || format_number(f.submitted_direct_field_consumption_forecast - f.fin_target, '$,###.#') as directs_fct_text\n",
-        "  , format_number(try_divide(best_case_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(best_case_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(best_case_projection - f.fin_target, '$,###.#') as best_case_text\n",
-        "  , format_number(try_divide(worst_case_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(worst_case_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(worst_case_projection - f.fin_target, '$,###.#') as worst_case_text\n",
-        "  , format_number(try_divide(submitted_weighted_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(submitted_weighted_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(submitted_weighted_projection - f.fin_target, '$,###.#') as weighted_proj_text\n",
-        "  , format_number(try_divide(current_ds_forecast_all_accounts, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(current_ds_forecast_all_accounts - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(current_ds_forecast_all_accounts - f.fin_target, '$,###.#') as ds_forecast_text\n",
-        "  , format_number(try_divide(t7d_flat_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(t7d_flat_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(t7d_flat_projection - f.fin_target, '$,###.#') as t7d_proj_text\n",
-        "  , format_number(try_divide(t28d_flat_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(t28d_flat_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(t28d_flat_projection - f.fin_target, '$,###.#') as t28d_proj_text\n",
-        "\n",
-        "  --forecast gaps\n",
-        "  , f.submitted_my_call - f.fin_target as gap_to_target \n",
-        "  , f.submitted_my_call - best_case_projection as gap_to_best_case\n",
-        "  , f.submitted_my_call - worst_case_projection as gap_to_worst_case\n",
-        "  , f.submitted_my_call - t7d_flat_projection as gap_to_t7d_flat_projection\n",
-        "  , f.submitted_my_call - t28d_flat_projection as gap_to_t28d_flat_projection\n",
-        "  , f.submitted_my_call - f.submitted_weighted_projection as gap_to_weighted_projection\n",
-        "  , f.submitted_my_call - f.current_ds_forecast_all_accounts as gap_to_ds_forecast\n",
-        "  , f.submitted_my_call - f.submitted_direct_field_consumption_forecast as gap_to_directs_forecast\n",
-        "\n",
-        "  from quarterly_projection as p\n",
-        "  left outer join target_forecast_actuals as f \n",
-        "  on f.fy = p.fy and f.q = p.q and f.ae_email = p.ae_email\n",
-        "  inner join ae_list ae on ae.ae_email = p.ae_email\n",
+        "    on mp.usecase_id = c.usecase_id\n",
         ")\n",
         "\n",
-        "select * from uco_view\n",
-        "\n",
-        "/* Forecast waterfall for current user only */\n",
-        "--select * from quarterly_summary where ae_email = :ae_email\n",
-        "\n",
-        "--Forecast waterfall for current user and all its AEs\n",
-        "/*\n",
-        "select fy, fq, ae_email, user_name,  sales_level, submitted_my_call, fin_target, gaps, value\n",
-        "from quarterly_summary\n",
-        "unpivot (\n",
-        "  value for gaps in (\n",
-        "    gap_to_target as `Gap to Target`,\n",
-        "    gap_to_ds_forecast as `Gap to DS`,\n",
-        "    gap_to_worst_case as `Gap to Worst Case`,\n",
-        "    gap_to_best_case as `Gap to Best Case`,\n",
-        "    gap_to_t7d_flat_projection as `Gap to T7D Proj`,\n",
-        "    gap_to_weighted_projection as `Gap to WP`\n",
-        "  )\n",
-        ")\n",
-        "*/\n",
-        "\n",
-        "--select * from uco_view_unpivoted"
+        "select * from uco_view"
       ],
       "parameters": [
         {
@@ -559,126 +355,18 @@
               ]
             }
           }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "hygiene_icon",
+          "description": "Returns 18x18 broom icon HTML when use case has hygiene issues, empty otherwise",
+          "expression": "CASE WHEN `has_hygiene_issues` THEN '<img src=\"https://img.icons8.com/material-outlined/24/broom.png\" width=\"18\" height=\"18\"/>' ELSE '' END"
         },
         {
-          "displayName": "green_confidence_pct",
-          "keyword": "green_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "yellow_confidence_pct",
-          "keyword": "yellow_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "red_confidence_pct",
-          "keyword": "red_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "unknown_confidence_pct",
-          "keyword": "unknown_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "best_case_qoq_organic_growth",
-          "keyword": "best_case_qoq_organic_growth",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "best_case_adjustments",
-          "keyword": "best_case_adjustments",
-          "dataType": "DECIMAL",
-          "defaultSelection": {
-            "values": {
-              "dataType": "DECIMAL",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "worst_case_qoq_organic_growth",
-          "keyword": "worst_case_qoq_organic_growth",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "worst_case_adjustments",
-          "keyword": "worst_case_adjustments",
-          "dataType": "DECIMAL",
-          "defaultSelection": {
-            "values": {
-              "dataType": "DECIMAL",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
+          "displayName": "warning_icon",
+          "description": "Returns 18x18 warning icon HTML when use case has warnings, empty otherwise",
+          "expression": "CASE WHEN `has_warnings` THEN '<img src=\"https://d1nhio0ox7pgb.cloudfront.net/_img/g_collection_png/standard/512x512/sign_warning.png\" width=\"18\" height=\"18\"/>' ELSE '' END"
         }
       ]
     },
@@ -837,24 +525,21 @@
         "    , date_diff(DAY, current_date(), last_day(target_onboarding_date)) as days_to_onboarding\n",
         "\n",
         "     --Check hygiene issues and risks\n",
-        "    ,case\n",
-        "      -- Hygiene Issues\n",
-        "      when go_live_in_the_past then named_struct('category', 'Hygiene', 'msg', 'Go live date in the past')\n",
-        "      when implementation_status is null then named_struct('category', 'Hygiene', 'msg', 'Health status not defined')\n",
-        "      when days_to_onboarding < 0 and stage_number < 5 then named_struct('category', 'Hygiene', 'msg', 'Onboarding date in the past but stage not in Onboarding yet') \n",
-        "      -- Risks\n",
-        "      when days_to_go_live < 30 and stage_number < 5 then named_struct('category', 'Warning', 'msg', 'Go live < 30 days but stage not in Onboarding yet')\n",
-        "      when days_to_go_live < 30 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days with Red health status')\n",
-        "      when days_to_go_live < 30 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days with Yellow health status')\n",
-        "      when days_to_go_live < 30 then named_struct('category', 'Warning', 'msg', 'Go live < 30 days')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <5 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days with Red health status')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <5 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days with Yellow health status')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <=3 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days but evaluation not won yet')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number =4 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days and stage still in Confirming')      \n",
-        "      -- opportunities to accelerate\n",
-        "      when days_to_go_live < 90 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 days and stage in Confirming')\n",
-        "      when days_to_onboarding between 0 and 90 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
-        "    end as uco_info\n",
+        "    , case\n",
+        "        when go_live_in_the_past then named_struct('category', 'Hygiene', 'msg', 'Go live date in the past')\n",
+        "        when implementation_status is null then named_struct('category', 'Hygiene', 'msg', 'Health status not defined')\n",
+        "        when days_to_onboarding < 0 and stage_number < 5 then named_struct('category', 'Hygiene', 'msg', 'Past Onboarding date / not U5') \n",
+        "        when days_to_go_live < 30 and stage_number < 5 then named_struct('category', 'Warning', 'msg', 'Go live < 30 / Not U5')\n",
+        "        when days_to_go_live < 30 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days / Red')\n",
+        "        when days_to_go_live < 30 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days / Yellow')\n",
+        "        when days_to_go_live < 30 then named_struct('category', 'Warning', 'msg', 'Go live < 30')\n",
+        "        when days_to_onboarding between 0 and 30 and stage_number < 5 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 / Red')\n",
+        "        when days_to_onboarding between 0 and 30 and stage_number < 5 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 / Yellow')\n",
+        "        when days_to_onboarding between 0 and 30 and stage_number <= 3 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 / <=U3')\n",
+        "        when days_to_onboarding between 0 and 30 and stage_number = 4 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 / U4')\n",
+        "        when days_to_go_live < 60 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 / U5')\n",
+        "        when days_to_onboarding between 0 and 60 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
+        "      end as uco_info\n",
         "  , coalesce(implementation_status, 'Unknown') as implementation_status\n",
         "    \n",
         "  from gtm_silver.use_case_detail\n",
@@ -954,46 +639,6 @@
         "  on ip.fq = f.fq\n",
         "),\n",
         "\n",
-        "monthly_projection_pivoted as (\n",
-        "  select ae_email, usecase_id\n",
-        "  , coalesce(`2025_02`, 0) as `2025_02`, coalesce(`2025_03`, 0) as `2025_03`, coalesce(`2025_04`, 0) as `2025_04`, coalesce(`2025_05`, 0) as `2025_05`, coalesce(`2025_06`, 0) as `2025_06`, coalesce(`2025_07`, 0) as `2025_07`\n",
-        "  , coalesce(`2025_08`, 0) as `2025_08`, coalesce(`2025_09`, 0) as `2025_09`, coalesce(`2025_10`, 0) as `2025_10`, coalesce(`2025_11`, 0) as `2025_11`, coalesce(`2025_12`, 0) as `2025_12`, coalesce(`2026_01`, 0) as `2026_01`\n",
-        "  , coalesce(`2026_02`, 0) as `2026_02`, coalesce(`2026_03`, 0) as `2026_03`, coalesce(`2026_04`, 0) as `2026_04`, coalesce(`2026_05`, 0) as `2026_05`, coalesce(`2026_06`, 0) as `2026_06`, coalesce(`2026_07`, 0) as `2026_07`\n",
-        "  , coalesce(`2026_08`, 0) as `2026_08`, coalesce(`2026_09`, 0) as `2026_09`, coalesce(`2026_10`, 0) as `2026_10`, coalesce(`2026_11`, 0) as `2026_11`, coalesce(`2026_12`, 0) as `2026_12`, coalesce(`2027_01`, 0) as `2027_01`\n",
-        "  from \n",
-        "  (\n",
-        "    select ae_email, usecase_id, m, ramping_dbus from monthly_projection\n",
-        "  )\n",
-        "  pivot (sum(ramping_dbus) AS dbus\n",
-        "      for m in (\n",
-        "        '2025-02-01' as `2025_02`,\n",
-        "        '2025-03-01' as `2025_03`,\n",
-        "        '2025-04-01' as `2025_04`,\n",
-        "        '2025-05-01' as `2025_05`,\n",
-        "        '2025-06-01' as `2025_06`,\n",
-        "        '2025-07-01' as `2025_07`,\n",
-        "        '2025-08-01' as `2025_08`,\n",
-        "        '2025-09-01' as `2025_09`,\n",
-        "        '2025-10-01' as `2025_10`,\n",
-        "        '2025-11-01' as `2025_11`,\n",
-        "        '2025-12-01' as `2025_12`,\n",
-        "        '2026-01-01' as `2026_01`,\n",
-        "        '2026-02-01' as `2026_02`,\n",
-        "        '2026-03-01' as `2026_03`,\n",
-        "        '2026-04-01' as `2026_04`,\n",
-        "        '2026-05-01' as `2026_05`,\n",
-        "        '2026-06-01' as `2026_06`,\n",
-        "        '2026-07-01' as `2026_07`,\n",
-        "        '2026-08-01' as `2026_08`,\n",
-        "        '2026-09-01' as `2026_09`,\n",
-        "        '2026-10-01' as `2026_10`,\n",
-        "        '2026-11-01' as `2026_11`,\n",
-        "        '2026-12-01' as `2026_12`,\n",
-        "        '2027-01-01' as `2027_01`\n",
-        "      )\n",
-        "  )\n",
-        "),\n",
-        "\n",
         "quarterly_projection as (\n",
         "  select p.ae_email, p.fy, p.fq, p.q, p.last_closed_q, p.days_left_in_quarter, p.is_quarter_closed, p.is_current_fiscal_quarter\n",
         "    , sum(p.quarterly_incremental_dbus) as quarterly_incremental_dbus\n",
@@ -1006,76 +651,6 @@
         "    from monthly_projection as p\n",
         "    group by all\n",
         "),\n",
-        "\n",
-        "quartely_projection_pivoted as (\n",
-        "  select ae_email, usecase_id\n",
-        "  , coalesce(FY26_Q1, 0) FY26_Q1\n",
-        "  , coalesce(FY26_Q2, 0) FY26_Q2\n",
-        "  , coalesce(FY26_Q3, 0) FY26_Q3\n",
-        "  , coalesce(FY26_Q4, 0) FY26_Q4\n",
-        "  , coalesce(FY27_Q1, 0) FY27_Q1\n",
-        "  , coalesce(FY27_Q2, 0) FY27_Q2\n",
-        "  , coalesce(FY27_Q3, 0) FY27_Q3\n",
-        "  , coalesce(FY27_Q4, 0) FY27_Q4\n",
-        "  from \n",
-        "  (\n",
-        "    select ae_email, usecase_id, fq, sum(quarterly_incremental_dbus) as quarterly_incremental_dbus \n",
-        "    from monthly_projection\n",
-        "    group by all\n",
-        "  )\n",
-        "  pivot (sum(quarterly_incremental_dbus) AS dbus\n",
-        "      for fq in (\n",
-        "        'FY26-Q1' as FY26_Q1,\n",
-        "        'FY26-Q2' as FY26_Q2,\n",
-        "        'FY26-Q3' as FY26_Q3,\n",
-        "        'FY26-Q4' as FY26_Q4,\n",
-        "        'FY27-Q1' as FY27_Q1,\n",
-        "        'FY27-Q2' as FY27_Q2,\n",
-        "        'FY27-Q3' as FY27_Q3,\n",
-        "        'FY27-Q4' as FY27_Q4\n",
-        "      )\n",
-        "  )\n",
-        "),\n",
-        "\n",
-        "uco_view as (\n",
-        "  select b.ae_email, c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.account_executive, c.solution_architect, c.dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
-        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq, c.target_cloud, c.is_migration_usecase, c.is_incremental\n",
-        "    , c.stage, c.stage_number, c.stage_name_ui, c.days_in_stage, c.days_in_validating, c.days_in_scoping, c.days_in_evaluating, c.days_in_confirming, c.days_in_onboarding\n",
-        "    , c.usecase_description, c.demand_plan_next_steps, c.implementation_notes\n",
-        "    , c.implementation_partner_name, c.has_ps_project, c.use_case_product_enriched\n",
-        "    , b.estimated_monthly_dollar_dbus, c.estimated_monthly_dollar_dbus_weighted, b.total_ramping_days --, b.current_dbu_baseline, b.current_ramping_days\n",
-        "    , c.estimated_quarterly_dollar_dbus, c.estimated_quarterly_dollar_dbus_weighted\n",
-        "    , b.days_in_stage_bucket, b.usecase_url, b.implementation_status, b.num_of_blockers\n",
-        "    , qp.FY26_Q1, qp.FY26_Q2, qp.FY26_Q3, qp.FY26_Q4, qp.FY27_Q1, qp.FY27_Q2, qp.FY27_Q3, qp.FY27_Q4\n",
-        "    , mp.`2025_02`, mp.`2025_03`, mp.`2025_04`, mp.`2025_05`, mp.`2025_06`, mp.`2025_07`, mp.`2025_08`, mp.`2025_09`, mp.`2025_10`, mp.`2025_11`, mp.`2025_12`\n",
-        "    , mp.`2026_01`, mp.`2026_02`, mp.`2026_03`, mp.`2026_04`, mp.`2026_05`, mp.`2026_06`, mp.`2026_07`, mp.`2026_08`, mp.`2026_09`, mp.`2026_10`, mp.`2026_11`, mp.`2026_12`, mp.`2027_01`\n",
-        "    , b.days_to_go_live\n",
-        "    , b.days_to_onboarding\n",
-        "    , uco_info.category\n",
-        "    , uco_info.msg\n",
-        "\n",
-        "    from gtm_silver.use_case_detail as c\n",
-        "    inner join usecases_filtered as b\n",
-        "    on c.usecase_id = b.usecase_id\n",
-        "    inner join quartely_projection_pivoted as qp\n",
-        "    on qp.usecase_id = c.usecase_id and qp.ae_email = b.ae_email\n",
-        "    inner join monthly_projection_pivoted as mp\n",
-        "    on mp.usecase_id = c.usecase_id and mp.ae_email = b.ae_email\n",
-        "), \n",
-        "\n",
-        "--this is used to build a Gantt Chart\n",
-        "uco_view_unpivoted as (\n",
-        "  select b.ae_email, mp.m, mp.fq, mp.cm, mp.is_onboarding, c.account_name, c.account_executive, c.solution_architect, c.arr_band, c.usecase_name \n",
-        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq\n",
-        "    , c.stage, c.days_in_stage, b.days_in_stage_bucket, b.implementation_status, b.num_of_blockers\n",
-        "    , c.estimated_monthly_dollar_dbus\n",
-        "    from gtm_silver.use_case_detail as c\n",
-        "    inner join usecases_filtered as b\n",
-        "    on c.usecase_id = b.usecase_id\n",
-        "    inner join monthly_projection as mp\n",
-        "    on mp.usecase_id = c.usecase_id and mp.ae_email = b.ae_email\n",
-        "    where mp.is_onboarding > 0\n",
-        "), \n",
         "\n",
         "quarterly_summary as (\n",
         "  SELECT \n",
@@ -1116,49 +691,57 @@
         "  , dbus_in_pipeline_green_in_plan as worst_case_pipe_left_in_quarter\n",
         "  , f.dbu_actuals_coalesced + worst_case_proj_with_og_left_in_quarter + worst_case_pipe_left_in_quarter + :worst_case_adjustments as worst_case_projection\n",
         "  \n",
+        "  --forecast gaps\n",
+        "  , f.submitted_my_call - f.fin_target as gap_my_call \n",
+        "  , best_case_projection - f.fin_target as gap_best_case\n",
+        "  , worst_case_projection - f.fin_target as gap_worst_case\n",
+        "  , t7d_flat_projection - f.fin_target as gap_t7d_flat_projection\n",
+        "  , t28d_flat_projection - f.fin_target as gap_t28d_flat_projection\n",
+        "  , f.submitted_weighted_projection - f.fin_target as gap_weighted_projection\n",
+        "  , f.current_ds_forecast_all_accounts - f.fin_target as gap_ds_forecast\n",
+        "  , f.submitted_direct_field_consumption_forecast - f.fin_target as gap_directs_forecast\n",
+        "\n",
+        "   --QoQ delta: used to calculate the QoQ % groeth\n",
+        "  , f.submitted_my_call - dbu_actuals_or_forecast_prev_quarter as qoq_delta_target \n",
+        "  , best_case_projection - dbu_actuals_or_forecast_prev_quarter as qoq_delta_best_case\n",
+        "  , worst_case_projection - dbu_actuals_or_forecast_prev_quarter as qoq_delta_worst_case\n",
+        "  , t7d_flat_projection - dbu_actuals_or_forecast_prev_quarter as qoq_delta_t7d_flat_projection\n",
+        "  , t28d_flat_projection - dbu_actuals_or_forecast_prev_quarter as qoq_delta_t28d_flat_projection\n",
+        "  , f.submitted_weighted_projection - dbu_actuals_or_forecast_prev_quarter as qoq_delta_weighted_projection\n",
+        "  , f.current_ds_forecast_all_accounts - dbu_actuals_or_forecast_prev_quarter as qoq_delta_ds_forecast\n",
+        "  , f.submitted_direct_field_consumption_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_directs_forecast\n",
+        "\n",
         "  --labels\n",
         "  , format_number(try_divide(f.submitted_my_call, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(f.submitted_my_call - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(f.submitted_my_call - f.fin_target, '$,###.#') as my_call_text\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_my_call, '$,###.#') as my_call_text\n",
         "  , format_number(try_divide(f.submitted_direct_field_consumption_forecast, f.fin_target), '#.#%') ||\n",
-        "    \" | \" || format_number(try_divide(f.submitted_direct_field_consumption_forecast - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') ||\n",
-        "    \" | \" || format_number(f.submitted_direct_field_consumption_forecast - f.fin_target, '$,###.#') as directs_fct_text\n",
-        "  , format_number(try_divide(best_case_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(best_case_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(best_case_projection - f.fin_target, '$,###.#') as best_case_text\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), '#.#%') ||\n",
+        "    \" | \" || format_number(gap_directs_forecast, '$,###.#') as directs_fct_text\n",
+        "  , format_number(try_divide(gap_best_case, f.fin_target), '#.#%') || \n",
+        "    \" | \" || format_number(try_divide(qoq_delta_best_case, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_best_case, '$,###.#') as best_case_text\n",
         "  , format_number(try_divide(worst_case_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(worst_case_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(worst_case_projection - f.fin_target, '$,###.#') as worst_case_text\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_worst_case, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_worst_case, '$,###.#') as worst_case_text\n",
         "  , format_number(try_divide(submitted_weighted_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(submitted_weighted_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(submitted_weighted_projection - f.fin_target, '$,###.#') as weighted_proj_text\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_weighted_projection, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_weighted_projection, '$,###.#') as weighted_proj_text\n",
         "  , format_number(try_divide(current_ds_forecast_all_accounts, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(current_ds_forecast_all_accounts - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(current_ds_forecast_all_accounts - f.fin_target, '$,###.#') as ds_forecast_text\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_ds_forecast, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_ds_forecast, '$,###.#') as ds_forecast_text\n",
         "  , format_number(try_divide(t7d_flat_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(t7d_flat_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(t7d_flat_projection - f.fin_target, '$,###.#') as t7d_proj_text\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_t7d_flat_projection, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_t7d_flat_projection, '$,###.#') as t7d_proj_text\n",
         "  , format_number(try_divide(t28d_flat_projection, f.fin_target), '#.#%') || \n",
-        "    \" | \" || format_number(try_divide(t28d_flat_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
-        "    \" | \" || format_number(t28d_flat_projection - f.fin_target, '$,###.#') as t28d_proj_text\n",
-        "\n",
-        "  --forecast gaps\n",
-        "  , f.submitted_my_call - f.fin_target as gap_to_target \n",
-        "  , f.submitted_my_call - best_case_projection as gap_to_best_case\n",
-        "  , f.submitted_my_call - worst_case_projection as gap_to_worst_case\n",
-        "  , f.submitted_my_call - t7d_flat_projection as gap_to_t7d_flat_projection\n",
-        "  , f.submitted_my_call - t28d_flat_projection as gap_to_t28d_flat_projection\n",
-        "  , f.submitted_my_call - f.submitted_weighted_projection as gap_to_weighted_projection\n",
-        "  , f.submitted_my_call - f.current_ds_forecast_all_accounts as gap_to_ds_forecast\n",
-        "  , f.submitted_my_call - f.submitted_direct_field_consumption_forecast as gap_to_directs_forecast\n",
+        "    \" | \" || format_number(try_divide(qoq_delta_t28d_flat_projection, dbu_actuals_or_forecast_prev_quarter), '#.#%') || \n",
+        "    \" | \" || format_number(gap_t28d_flat_projection, '$,###.#') as t28d_proj_text\n",
         "\n",
         "  from quarterly_projection as p\n",
         "  left outer join target_forecast_actuals as f \n",
         "  on f.fy = p.fy and f.q = p.q and f.ae_email = p.ae_email\n",
         "  inner join ae_list ae on ae.ae_email = p.ae_email\n",
         ")\n",
-        "\n",
-        "--select * from uco_view\n",
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary where ae_email = :ae_email\n",
@@ -1177,9 +760,7 @@
         "    gap_to_weighted_projection as `Gap to WP`\n",
         "  )\n",
         ")\n",
-        "*/\n",
-        "\n",
-        "--select * from uco_view_unpivoted"
+        "*/"
       ],
       "parameters": [
         {
@@ -1361,6 +942,28 @@
               ]
             }
           }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "v_my_call_attainment",
+          "description": "",
+          "expression": "try_divide(sum(submitted_my_call), sum(fin_target))"
+        },
+        {
+          "displayName": "v_my_call_qoq",
+          "description": "",
+          "expression": "try_divide(sum(qoq_delta_target), sum(dbu_actuals_or_forecast_prev_quarter))"
+        },
+        {
+          "displayName": "v_ae_attainment",
+          "description": "",
+          "expression": "try_divide(sum(submitted_direct_field_consumption_forecast), sum(fin_target))"
+        },
+        {
+          "displayName": "v_ae_qoq",
+          "description": "",
+          "expression": "try_divide(sum(qoq_delta_directs_forecast), sum(dbu_actuals_or_forecast_prev_quarter))"
         }
       ]
     },
@@ -2015,1005 +1618,6 @@
       ]
     },
     {
-      "name": "dd4ed9d8",
-      "displayName": "Quarterly Product Analysis",
-      "queryLines": [
-        "WITH agg AS (\n",
-        "  SELECT\n",
-        "    --Account info\n",
-        "    MAX(o.business_unit) as business_unit,\n",
-        "    MAX(b.region_level_1) as region_level_1,\n",
-        "    MAX(b.region_level_2) as region_level_2,\n",
-        "    MAX(b.region_level_3) as region_level_3,\n",
-        "    o.deployable_account_name as account_name,\n",
-        "    MAX(o.account_executive_user_name) as account_executive_user_name,\n",
-        "    MAX(b.last_solution_architect_engaged_user_name) as last_solution_architect_engaged_user_name,\n",
-        "    MAX(b.arr_band) as arr_band,\n",
-        "\n",
-        "    --Fiscal period info\n",
-        "    LEFT(o.fiscal_year_quarter, 5) as fiscal_year,\n",
-        "    o.fiscal_year_quarter,\n",
-        "    o.fiscal_quarter_start_date,\n",
-        "    o.fiscal_quarter_end_date,\n",
-        "    CASE WHEN current_date() >= o.fiscal_quarter_start_date AND current_date() <= o.fiscal_quarter_end_date THEN true ELSE false END as is_current_fiscal_quarter,\n",
-        "    o.fiscal_year_start_date,\n",
-        "\n",
-        "    --$DBUs stats\n",
-        "    SUM(o.submitted_forecast_ae) as submitted_forecast_ae,\n",
-        "    SUM(o.forecast_straight_line_t28d_quarterly) as forecast_straight_line_t28d_quarterly,\n",
-        "    SUM(o.forecast_ds_w_closed_day_actuals) as forecast_ds_w_closed_day_actuals,\n",
-        "    zeroifnull(SUM(o.target_dbu_dollars)) as target_dbu_dollars,\n",
-        "    zeroifnull(SUM(o.target_dbu_dollars_full_year)) as target_dbu_dollars_full_year,\n",
-        "    zeroifnull(SUM(o.dbu_dollars_t7d_avg)) as dbu_dollars_t7d_avg,\n",
-        "    zeroifnull(SUM(o.dbu_dollars_t28d_avg)) as dbu_dollars_t28d_avg,\n",
-        "    zeroifnull(SUM(o.dbu_dollars_t28d_sum)) as dbu_dollars_t28d_sum,\n",
-        "    zeroifnull(SUM(o.dbu_dollars_t28d_avg_wow)) as dbu_dollars_t28d_avg_wow,\n",
-        "    zeroifnull(SUM(o.dbu_dollars_qtd)) as dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.dbu_dollars_ytd)) as dbu_dollars_ytd,\n",
-        "\n",
-        "    --UC stats\n",
-        "    zeroifnull(SUM(o.uc_dbu_dollars_qtd)) as uc_dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.uc_dbu_dollars_ytd)) as uc_dbu_dollars_ytd,\n",
-        "    zeroifnull(SUM(o.uc_weighted_pipe_amount)) as uc_weighted_pipe_amount,\n",
-        "    zeroifnull(SUM(o.uc_use_case_estimated_quarterly_count)) as uc_use_case_estimated_quarterly_count,\n",
-        "    zeroifnull(SUM(o.uc_dbu_dollars_t7d_avg)) as uc_dbu_dollars_t7d_avg,\n",
-        "    zeroifnull(SUM(o.uc_dbu_dollars_t28d_avg)) as uc_dbu_dollars_t28d_avg,\n",
-        "    zeroifnull(SUM(o.uc_dbu_dollars_t28d_sum)) as uc_dbu_dollars_t28d_sum,\n",
-        "    zeroifnull(SUM(o.uc_dbu_dollars_t28d_avg_wow)) as uc_dbu_dollars_t28d_avg_wow,\n",
-        "    zeroifnull(SUM(o.uc_target_dbu_dollars)) as uc_target_dbu_dollars, --we can calculate this based on our regional goals\n",
-        "    zeroifnull(SUM(o.uc_forecast_straight_line_t28d_quarterly)) as uc_forecast_straight_line_t28d_quarterly,\n",
-        "\n",
-        "    --DB SQL stats\n",
-        "    zeroifnull(SUM(o.dbsql_dbu_dollars_qtd)) as dbsql_dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.dbsql_dbu_dollars_ytd)) as dbsql_dbu_dollars_ytd,\n",
-        "    zeroifnull(SUM(o.dwh_weighted_pipe_amount)) as dwh_weighted_pipe_amount,\n",
-        "    zeroifnull(SUM(o.dbsql_weighted_pipe_amount)) as dbsql_weighted_pipe_amount,\n",
-        "    zeroifnull(SUM(o.dbsql_use_case_estimated_quarterly_count)) as dbsql_use_case_estimated_quarterly_count,\n",
-        "    zeroifnull(SUM(o.dbsql_dbu_dollars_t7d_avg)) as dbsql_dbu_dollars_t7d_avg,\n",
-        "    zeroifnull(SUM(o.dbsql_dbu_dollars_t28d_avg)) as dbsql_dbu_dollars_t28d_avg,\n",
-        "    zeroifnull(SUM(o.dbsql_dbu_dollars_t28d_sum)) as dbsql_dbu_dollars_t28d_sum,\n",
-        "    zeroifnull(SUM(o.dbsql_dbu_dollars_t28d_avg_wow)) as dbsql_dbu_dollars_t28d_avg_wow,\n",
-        "    zeroifnull(SUM(o.dbsql_target_dbu_dollars)) as dbsql_target_dbu_dollars,\n",
-        "    zeroifnull(SUM(o.dbsql_forecast_straight_line_t28d_quarterly)) as dbsql_forecast_straight_line_t28d_quarterly,\n",
-        "\n",
-        "    --GenAI stats\n",
-        "    zeroifnull(SUM(o.genai_all_dbu_dollars_qtd)) as genai_all_dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.ai_dbu_dollars_qtd)) as ai_dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.genai_all_dbu_dollars_ytd)) as genai_all_dbu_dollars_ytd,\n",
-        "    zeroifnull(SUM(o.ai_weighted_pipe_amount)) as ai_weighted_pipe_amount,\n",
-        "    zeroifnull(SUM(o.ai_use_case_estimated_quarterly_count)) as ai_use_case_estimated_quarterly_count,\n",
-        "    zeroifnull(SUM(o.ai_dbu_dollars_t7d_avg)) as ai_dbu_dollars_t7d_avg,\n",
-        "    zeroifnull(SUM(o.ai_dbu_dollars_t28d_avg)) as ai_dbu_dollars_t28d_avg,\n",
-        "    zeroifnull(SUM(o.ai_dbu_dollars_t28d_sum)) as ai_dbu_dollars_t28d_sum,\n",
-        "    zeroifnull(SUM(o.ai_dbu_dollars_t28d_avg_wow)) as ai_dbu_dollars_t28d_avg_wow,\n",
-        "    zeroifnull(SUM(o.ai_target_dbu_dollars)) as ai_target_dbu_dollars,\n",
-        "    zeroifnull(SUM(o.genai_all_forecast_straight_line_t28d_quarterly)) as genai_all_forecast_straight_line_t28d_quarterly,\n",
-        "    zeroifnull(SUM(o.genai_all_dbu_dollars_t7d_avg)) as genai_all_dbu_dollars_t7d_avg,\n",
-        "\n",
-        "    --Lakeflow Pipeline stats\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_dbu_dollars_qtd)) as lakeflow_pipeline_dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_weighted_pipe_amount)) as lakeflow_pipeline_weighted_pipe_amount,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_use_case_estimated_quarterly_count)) as lakeflow_pipeline_use_case_estimated_quarterly_count,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_dbu_dollars_t7d_avg)) as lakeflow_pipeline_dbu_dollars_t7d_avg,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_dbu_dollars_t28d_avg)) as lakeflow_pipeline_dbu_dollars_t28d_avg,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_dbu_dollars_t28d_sum)) as lakeflow_pipeline_dbu_dollars_t28d_sum,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_dbu_dollars_t28d_avg_wow)) as lakeflow_pipeline_dbu_dollars_t28d_avg_wow,\n",
-        "    zeroifnull(SUM(o.lakeflow_pipeline_target_dbu_dollars)) as lakeflow_pipeline_target_dbu_dollars,\n",
-        "\n",
-        "    --Lakeflow Connect stats\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_dbu_dollars_qtd)) as lakeflow_connect_dbu_dollars_qtd,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_weighted_pipe_amount)) as lakeflow_connect_weighted_pipe_amount,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_use_case_estimated_quarterly_count)) as lakeflow_connect_use_case_estimated_quarterly_count,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_dbu_dollars_t7d_avg)) as lakeflow_connect_dbu_dollars_t7d_avg,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_dbu_dollars_t28d_avg)) as lakeflow_connect_dbu_dollars_t28d_avg,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_dbu_dollars_t28d_sum)) as lakeflow_connect_dbu_dollars_t28d_sum,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_dbu_dollars_t28d_avg_wow)) as lakeflow_connect_dbu_dollars_t28d_avg_wow,\n",
-        "    zeroifnull(SUM(o.lakeflow_connect_target_dbu_dollars)) as lakeflow_connect_target_dbu_dollars,\n",
-        "\n",
-        "    --Users stats\n",
-        "    SUM(o.wau) as wau,\n",
-        "    SUM(o.cumulative_learners) as cumulative_learners\n",
-        "\n",
-        "  FROM main.gtm_gold.materialized__view_account_obt as o\n",
-        "  LEFT OUTER JOIN main.gtm_silver.account_dim as b\n",
-        "    ON o.account_id = b.account_id\n",
-        "  WHERE b.business_unit = :business_unit\n",
-        "    AND b.region_level_1 = :subregion_level_1\n",
-        "    AND b.region_level_2 = :subregion_level_2\n",
-        "    AND o.concatenated_emails like '%' || :ae_email || '%'\n",
-        "    -- where main.gtm_gold.email_exists(\n",
-        "    --   o.concatenated_emails, main.gtm_gold.rls__view_as_user(session_user(), :user_email)\n",
-        "    -- )\n",
-        "    -- and rls__account_mapped_individual LIKE '%' || :user_email || '%'\n",
-        "  GROUP BY\n",
-        "    o.deployable_account_name,\n",
-        "    o.fiscal_year_quarter,\n",
-        "    o.fiscal_quarter_start_date,\n",
-        "    o.fiscal_quarter_end_date,\n",
-        "    o.fiscal_year_start_date\n",
-        ")\n",
-        "\n",
-        "\n",
-        "SELECT\n",
-        "    --Account info\n",
-        "    business_unit,\n",
-        "    region_level_1,\n",
-        "    region_level_2,\n",
-        "    region_level_3,\n",
-        "    account_name,\n",
-        "    account_executive_user_name,\n",
-        "    last_solution_architect_engaged_user_name,\n",
-        "    arr_band,\n",
-        "\n",
-        "    --Fiscal period info\n",
-        "    fiscal_year,\n",
-        "    fiscal_year_quarter,\n",
-        "    fiscal_quarter_start_date,\n",
-        "    fiscal_quarter_end_date,\n",
-        "    is_current_fiscal_quarter,\n",
-        "    fiscal_year_start_date,\n",
-        "\n",
-        "    --$DBUs stats\n",
-        "    submitted_forecast_ae,\n",
-        "    forecast_straight_line_t28d_quarterly,\n",
-        "    forecast_ds_w_closed_day_actuals,\n",
-        "    target_dbu_dollars,\n",
-        "    target_dbu_dollars_full_year,\n",
-        "    dbu_dollars_t7d_avg,\n",
-        "    dbu_dollars_t28d_avg,\n",
-        "    dbu_dollars_t28d_sum,\n",
-        "    dbu_dollars_t28d_avg_wow,\n",
-        "    dbu_dollars_qtd,\n",
-        "    dbu_dollars_ytd,\n",
-        "    LAG(dbu_dollars_qtd) OVER (PARTITION BY account_name ORDER BY fiscal_quarter_start_date asc) as dbu_dollars_qtd_prev,\n",
-        "    --projections\n",
-        "    zeroifnull(CASE WHEN is_current_fiscal_quarter THEN submitted_forecast_ae - dbu_dollars_qtd_prev ELSE dbu_dollars_qtd - dbu_dollars_qtd_prev END) as dbu_dollars_qoq_proj_incr,\n",
-        "    try_divide(dbu_dollars_qoq_proj_incr, dbu_dollars_qtd_prev) as dbu_dollars_qoq_proj_pct,\n",
-        "\n",
-        "    --UC stats\n",
-        "    uc_dbu_dollars_qtd,\n",
-        "    uc_dbu_dollars_ytd,\n",
-        "    uc_weighted_pipe_amount,\n",
-        "    uc_use_case_estimated_quarterly_count,\n",
-        "    uc_dbu_dollars_t7d_avg,\n",
-        "    uc_dbu_dollars_t28d_avg,\n",
-        "    uc_dbu_dollars_t28d_sum,\n",
-        "    uc_dbu_dollars_t28d_avg_wow,\n",
-        "    uc_target_dbu_dollars, --we can calculate this based on our regional goals\n",
-        "    uc_forecast_straight_line_t28d_quarterly,\n",
-        "    CASE WHEN is_current_fiscal_quarter THEN uc_forecast_straight_line_t28d_quarterly ELSE uc_dbu_dollars_qtd END as uc_dbu_dollars_actuals_or_forecast,\n",
-        "    try_divide(uc_dbu_dollars_qtd, uc_target_dbu_dollars) as uc_attainment,\n",
-        "    LAG(uc_dbu_dollars_qtd) OVER (PARTITION BY account_name ORDER BY fiscal_quarter_start_date asc) as uc_dbu_dollars_qtd_prev,\n",
-        "    try_divide(uc_dbu_dollars_t7d_avg, dbu_dollars_t7d_avg) as uc_penetration_t7d,\n",
-        "    --projections\n",
-        "    try_divide(uc_dbu_dollars_actuals_or_forecast, dbu_dollars_qtd) as uc_penetration_qtd_proj,\n",
-        "    zeroifnull(uc_dbu_dollars_actuals_or_forecast - uc_dbu_dollars_qtd_prev) as uc_dbu_dollars_qoq_proj_incr,\n",
-        "    try_divide(uc_dbu_dollars_qoq_proj_incr, uc_dbu_dollars_qtd_prev) as uc_dbu_dollars_qoq_proj_pct,\n",
-        "\n",
-        "    --DB SQL stats\n",
-        "    dbsql_dbu_dollars_qtd,\n",
-        "    dbsql_dbu_dollars_ytd,\n",
-        "    dwh_weighted_pipe_amount,\n",
-        "    dbsql_weighted_pipe_amount,\n",
-        "    dbsql_use_case_estimated_quarterly_count,\n",
-        "    dbsql_dbu_dollars_t7d_avg,\n",
-        "    dbsql_dbu_dollars_t28d_avg,\n",
-        "    dbsql_dbu_dollars_t28d_sum,\n",
-        "    dbsql_dbu_dollars_t28d_avg_wow,\n",
-        "    dbsql_target_dbu_dollars,\n",
-        "    dbsql_forecast_straight_line_t28d_quarterly,\n",
-        "    CASE WHEN is_current_fiscal_quarter THEN dbsql_forecast_straight_line_t28d_quarterly ELSE dbsql_dbu_dollars_qtd END as dbsql_dbu_dollars_actuals_or_forecast,\n",
-        "    try_divide(dbsql_dbu_dollars_qtd, dbsql_target_dbu_dollars) as dbsql_attainment,\n",
-        "    LAG(dbsql_dbu_dollars_qtd) OVER (PARTITION BY account_name ORDER BY fiscal_quarter_start_date asc) as dbsql_dbu_dollars_qtd_prev,\n",
-        "    try_divide(dbsql_dbu_dollars_t7d_avg, dbu_dollars_t7d_avg) as dbsql_penetration_t7d,\n",
-        "    --projections\n",
-        "    try_divide(dbsql_dbu_dollars_actuals_or_forecast, dbu_dollars_qtd) as dbsql_penetration_qtd_proj,\n",
-        "    zeroifnull(dbsql_dbu_dollars_actuals_or_forecast - dbsql_dbu_dollars_qtd_prev) as dbsql_dbu_dollars_qoq_proj_incr,\n",
-        "    try_divide(dbsql_dbu_dollars_qoq_proj_incr, dbsql_dbu_dollars_qtd_prev) as dbsql_dbu_dollars_qoq_proj_pct,\n",
-        "\n",
-        "    --GenAI stats\n",
-        "    genai_all_dbu_dollars_qtd,\n",
-        "    ai_dbu_dollars_qtd,\n",
-        "    genai_all_dbu_dollars_ytd,\n",
-        "    ai_weighted_pipe_amount,\n",
-        "    ai_use_case_estimated_quarterly_count,\n",
-        "    ai_dbu_dollars_t7d_avg,\n",
-        "    ai_dbu_dollars_t28d_avg,\n",
-        "    ai_dbu_dollars_t28d_sum,\n",
-        "    ai_dbu_dollars_t28d_avg_wow,\n",
-        "    ai_target_dbu_dollars,\n",
-        "    genai_all_forecast_straight_line_t28d_quarterly,\n",
-        "    CASE WHEN is_current_fiscal_quarter THEN genai_all_forecast_straight_line_t28d_quarterly ELSE genai_all_dbu_dollars_qtd END as genai_dbu_dollars_actuals_or_forecast,\n",
-        "    try_divide(ai_dbu_dollars_qtd, ai_target_dbu_dollars) as ai_attainment,\n",
-        "    LAG(genai_all_dbu_dollars_qtd) OVER (PARTITION BY account_name ORDER BY fiscal_quarter_start_date asc) as genai_dbu_dollars_qtd_prev,\n",
-        "    try_divide(genai_all_dbu_dollars_t7d_avg, dbu_dollars_t7d_avg) as genai_penetration_t7d,\n",
-        "    --projections\n",
-        "    try_divide(genai_dbu_dollars_actuals_or_forecast, dbu_dollars_qtd) as genai_penetration_qtd_proj,\n",
-        "    zeroifnull(genai_dbu_dollars_actuals_or_forecast - genai_dbu_dollars_qtd_prev) as genai_dbu_dollars_qoq_proj_incr,\n",
-        "    try_divide(genai_dbu_dollars_qoq_proj_incr, genai_dbu_dollars_qtd_prev) as genai_dbu_dollars_qoq_proj_pct,\n",
-        "\n",
-        "    --Lakeflow Pipeline stats\n",
-        "    lakeflow_pipeline_dbu_dollars_qtd,\n",
-        "    lakeflow_pipeline_weighted_pipe_amount,\n",
-        "    lakeflow_pipeline_use_case_estimated_quarterly_count,\n",
-        "    lakeflow_pipeline_dbu_dollars_t7d_avg,\n",
-        "    lakeflow_pipeline_dbu_dollars_t28d_avg,\n",
-        "    lakeflow_pipeline_dbu_dollars_t28d_sum,\n",
-        "    lakeflow_pipeline_dbu_dollars_t28d_avg_wow,\n",
-        "    lakeflow_pipeline_target_dbu_dollars,\n",
-        "    zeroifnull(lakeflow_pipeline_dbu_dollars_t28d_sum * 3) as lakeflow_pipeline_forecast_straight_line_t28d_quarterly, --approximation, field does not exist in source table.\n",
-        "    CASE WHEN is_current_fiscal_quarter THEN lakeflow_pipeline_forecast_straight_line_t28d_quarterly ELSE lakeflow_pipeline_dbu_dollars_qtd END as lakeflow_pipeline_dbu_dollars_actuals_or_forecast,\n",
-        "    try_divide(lakeflow_pipeline_dbu_dollars_qtd, lakeflow_pipeline_target_dbu_dollars) as lakeflow_pipeline_attainment,\n",
-        "    LAG(lakeflow_pipeline_dbu_dollars_qtd) OVER (PARTITION BY account_name ORDER BY fiscal_quarter_start_date asc) as lakeflow_pipeline_dbu_dollars_qtd_prev,\n",
-        "    try_divide(lakeflow_pipeline_dbu_dollars_t7d_avg, dbu_dollars_t7d_avg) as lakeflow_pipeline_penetration_t7d,\n",
-        "    --projections\n",
-        "    try_divide(lakeflow_pipeline_dbu_dollars_actuals_or_forecast, dbu_dollars_qtd) as lakeflow_pipeline_penetration_qtd_proj,\n",
-        "    zeroifnull(lakeflow_pipeline_dbu_dollars_actuals_or_forecast - lakeflow_pipeline_dbu_dollars_qtd_prev) as lakeflow_pipeline_dbu_dollars_qoq_proj_incr,\n",
-        "    try_divide(lakeflow_pipeline_dbu_dollars_qoq_proj_incr, lakeflow_pipeline_dbu_dollars_qtd_prev) as lakeflow_pipeline_dbu_dollars_qoq_proj_pct,\n",
-        "\n",
-        "    --Lakeflow Connect stats\n",
-        "    lakeflow_connect_dbu_dollars_qtd,\n",
-        "    lakeflow_connect_weighted_pipe_amount,\n",
-        "    lakeflow_connect_use_case_estimated_quarterly_count,\n",
-        "    lakeflow_connect_dbu_dollars_t7d_avg,\n",
-        "    lakeflow_connect_dbu_dollars_t28d_avg,\n",
-        "    lakeflow_connect_dbu_dollars_t28d_sum,\n",
-        "    lakeflow_connect_dbu_dollars_t28d_avg_wow,\n",
-        "    lakeflow_connect_target_dbu_dollars,\n",
-        "    zeroifnull(lakeflow_connect_dbu_dollars_t28d_sum * 3) as lakeflow_connect_forecast_straight_line_t28d_quarterly, --approximation, field does not exist in source table.\n",
-        "    CASE WHEN is_current_fiscal_quarter THEN lakeflow_connect_forecast_straight_line_t28d_quarterly ELSE lakeflow_connect_dbu_dollars_qtd END as lakeflow_connect_dbu_dollars_actuals_or_forecast,\n",
-        "    try_divide(lakeflow_connect_dbu_dollars_qtd, lakeflow_connect_target_dbu_dollars) as lakeflow_connect_attainment,\n",
-        "    LAG(lakeflow_connect_dbu_dollars_qtd) OVER (PARTITION BY account_name ORDER BY fiscal_quarter_start_date asc) as lakeflow_connect_dbu_dollars_qtd_prev,\n",
-        "    try_divide(lakeflow_connect_dbu_dollars_t7d_avg, dbu_dollars_t7d_avg) as lakeflow_connect_penetration_t7d,\n",
-        "    --projections\n",
-        "    try_divide(lakeflow_connect_dbu_dollars_actuals_or_forecast, dbu_dollars_qtd) as lakeflow_connect_penetration_qtd_proj,\n",
-        "    zeroifnull(lakeflow_connect_dbu_dollars_actuals_or_forecast - lakeflow_connect_dbu_dollars_qtd_prev) as lakeflow_connect_dbu_dollars_qoq_proj_incr,\n",
-        "    try_divide(lakeflow_connect_dbu_dollars_qoq_proj_incr, lakeflow_connect_dbu_dollars_qtd_prev) as lakeflow_connect_dbu_dollars_qoq_proj_pct,\n",
-        "\n",
-        "    --Users stats\n",
-        "    wau,\n",
-        "    cumulative_learners\n",
-        "\n",
-        "FROM agg\n",
-        "WHERE year(fiscal_year_start_date) in (2025, 2026)\n",
-        "--AND account_name = 'Eni' --TEST"
-      ],
-      "parameters": [
-        {
-          "displayName": "business_unit",
-          "keyword": "business_unit",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "EMEA"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "subregion_level_1",
-          "keyword": "subregion_level_1",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "SEMEA"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "subregion_level_2",
-          "keyword": "subregion_level_2",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "Italy"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "ae_email",
-          "keyword": "ae_email",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "michele.guglielmo@databricks.com"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "1c962c5d",
-      "displayName": "AE List",
-      "queryLines": [
-        "SELECT distinct Region_Level_1, Region_Level_2, Region_Level_3, Email\n",
-        "FROM gtm_silver.targets_individual\n",
-        "where Email is not NULL\n",
-        "and Business_Unit = :business_unit\n",
-        "and Region_Level_1 = :subregion_level_1\n",
-        "and region_level_2 = :subregion_level_2"
-      ],
-      "parameters": [
-        {
-          "displayName": "subregion_level_1",
-          "keyword": "subregion_level_1",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "SEMEA"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "subregion_level_2",
-          "keyword": "subregion_level_2",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "Italy"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "business_unit",
-          "keyword": "business_unit",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "EMEA"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "feae76e7",
-      "displayName": "Gantt",
-      "queryLines": [
-        "/*\n",
-        "Static lookup tables to represent fiscal quarters.\n",
-        "*/\n",
-        "with dates as (\n",
-        "  select cast(m as date) as m, fq, fy, q\n",
-        "  , last_day(m) as last_day_of_month, year(m) as cy, month(m) as cm\n",
-        "  from (\n",
-        "    values \n",
-        "      ('2025-02-01', 'FY26-Q1', 2026, 1),\n",
-        "      ('2025-03-01', 'FY26-Q1', 2026, 1),\n",
-        "      ('2025-04-01', 'FY26-Q1', 2026, 1),\n",
-        "      ('2025-05-01', 'FY26-Q2', 2026, 2),\n",
-        "      ('2025-06-01', 'FY26-Q2', 2026, 2),\n",
-        "      ('2025-07-01', 'FY26-Q2', 2026, 2),\n",
-        "      ('2025-08-01', 'FY26-Q3', 2026, 3),\n",
-        "      ('2025-09-01', 'FY26-Q3', 2026, 3),\n",
-        "      ('2025-10-01', 'FY26-Q3', 2026, 3),\n",
-        "      ('2025-11-01', 'FY26-Q4', 2026, 4),\n",
-        "      ('2025-12-01', 'FY26-Q4', 2026, 4),\n",
-        "      ('2026-01-01', 'FY26-Q4', 2026, 4),\n",
-        "      ('2026-02-01', 'FY27-Q1', 2027, 1),\n",
-        "      ('2026-03-01', 'FY27-Q1', 2027, 1),\n",
-        "      ('2026-04-01', 'FY27-Q1', 2027, 1),\n",
-        "      ('2026-05-01', 'FY27-Q2', 2027, 2),\n",
-        "      ('2026-06-01', 'FY27-Q2', 2027, 2),\n",
-        "      ('2026-07-01', 'FY27-Q2', 2027, 2),\n",
-        "      ('2026-08-01', 'FY27-Q3', 2027, 3),\n",
-        "      ('2026-09-01', 'FY27-Q3', 2027, 3),\n",
-        "      ('2026-10-01', 'FY27-Q3', 2027, 3),\n",
-        "      ('2026-11-01', 'FY27-Q4', 2027, 4),\n",
-        "      ('2026-12-01', 'FY27-Q4', 2027, 4),\n",
-        "      ('2027-01-01', 'FY27-Q4', 2027, 4) \n",
-        "  ) as dates(m, fq, fy, q)\n",
-        "),\n",
-        "\n",
-        "financial_quarters as (\n",
-        "  select fq, fy, q\n",
-        "    , max(last_day_of_month) as fiscal_quarter_end_date\n",
-        "    , min(m) as fiscal_quarter_start_date\n",
-        "    , case when getdate() > fiscal_quarter_end_date then q else null end as last_closed_q\n",
-        "    , case when getdate() > fiscal_quarter_end_date then true else false end as is_quarter_closed\n",
-        "    , sum(day(last_day_of_month)) as days_in_quarter\n",
-        "    , case when getdate() >= fiscal_quarter_start_date and current_date() <= fiscal_quarter_end_date then true else false end as is_current_fiscal_quarter\n",
-        "    , (select max(usage_date) from main.gtm_gold.individual_consumption_daily)  as latest_usage_date\n",
-        "    , greatest(0, least(days_in_quarter, datediff(fiscal_quarter_end_date, latest_usage_date))) as days_left_in_quarter\n",
-        "    , case when is_current_fiscal_quarter then q else 0 end as current_quarter_number\n",
-        "  from dates\n",
-        "  group by fq, fy, q\n",
-        "),\n",
-        "\n",
-        "targets as (\n",
-        "  SELECT Region_Level_1, Region_Level_2, Region_Level_3, user_id, Email, dollars as fin_target, fiscal_year, fiscal_quarter\n",
-        "  FROM gtm_silver.targets_individual\n",
-        "  where Business_Unit = :business_unit\n",
-        "  and Region_Level_1 = :region_level_1\n",
-        "  and Region_Level_2 = :region_level_2\n",
-        "  and type_target = 'dbu'\n",
-        "  and Email = :ae_email\n",
-        "  and snapshot_date = (select max(snapshot_date) from gtm_silver.targets_individual where Region_Level_1 = :region_level_1 and Region_Level_2 = :region_level_2)\n",
-        "),\n",
-        "\n",
-        "sales_forecast as (\n",
-        "  select f.forecast_owner_id as user_id, f.fiscal_quarter_end_date, f.submitted_my_call, f.submitted_my_call_w_closed_month_actuals\n",
-        "  from gtm_silver.forecast_consumption_mcp_individual as f--main.gtm_data.core_individual_sales_forecast as f\n",
-        "  where Business_Unit = :business_unit\n",
-        "  and Region_Level_1 = :region_level_1\n",
-        "  and f.Region_Level_2 = :region_level_2\n",
-        "  --and User_Role_Name = concat('Manager-',:business_unit,'-',:region_level_1,'-',:region_level_2)\n",
-        "  and f.Email = :ae_email\n",
-        "  and f.snapshot_date = (select max(snapshot_date) from gtm_silver.forecast_consumption_mcp_individual where Region_Level_1 = :region_level_1 and Region_Level_2 = :region_level_2)\n",
-        "),\n",
-        "\n",
-        "actuals as (\n",
-        "  select :ae_email as user_id, c.fiscal_quarter_start_date, sum(c.dbu_dollars_qtd) as dbu_actuals, sum(c.dbu_dollars_t7d_avg) as dbu_dollars_t7d_avg\n",
-        "  from main.gtm_gold.materialized__view_account_obt as c\n",
-        "  left outer join main.gtm_silver.account_dim as b\n",
-        "  on c.account_id = b.account_id\n",
-        "  where b.business_unit = :business_unit\n",
-        "  and b.region_level_1 = :region_level_1\n",
-        "  and b.region_level_2 = :region_level_2\n",
-        "  and c.concatenated_emails like '%' || :ae_email || '%'\n",
-        "  group by all\n",
-        "),\n",
-        "\n",
-        "target_forecast_actuals as (\n",
-        "  select d.fy, d.q, a.*, t.fin_target, f.submitted_my_call\n",
-        "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
-        "    , case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end dbu_actuals_or_forecast\n",
-        "    , first_value(a.dbu_dollars_t7d_avg) over(order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
-        "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
-        "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
-        "    , try_divide(f.submitted_my_call - dbu_actuals_coalesced, d.days_left_in_quarter) as target_t7d  \n",
-        "\n",
-        "  from actuals as a\n",
-        "  inner join financial_quarters d\n",
-        "  on d.fiscal_quarter_start_date = a.fiscal_quarter_start_date\n",
-        "  left outer join sales_forecast as f \n",
-        "  on f.fiscal_quarter_end_date = d.fiscal_quarter_end_date\n",
-        "  left outer join targets as t \n",
-        "  on t.fiscal_year = d.fy and t.fiscal_quarter = d.q\n",
-        "),\n",
-        "\n",
-        "-- dbu_dollars_t7d_avg_latest as (\n",
-        "--   SELECT a.dbu_dollars_t7d_avg as\n",
-        "--   from actuals as a\n",
-        "--   inner join financial_quarters as q on \n",
-        "--   a.fiscal_quarter_start_date = q.first_day_of_quarter\n",
-        "--   where q.is_current_fiscal_quarter = true\n",
-        "-- ),\n",
-        "\n",
-        "usecases_filtered as (\n",
-        "  select usecase_id, usecase_name, estimated_monthly_dollar_dbus, target_onboarding_date, target_live_date\n",
-        "    , dateadd(day, 14, date_trunc('month',target_onboarding_date)) as target_onboarding_date_15 \n",
-        "    , dateadd(day, 14, date_trunc('month',target_live_date)) as target_live_date_15\n",
-        "    , datediff(target_live_date, target_onboarding_date) as total_ramping_days \n",
-        "    , date_format(dateadd(year, +1, dateadd(month, -1, target_onboarding_date)), \"'FY'yy'-Q'Q\") as target_onboarding_date_fq\n",
-        "    , date_format(dateadd(year, +1, dateadd(month, -1, target_live_date)), \"'FY'yy'-Q'Q\") as target_live_date_fq\n",
-        "    , concat('<a href=\"https://databricks.lightning.force.com/lightning/r/UseCase__c/', usecase_id, '/view\" targe=\"_blank\">',usecase_name,'</a>') as usecase_url\n",
-        "    , coalesce(num_of_blockers, 0) as num_of_blockers\n",
-        "    , case\n",
-        "        when days_in_stage <= 30 or days_in_stage is null then '0-30 days'\n",
-        "        when days_in_stage > 30 and days_in_stage <= 60 then '31-60 days'\n",
-        "        when days_in_stage > 60 and days_in_stage <= 120 then '61-120 days'\n",
-        "        when days_in_stage > 120 then '120+ days'\n",
-        "      end as days_in_stage_bucket\n",
-        "    , date_diff(DAY, current_date(), last_day(target_live_date)) as days_to_go_live\n",
-        "    , case when days_to_go_live < 0 then true else false end go_live_in_the_past\n",
-        "    , date_diff(DAY, current_date(), last_day(target_onboarding_date)) as days_to_onboarding\n",
-        "\n",
-        "     --Check hygiene issues and risks\n",
-        "    ,case\n",
-        "      -- Hygiene Issues\n",
-        "      when go_live_in_the_past then named_struct('category', 'Hygiene', 'msg', 'Go live date in the past')\n",
-        "      when implementation_status is null then named_struct('category', 'Hygiene', 'msg', 'Health status not defined')\n",
-        "      when days_to_onboarding < 0 and stage_number < 5 then named_struct('category', 'Hygiene', 'msg', 'Onboarding date in the past but stage not in Onboarding yet') \n",
-        "      -- Risks\n",
-        "      when days_to_go_live < 30 and stage_number < 5 then named_struct('category', 'Warning', 'msg', 'Go live < 30 days but stage not in Onboarding yet')\n",
-        "      when days_to_go_live < 30 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days with Red health status')\n",
-        "      when days_to_go_live < 30 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Go live < 30 days with Yellow health status')\n",
-        "      when days_to_go_live < 30 then named_struct('category', 'Warning', 'msg', 'Go live < 30 days')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <5 and implementation_status = 'Red' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days with Red health status')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <5 and implementation_status = 'Yellow' then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days with Yellow health status')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number <=3 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days but evaluation not won yet')\n",
-        "      when days_to_onboarding between 0 and 30 and stage_number =4 then named_struct('category', 'Warning', 'msg', 'Onboarding < 30 days and stage still in Confirming')      \n",
-        "      -- opportunities to accelerate\n",
-        "      when days_to_go_live < 90 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 days and stage in Confirming')\n",
-        "      when days_to_onboarding between 0 and 90 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
-        "    end as uco_info\n",
-        "  , coalesce(implementation_status, 'Unknown') as implementation_status\n",
-        "    \n",
-        "  from gtm_silver.use_case_detail\n",
-        "  where Business_Unit = :business_unit\n",
-        "  and sales_subregion_level_1 = :region_level_1\n",
-        "  and sales_subregion_level_2 = :region_level_2\n",
-        "  and is_incremental = true --Excludes upgrades\n",
-        "  and stage_number <= 5 --Filter out 'Disqualified', 'Lost' and 'Live' UCOs.\n",
-        "  and coalesce(estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.\n",
-        "  and concatenated_emails like '%' || :ae_email || '%'\n",
-        "  --and usecase_id = 'aAv8Y000000CsLuSAK' \n",
-        "  /* test cases \n",
-        "  aAv8Y000000CsLuSAK (Feb25->Sep25), aAvVp000000Uc6IKAS (May25->Sep25), aAv8Y000000lD0ySAE (Jun25->Dec25)\n",
-        "  aAvVp000000W9JVKA0 (Apr25->May25), aAvVp000000d2YEKAY (Feb25->Jul25), aAvVp000000WAqfKAG (Jun25->Jan26)\n",
-        "  */\n",
-        "),\n",
-        "\n",
-        "incremental_projections as (\n",
-        "  select uco.usecase_id, d.fq, d.fy, d.q, d.m, d.cm, d.last_day_of_month\n",
-        "    , uco.target_onboarding_date, uco.target_onboarding_date_fq, uco.target_live_date, uco.target_live_date_fq, uco.target_onboarding_date_15, uco.target_live_date_15\n",
-        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.implementation_status, uco.usecase_url, uco.num_of_blockers \n",
-        "    , datediff(getdate(), target_onboarding_date_15) as current_ramping_days \n",
-        "    -- Calculate this month's baseline for each use case, .i.e. how much are they consuming today? This is used to calculate the actual incremental consumption at the next step.\n",
-        "    -- We assume that the onboarding date and live date occur on day 15 of the month.\n",
-        "    ,case when d.m between uco.target_onboarding_date and uco.target_live_date then 1 else 0 end as is_onboarding\n",
-        "  \n",
-        "    ,case         \n",
-        "        -- if UCO not onboarded yet (i.e. the onboarding date is in the future), then no dbus are generated for the current month.\n",
-        "        when target_onboarding_date_15 > getdate() then 0\n",
-        "        -- if UCO is already live, then it should already realise the expected monthly $DBUs.\n",
-        "        when getdate() > target_live_date_15 then estimated_monthly_dollar_dbus\n",
-        "        -- if UCO is currently onboarding (i.e. the onboarding date is in the past), this is the estimated dbus for the full current month. \n",
-        "        else round(estimated_monthly_dollar_dbus * try_divide(datediff(getdate(), target_onboarding_date_15), total_ramping_days)) \n",
-        "      end as current_dbu_baseline \n",
-        "\n",
-        "    --calculate the ramping dbus assuming a linear ramp between the tonboarding date and the go-live: from 0 $dbus to the expected monthly $dbus that will be reached on go-live.\n",
-        "    , case       \n",
-        "        when d.last_day_of_month < uco.target_onboarding_date_15 then 0 --Before the onboarding date\n",
-        "        when d.last_day_of_month > uco.target_live_date_15 then uco.estimated_monthly_dollar_dbus --After the go-live the $dbus remain flat \n",
-        "        else round(uco.estimated_monthly_dollar_dbus * try_divide(datediff(d.last_day_of_month, uco.target_onboarding_date_15), uco.total_ramping_days)) --Between onboarding and go-live the dbus ramp-up linearly\n",
-        "      end as ramping_dbus\n",
-        "\n",
-        "    --remove the realised dbus from the ramp, when the use case is ramping up during the onboarding phase, past months' revenue has already been realised.\n",
-        "    , case \n",
-        "      when d.last_day_of_month < getdate() then 0 --Past month: if a use case started onboarding in the past, and the month is closed then we are removing the consumption from the pipeline to avoid double counting, because we assume it has already been realised (actual dbus).\n",
-        "      when d.last_day_of_month < uco.target_onboarding_date_15 then 0 --Before the onboarding date\n",
-        "      when d.last_day_of_month > uco.target_live_date_15 then uco.estimated_monthly_dollar_dbus - current_dbu_baseline --After the go-live\n",
-        "      else round(uco.estimated_monthly_dollar_dbus * try_divide(datediff(d.last_day_of_month, uco.target_onboarding_date_15), uco.total_ramping_days)) - current_dbu_baseline --Between onboarding and go-live \n",
-        "    end as ramping_dbus_from_baseline \n",
-        "\n",
-        "     -- calculates the actual incremental value substracting last month's $dbus from this month's $dbus.\n",
-        "    , case \n",
-        "        when getdate() > m then ramping_dbus - ramping_dbus_from_baseline\n",
-        "        else 0 --in the future\n",
-        "    end as dbus_generated\n",
-        "\n",
-        "  from usecases_filtered as uco\n",
-        "  inner join dates as d --cross join with date table\n",
-        "),\n",
-        "\n",
-        "quarterly_projection_by_use_case as (\n",
-        "  select              \n",
-        "    i.usecase_id, i.fy, i.fq, i.q\n",
-        "    , sum(i.ramping_dbus) as quarterly_ramping_dbus    \n",
-        "    , sum(i.dbus_generated) as quarterly_dbus_generated\n",
-        "    , lag(max(i.ramping_dbus)) over (partition by i.usecase_id order by i.fq asc) as last_day_of_prev_quarter_dbus\n",
-        "    from incremental_projections as i    \n",
-        "    group by all\n",
-        "),\n",
-        "\n",
-        "monthly_projection as (\n",
-        "  select\n",
-        "    ip.usecase_id, ip.fy, ip.fq, ip.q, ip.m, ip.cm, ip.ramping_dbus, ip.current_dbu_baseline, ip.is_onboarding\n",
-        "    , f.last_closed_q, f.days_left_in_quarter, f.is_quarter_closed, f.is_current_fiscal_quarter\n",
-        "    , qp.last_day_of_prev_quarter_dbus    \n",
-        "    , greatest(qp.last_day_of_prev_quarter_dbus, ip.current_dbu_baseline) as quarter_dbu_baseline\n",
-        "\n",
-        "    -- Incremental quarterly $dbus. \n",
-        "    -- If the quarter has started then we use the current baseline to identify addtional incremental dbus until the end of the quarter\n",
-        "    -- if the quarter has not started yet the baseline is the last day of the previous quarter.    \n",
-        "    ,case \n",
-        "        when ip.ramping_dbus - greatest(qp.last_day_of_prev_quarter_dbus, ip.current_dbu_baseline) < 0 then 0 -- All past months do not contribute to incremental dbus. \n",
-        "        else ip.ramping_dbus - greatest(qp.last_day_of_prev_quarter_dbus, ip.current_dbu_baseline)\n",
-        "     end as quarterly_incremental_dbus\n",
-        "\n",
-        "    , case when ip.implementation_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_green \n",
-        "    , case when ip.implementation_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_yellow \n",
-        "    , case when ip.implementation_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_red\n",
-        "    , case when ip.implementation_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end as dbus_in_pipeline_unknown\n",
-        "  \n",
-        "  from incremental_projections as ip\n",
-        "  inner join quarterly_projection_by_use_case as qp\n",
-        "  on ip.usecase_id = qp.usecase_id\n",
-        "  and ip.fq = qp.fq\n",
-        "  inner join financial_quarters as f\n",
-        "  on ip.fq = f.fq\n",
-        "),\n",
-        "\n",
-        "monthly_projection_pivoted as (\n",
-        "  select usecase_id\n",
-        "  , coalesce(`2025_02`, 0) as `2025_02`, coalesce(`2025_03`, 0) as `2025_03`, coalesce(`2025_04`, 0) as `2025_04`, coalesce(`2025_05`, 0) as `2025_05`, coalesce(`2025_06`, 0) as `2025_06`, coalesce(`2025_07`, 0) as `2025_07`\n",
-        "  , coalesce(`2025_08`, 0) as `2025_08`, coalesce(`2025_09`, 0) as `2025_09`, coalesce(`2025_10`, 0) as `2025_10`, coalesce(`2025_11`, 0) as `2025_11`, coalesce(`2025_12`, 0) as `2025_12`, coalesce(`2026_01`, 0) as `2026_01`\n",
-        "  , coalesce(`2026_02`, 0) as `2026_02`, coalesce(`2026_03`, 0) as `2026_03`, coalesce(`2026_04`, 0) as `2026_04`, coalesce(`2026_05`, 0) as `2026_05`, coalesce(`2026_06`, 0) as `2026_06`, coalesce(`2026_07`, 0) as `2026_07`\n",
-        "  , coalesce(`2026_08`, 0) as `2026_08`, coalesce(`2026_09`, 0) as `2026_09`, coalesce(`2026_10`, 0) as `2026_10`, coalesce(`2026_11`, 0) as `2026_11`, coalesce(`2026_12`, 0) as `2026_12`, coalesce(`2027_01`, 0) as `2027_01`\n",
-        "  from \n",
-        "  (\n",
-        "    select usecase_id, m, ramping_dbus from monthly_projection\n",
-        "  )\n",
-        "  pivot (sum(ramping_dbus) AS dbus\n",
-        "      for m in (\n",
-        "        '2025-02-01' as `2025_02`,\n",
-        "        '2025-03-01' as `2025_03`,\n",
-        "        '2025-04-01' as `2025_04`,\n",
-        "        '2025-05-01' as `2025_05`,\n",
-        "        '2025-06-01' as `2025_06`,\n",
-        "        '2025-07-01' as `2025_07`,\n",
-        "        '2025-08-01' as `2025_08`,\n",
-        "        '2025-09-01' as `2025_09`,\n",
-        "        '2025-10-01' as `2025_10`,\n",
-        "        '2025-11-01' as `2025_11`,\n",
-        "        '2025-12-01' as `2025_12`,\n",
-        "        '2026-01-01' as `2026_01`,\n",
-        "        '2026-02-01' as `2026_02`,\n",
-        "        '2026-03-01' as `2026_03`,\n",
-        "        '2026-04-01' as `2026_04`,\n",
-        "        '2026-05-01' as `2026_05`,\n",
-        "        '2026-06-01' as `2026_06`,\n",
-        "        '2026-07-01' as `2026_07`,\n",
-        "        '2026-08-01' as `2026_08`,\n",
-        "        '2026-09-01' as `2026_09`,\n",
-        "        '2026-10-01' as `2026_10`,\n",
-        "        '2026-11-01' as `2026_11`,\n",
-        "        '2026-12-01' as `2026_12`,\n",
-        "        '2027-01-01' as `2027_01`\n",
-        "      )\n",
-        "  )\n",
-        "),\n",
-        "\n",
-        "quarterly_projection as (\n",
-        "  select p.fy, p.fq, p.q, p.last_closed_q, p.days_left_in_quarter, p.is_quarter_closed, p.is_current_fiscal_quarter\n",
-        "    , sum(p.quarterly_incremental_dbus) as quarterly_incremental_dbus\n",
-        "    , sum(p.dbus_in_pipeline_green) as dbus_in_pipeline_green \n",
-        "    , sum(p.dbus_in_pipeline_yellow) as dbus_in_pipeline_yellow \n",
-        "    , sum(p.dbus_in_pipeline_red) as dbus_in_pipeline_red\n",
-        "    , sum(p.dbus_in_pipeline_unknown) as dbus_in_pipeline_unknown\n",
-        "    , sum(last_day_of_prev_quarter_dbus) as last_day_of_prev_quarter_dbus\n",
-        "\n",
-        "    from monthly_projection as p\n",
-        "    group by all\n",
-        "),\n",
-        "\n",
-        "quartely_projection_pivoted as (\n",
-        "  select usecase_id\n",
-        "  , coalesce(FY26_Q1, 0) FY26_Q1\n",
-        "  , coalesce(FY26_Q2, 0) FY26_Q2\n",
-        "  , coalesce(FY26_Q3, 0) FY26_Q3\n",
-        "  , coalesce(FY26_Q4, 0) FY26_Q4\n",
-        "  , coalesce(FY27_Q1, 0) FY27_Q1\n",
-        "  , coalesce(FY27_Q2, 0) FY27_Q2\n",
-        "  , coalesce(FY27_Q3, 0) FY27_Q3\n",
-        "  , coalesce(FY27_Q4, 0) FY27_Q4\n",
-        "  from \n",
-        "  (\n",
-        "    select usecase_id, fq, sum(quarterly_incremental_dbus) as quarterly_incremental_dbus \n",
-        "    from monthly_projection\n",
-        "    group by all\n",
-        "  )\n",
-        "  pivot (sum(quarterly_incremental_dbus) AS dbus\n",
-        "      for fq in (\n",
-        "        'FY26-Q1' as FY26_Q1,\n",
-        "        'FY26-Q2' as FY26_Q2,\n",
-        "        'FY26-Q3' as FY26_Q3,\n",
-        "        'FY26-Q4' as FY26_Q4,\n",
-        "        'FY27-Q1' as FY27_Q1,\n",
-        "        'FY27-Q2' as FY27_Q2,\n",
-        "        'FY27-Q3' as FY27_Q3,\n",
-        "        'FY27-Q4' as FY27_Q4\n",
-        "      )\n",
-        "  )\n",
-        "),\n",
-        "\n",
-        "uco_view as (\n",
-        "  select c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.account_executive, c.solution_architect, c.dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
-        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq, c.target_cloud, c.is_migration_usecase, c.is_incremental\n",
-        "    , c.stage, c.stage_number, c.stage_name_ui, c.days_in_stage, c.days_in_validating, c.days_in_scoping, c.days_in_evaluating, c.days_in_confirming, c.days_in_onboarding\n",
-        "    , c.usecase_description, c.demand_plan_next_steps, c.implementation_notes\n",
-        "    , c.implementation_partner_name, c.has_ps_project, c.use_case_product_enriched\n",
-        "    , b.estimated_monthly_dollar_dbus, c.estimated_monthly_dollar_dbus_weighted, b.total_ramping_days --, b.current_dbu_baseline, b.current_ramping_days\n",
-        "    , c.estimated_quarterly_dollar_dbus, c.estimated_quarterly_dollar_dbus_weighted\n",
-        "    , b.days_in_stage_bucket, b.usecase_url, b.implementation_status, b.num_of_blockers\n",
-        "    , qp.FY26_Q1, qp.FY26_Q2, qp.FY26_Q3, qp.FY26_Q4, qp.FY27_Q1, qp.FY27_Q2, qp.FY27_Q3, qp.FY27_Q4\n",
-        "    , mp.`2025_02`, mp.`2025_03`, mp.`2025_04`, mp.`2025_05`, mp.`2025_06`, mp.`2025_07`, mp.`2025_08`, mp.`2025_09`, mp.`2025_10`, mp.`2025_11`, mp.`2025_12`\n",
-        "    , mp.`2026_01`, mp.`2026_02`, mp.`2026_03`, mp.`2026_04`, mp.`2026_05`, mp.`2026_06`, mp.`2026_07`, mp.`2026_08`, mp.`2026_09`, mp.`2026_10`, mp.`2026_11`, mp.`2026_12`, mp.`2027_01`\n",
-        "    , b.days_to_go_live\n",
-        "    , b.days_to_onboarding\n",
-        "    , uco_info.category\n",
-        "    , uco_info.msg\n",
-        "\n",
-        "    from gtm_silver.use_case_detail as c\n",
-        "    inner join usecases_filtered as b\n",
-        "    on c.usecase_id = b.usecase_id\n",
-        "    inner join quartely_projection_pivoted as qp\n",
-        "    on qp.usecase_id = c.usecase_id\n",
-        "    inner join monthly_projection_pivoted as mp\n",
-        "    on mp.usecase_id = c.usecase_id\n",
-        "), \n",
-        "\n",
-        "--this is used to build a Gantt Chart\n",
-        "uco_view_unpivoted as (\n",
-        "  select mp.m, mp.fq, mp.cm, mp.is_onboarding, c.account_name, c.account_executive, c.solution_architect, c.arr_band, c.usecase_name \n",
-        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq\n",
-        "    , c.stage, c.days_in_stage, b.days_in_stage_bucket, b.implementation_status, b.num_of_blockers\n",
-        "    , c.estimated_monthly_dollar_dbus\n",
-        "    from gtm_silver.use_case_detail as c\n",
-        "    inner join usecases_filtered as b\n",
-        "    on c.usecase_id = b.usecase_id\n",
-        "    inner join monthly_projection as mp\n",
-        "    on mp.usecase_id = c.usecase_id\n",
-        "    where mp.is_onboarding > 0\n",
-        "), \n",
-        "\n",
-        "quarterly_summary as (\n",
-        "  SELECT \n",
-        "  p.fy, p.fq, p.days_left_in_quarter, p.is_quarter_closed , p.is_current_fiscal_quarter\n",
-        "  , f.fin_target, f.submitted_my_call, f.dbu_actuals_coalesced as dbu_actuals, f.dbu_actuals_or_forecast, f.dbu_actuals_current_quarter\n",
-        "  , f.dbu_dollars_t7d_avg, f.dbu_dollars_t7d_adj, f.t7d_proj_left_in_quarter, f.target_t7d\n",
-        "\n",
-        "  , coalesce(lag(f.dbu_actuals_or_forecast) over (order by p.fq asc), 0) as dbu_actuals_or_forecast_prev_quarter\n",
-        "\n",
-        "  --incremental pipeline\n",
-        "  , p.quarterly_incremental_dbus \n",
-        "  , p.dbus_in_pipeline_green, p.dbus_in_pipeline_yellow, p.dbus_in_pipeline_red, p.dbus_in_pipeline_unknown\n",
-        "  , p.dbus_in_pipeline_green * :green_confidence_pct as dbus_in_pipeline_green_in_plan\n",
-        "  , p.dbus_in_pipeline_yellow * :yellow_confidence_pct as dbus_in_pipeline_yellow_in_plan\n",
-        "  , p.dbus_in_pipeline_red * :red_confidence_pct as dbus_in_pipeline_red_in_plan\n",
-        "  , p.dbus_in_pipeline_unknown * :unknown_confidence_pct as dbus_in_pipeline_unknown_in_plan\n",
-        "\n",
-        "  --set the baseline: \n",
-        "  --for the current quarter, use the T7D because more precise. \n",
-        "  --for future quarters use \n",
-        "  , case when p.is_quarter_closed then 0 when p.is_current_fiscal_quarter then f.t7d_proj_left_in_quarter else dbu_actuals_or_forecast_prev_quarter  end as baseline\n",
-        "  , case when p.is_quarter_closed then \"Baseline\" when p.is_current_fiscal_quarter then \"Baseline (T7D Projection + OG)\" else \"Baseline (previous month's forecast) + OG\" end as baseline_label -- used as a label in the dashboard\n",
-        "\n",
-        "  , case when p.is_quarter_closed then 0 else f.dbu_actuals_coalesced + f.t7d_proj_left_in_quarter end as t7d_flat_projection \n",
-        "\n",
-        "  --best case\n",
-        "  , baseline * :best_case_qoq_organic_growth as best_case_proj_with_og_left_in_quarter\n",
-        "  , dbus_in_pipeline_green_in_plan + dbus_in_pipeline_yellow_in_plan + dbus_in_pipeline_red_in_plan + dbus_in_pipeline_unknown_in_plan as best_case_pipe_left_in_quarter\n",
-        "  , f.dbu_actuals_coalesced + best_case_proj_with_og_left_in_quarter + best_case_pipe_left_in_quarter + :best_case_adjustments as best_case_projection\n",
-        "  , try_divide(best_case_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter) as best_case_qoq_growth_pct\n",
-        "  , best_case_projection - submitted_my_call as best_case_gap_to_forecast\n",
-        " , \"QoQ: \" || format_number(best_case_qoq_growth_pct, '#.##%') || \", gap: \" || format_number(best_case_gap_to_forecast, '$,###.#') as best_case_text\n",
-        "\n",
-        "  --worst case\n",
-        "  , baseline * :worst_case_qoq_organic_growth as worst_case_proj_with_og_left_in_quarter\n",
-        "  , dbus_in_pipeline_green_in_plan as worst_case_pipe_left_in_quarter\n",
-        "  , f.dbu_actuals_coalesced + worst_case_proj_with_og_left_in_quarter + worst_case_pipe_left_in_quarter + :worst_case_adjustments as worst_case_projection\n",
-        "  , try_divide(worst_case_projection - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter) as worst_case_qoq_growth_pct\n",
-        "  , worst_case_projection - submitted_my_call as worst_case_gap_to_forecast\n",
-        "  , \"QoQ: \" || format_number(worst_case_qoq_growth_pct, '#.##%') || \", gap: \" || format_number(worst_case_gap_to_forecast, '$,###.#') as worst_case_text\n",
-        "\n",
-        "  --, p.q - lag(p.last_closed_q) ignore nulls over (order by p.fq asc) as diff\n",
-        "  --, coalesce(lag(dbu_actuals_closed_quarters) ignore nulls over (order by fq asc) * power(:qoq_organic_growth_multiplier, diff), 0) as organic_growth --calculate QoQ organic growth\n",
-        "  --, dbu_actuals_closed_quarters + quarterly_ramping_dbus + organic_growth + quarterly_dbus_generated_current_q as organic_growth_plus_pipeline_all\n",
-        "  --, dbu_actuals_closed_quarters + dbus_in_pipeline_green + organic_growth + quarterly_dbus_generated_current_q as organic_growth_plus_pipeline_green\n",
-        "\n",
-        "  from quarterly_projection as p\n",
-        "  left outer join target_forecast_actuals as f \n",
-        "  on f.fy = p.fy and f.q = p.q  \n",
-        ")\n",
-        "\n",
-        "--select * from uco_view\n",
-        "\n",
-        "--select * from quarterly_summary\n",
-        "\n",
-        "select * from uco_view_unpivoted"
-      ],
-      "parameters": [
-        {
-          "displayName": "business_unit",
-          "keyword": "business_unit",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "EMEA"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "region_level_1",
-          "keyword": "region_level_1",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "SEMEA"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "region_level_2",
-          "keyword": "region_level_2",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "Italy"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "ae_email",
-          "keyword": "ae_email",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "michele.guglielmo@databricks.com"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "green_confidence_pct",
-          "keyword": "green_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "yellow_confidence_pct",
-          "keyword": "yellow_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "red_confidence_pct",
-          "keyword": "red_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "unknown_confidence_pct",
-          "keyword": "unknown_confidence_pct",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "best_case_qoq_organic_growth",
-          "keyword": "best_case_qoq_organic_growth",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "best_case_adjustments",
-          "keyword": "best_case_adjustments",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "worst_case_qoq_organic_growth",
-          "keyword": "worst_case_qoq_organic_growth",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "worst_case_adjustments",
-          "keyword": "worst_case_adjustments",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "a3f7b2c9",
       "displayName": "Viewable Users",
       "queryLines": [
@@ -3079,7 +1683,7 @@
             "name": "bu",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d8a15a17793267f226_Business_Unit",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a18a3dd602901c1a7c7_Business_Unit",
                 "query": {
                   "datasetName": "5d926931",
                   "fields": [
@@ -3096,20 +1700,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e182a967d3923eec2c_business_unit",
-                "query": {
-                  "datasetName": "1c962c5d",
-                  "parameters": [
-                    {
-                      "name": "business_unit",
-                      "keyword": "business_unit"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_business_unit",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_business_unit",
                 "query": {
                   "datasetName": "d284f3b9",
                   "parameters": [
@@ -3122,7 +1713,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_business_unit",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_business_unit",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -3135,33 +1726,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_business_unit",
-                "query": {
-                  "datasetName": "dd4ed9d8",
-                  "parameters": [
-                    {
-                      "name": "business_unit",
-                      "keyword": "business_unit"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_business_unit",
-                "query": {
-                  "datasetName": "feae76e7",
-                  "parameters": [
-                    {
-                      "name": "business_unit",
-                      "keyword": "business_unit"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_business_unit",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_business_unit",
                 "query": {
                   "datasetName": "fe0ffa91",
                   "parameters": [
@@ -3197,31 +1762,19 @@
                 "fields": [
                   {
                     "fieldName": "Business_Unit",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d8a15a17793267f226_Business_Unit"
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a18a3dd602901c1a7c7_Business_Unit"
                   },
                   {
                     "parameterName": "business_unit",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e182a967d3923eec2c_business_unit"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_business_unit"
                   },
                   {
                     "parameterName": "business_unit",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_business_unit"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_business_unit"
                   },
                   {
                     "parameterName": "business_unit",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_business_unit"
-                  },
-                  {
-                    "parameterName": "business_unit",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_business_unit"
-                  },
-                  {
-                    "parameterName": "business_unit",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_business_unit"
-                  },
-                  {
-                    "parameterName": "business_unit",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_business_unit"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_business_unit"
                   }
                 ]
               }
@@ -3239,7 +1792,7 @@
             "name": "region-level-1",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d8a15a17793267f226_Region_Level_1",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a18a3dd602901c1a7c7_Region_Level_1",
                 "query": {
                   "datasetName": "5d926931",
                   "fields": [
@@ -3256,20 +1809,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e182a967d3923eec2c_subregion_level_1",
-                "query": {
-                  "datasetName": "1c962c5d",
-                  "parameters": [
-                    {
-                      "name": "subregion_level_1",
-                      "keyword": "subregion_level_1"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_region_level_1",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_region_level_1",
                 "query": {
                   "datasetName": "d284f3b9",
                   "parameters": [
@@ -3282,7 +1822,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_region_level_1",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_region_level_1",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -3295,33 +1835,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_subregion_level_1",
-                "query": {
-                  "datasetName": "dd4ed9d8",
-                  "parameters": [
-                    {
-                      "name": "subregion_level_1",
-                      "keyword": "subregion_level_1"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_region_level_1",
-                "query": {
-                  "datasetName": "feae76e7",
-                  "parameters": [
-                    {
-                      "name": "region_level_1",
-                      "keyword": "region_level_1"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_region_level_1",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_region_level_1",
                 "query": {
                   "datasetName": "fe0ffa91",
                   "parameters": [
@@ -3357,31 +1871,19 @@
                 "fields": [
                   {
                     "fieldName": "Region_Level_1",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d8a15a17793267f226_Region_Level_1"
-                  },
-                  {
-                    "parameterName": "subregion_level_1",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e182a967d3923eec2c_subregion_level_1"
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a18a3dd602901c1a7c7_Region_Level_1"
                   },
                   {
                     "parameterName": "region_level_1",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_region_level_1"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_region_level_1"
                   },
                   {
                     "parameterName": "region_level_1",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_region_level_1"
-                  },
-                  {
-                    "parameterName": "subregion_level_1",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_subregion_level_1"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_region_level_1"
                   },
                   {
                     "parameterName": "region_level_1",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_region_level_1"
-                  },
-                  {
-                    "parameterName": "region_level_1",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_region_level_1"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_region_level_1"
                   }
                 ]
               }
@@ -3399,7 +1901,7 @@
             "name": "region-level-2",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d8a15a17793267f226_Region_Level_2",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a18a3dd602901c1a7c7_Region_Level_2",
                 "query": {
                   "datasetName": "5d926931",
                   "fields": [
@@ -3416,20 +1918,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e182a967d3923eec2c_subregion_level_2",
-                "query": {
-                  "datasetName": "1c962c5d",
-                  "parameters": [
-                    {
-                      "name": "subregion_level_2",
-                      "keyword": "subregion_level_2"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_region_level_2",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_region_level_2",
                 "query": {
                   "datasetName": "d284f3b9",
                   "parameters": [
@@ -3442,7 +1931,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_region_level_2",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_region_level_2",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -3455,33 +1944,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_subregion_level_2",
-                "query": {
-                  "datasetName": "dd4ed9d8",
-                  "parameters": [
-                    {
-                      "name": "subregion_level_2",
-                      "keyword": "subregion_level_2"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_region_level_2",
-                "query": {
-                  "datasetName": "feae76e7",
-                  "parameters": [
-                    {
-                      "name": "region_level_2",
-                      "keyword": "region_level_2"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_region_level_2",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_region_level_2",
                 "query": {
                   "datasetName": "fe0ffa91",
                   "parameters": [
@@ -3517,31 +1980,19 @@
                 "fields": [
                   {
                     "fieldName": "Region_Level_2",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d8a15a17793267f226_Region_Level_2"
-                  },
-                  {
-                    "parameterName": "subregion_level_2",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e182a967d3923eec2c_subregion_level_2"
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a18a3dd602901c1a7c7_Region_Level_2"
                   },
                   {
                     "parameterName": "region_level_2",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_region_level_2"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_region_level_2"
                   },
                   {
                     "parameterName": "region_level_2",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_region_level_2"
-                  },
-                  {
-                    "parameterName": "subregion_level_2",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_subregion_level_2"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_region_level_2"
                   },
                   {
                     "parameterName": "region_level_2",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_region_level_2"
-                  },
-                  {
-                    "parameterName": "region_level_2",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_region_level_2"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_region_level_2"
                   }
                 ]
               }
@@ -3559,7 +2010,7 @@
             "name": "view-as",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e89748ac30f2e7a12d_user_email",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a65b7888cf2525dc4d4_user_email",
                 "query": {
                   "datasetName": "a3f7b2c9",
                   "fields": [
@@ -3576,7 +2027,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_ae_email",
                 "query": {
                   "datasetName": "d284f3b9",
                   "parameters": [
@@ -3589,7 +2040,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_ae_email",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -3602,33 +2053,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_ae_email",
-                "query": {
-                  "datasetName": "feae76e7",
-                  "parameters": [
-                    {
-                      "name": "ae_email",
-                      "keyword": "ae_email"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_ae_email",
-                "query": {
-                  "datasetName": "dd4ed9d8",
-                  "parameters": [
-                    {
-                      "name": "ae_email",
-                      "keyword": "ae_email"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              },
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_ae_email",
                 "query": {
                   "datasetName": "fe0ffa91",
                   "parameters": [
@@ -3664,27 +2089,19 @@
                 "fields": [
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411a5a0203be976c8068c_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_ae_email"
                   },
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411d3ba9356f26755aee5_ae_email"
-                  },
-                  {
-                    "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e4a97179dccc4b3e66_ae_email"
-                  },
-                  {
-                    "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411dd8296d0bbf8a691ce_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_ae_email"
                   },
                   {
                     "fieldName": "user_email",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118666f4411e89748ac30f2e7a12d_user_email"
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a65b7888cf2525dc4d4_user_email"
                   },
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_ae_email"
                   }
                 ]
               }
@@ -5218,6 +3635,14 @@
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
+                      "name": "warning_icon",
+                      "expression": "`warning_icon`"
+                    },
+                    {
+                      "name": "hygiene_icon",
+                      "expression": "`hygiene_icon`"
+                    },
+                    {
                       "name": "account_executive",
                       "expression": "`account_executive`"
                     },
@@ -5304,6 +3729,22 @@
                     {
                       "name": "onboarding_doc_link",
                       "expression": "`onboarding_doc_link`"
+                    },
+                    {
+                      "name": "hygiene_rules",
+                      "expression": "`hygiene_rules`"
+                    },
+                    {
+                      "name": "warning_rules",
+                      "expression": "`warning_rules`"
+                    },
+                    {
+                      "name": "`warning_rules`",
+                      "expression": "`warning_rules`"
+                    },
+                    {
+                      "name": "`hygiene_rules`",
+                      "expression": "`hygiene_rules`"
                     }
                   ],
                   "disaggregated": true
@@ -5311,27 +3752,57 @@
               }
             ],
             "spec": {
-              "version": 2,
+              "displayRowNumbers": true,
               "frame": {
                 "showTitle": true,
                 "title": "Quarterly incremental consumption by use case",
                 "showDescription": true,
                 "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs.\n(*) We are assuming that the onboarding and live dates occur on day 15 of the month"
               },
+              "version": 2,
               "rowsPerPage": 25,
-              "displayRowNumbers": true,
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
+                    "fieldName": "warning_icon",
+                    "columnWidth": 48,
+                    "displayName": " ",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `warning_rules` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "hygiene_icon",
+                    "columnWidth": 48,
+                    "displayName": " ",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `hygiene_rules` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
                     "fieldName": "account_executive",
                     "columnWidth": 150,
-                    "displayName": "Account Exec"
+                    "displayName": "AE"
                   },
                   {
                     "fieldName": "solution_architect",
                     "columnWidth": 150,
-                    "displayName": "Solutions Architect"
+                    "displayName": "SA"
                   },
                   {
                     "fieldName": "account_name",
@@ -5363,11 +3834,11 @@
                   },
                   {
                     "fieldName": "estimated_quarterly_dollar_dbus",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
+                    "useForSearch": false,
                     "displayName": "Qtr $DBUs",
                     "actions": {
                       "hover": {
@@ -5378,11 +3849,11 @@
                   },
                   {
                     "fieldName": "estimated_quarterly_dollar_dbus_weighted",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
+                    "useForSearch": false,
                     "displayName": "Qtr $DBUs (Weighted)",
                     "actions": {
                       "hover": {
@@ -5393,7 +3864,6 @@
                   },
                   {
                     "fieldName": "FY27_Q1",
-                    "useForSearch": false,
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
@@ -5403,6 +3873,7 @@
                       },
                       "hideGroupSeparator": true
                     },
+                    "useForSearch": false,
                     "columnWidth": 130,
                     "displayName": "FY27 Q1 (Incr)",
                     "actions": {
@@ -5414,11 +3885,11 @@
                   },
                   {
                     "fieldName": "FY27_Q2",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
+                    "useForSearch": false,
                     "columnWidth": 130,
                     "displayName": "FY27 Q2 (Incr)",
                     "actions": {
@@ -5430,11 +3901,11 @@
                   },
                   {
                     "fieldName": "FY27_Q3",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
+                    "useForSearch": false,
                     "columnWidth": 130,
                     "displayName": "FY27 Q3 (Incr)",
                     "actions": {
@@ -5446,11 +3917,11 @@
                   },
                   {
                     "fieldName": "FY27_Q4",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
+                    "useForSearch": false,
                     "columnWidth": 130,
                     "displayName": "FY27 Q4 (Incr)",
                     "actions": {
@@ -5462,13 +3933,13 @@
                   },
                   {
                     "fieldName": "target_onboarding_date",
-                    "useForSearch": false,
-                    "contentAlignment": "right",
                     "format": {
                       "type": "moment.js",
                       "format": "MMM YYYY"
                     },
+                    "useForSearch": false,
                     "columnWidth": 110,
+                    "contentAlignment": "right",
                     "displayName": "Onboarding",
                     "actions": {
                       "hover": {
@@ -5479,13 +3950,13 @@
                   },
                   {
                     "fieldName": "target_live_date",
-                    "useForSearch": false,
-                    "contentAlignment": "right",
                     "format": {
                       "type": "moment.js",
                       "format": "MMM YYYY"
                     },
+                    "useForSearch": false,
                     "columnWidth": 100,
+                    "contentAlignment": "right",
                     "displayName": "Live",
                     "actions": {
                       "hover": {
@@ -5638,11 +4109,11 @@
                   },
                   {
                     "fieldName": "days_in_stage",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "0"
                     },
+                    "useForSearch": false,
                     "columnWidth": 130,
                     "displayName": "Days In Stage",
                     "actions": {
@@ -5698,11 +4169,11 @@
                   },
                   {
                     "fieldName": "num_of_blockers",
-                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "0"
                     },
+                    "useForSearch": false,
                     "displayName": "Blockers",
                     "actions": {
                       "hover": {
@@ -5779,6 +4250,7 @@
                   },
                   {
                     "fieldName": "implementation_partner_name",
+                    "columnWidth": 200,
                     "displayName": "Partner"
                   },
                   {
@@ -5798,6 +4270,16 @@
                       "type": "html",
                       "highlightLinks": false
                     }
+                  },
+                  {
+                    "fieldName": "hygiene_rules",
+                    "useForSearch": true,
+                    "columnWidth": 150
+                  },
+                  {
+                    "fieldName": "warning_rules",
+                    "useForSearch": true,
+                    "columnWidth": 150
                   }
                 ]
               }
@@ -7125,8 +5607,8 @@
                       "expression": "`ds_forecast_text`"
                     },
                     {
-                      "name": "sum(current_ds_forecast)",
-                      "expression": "SUM(`current_ds_forecast`)"
+                      "name": "sum(current_ds_forecast_all_accounts)",
+                      "expression": "SUM(`current_ds_forecast_all_accounts`)"
                     }
                   ],
                   "disaggregated": false
@@ -7145,7 +5627,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(current_ds_forecast)",
+                  "fieldName": "sum(current_ds_forecast_all_accounts)",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -8065,126 +6547,19 @@
         },
         {
           "widget": {
-            "name": "hygiene-checks",
+            "name": "warnings",
             "queries": [
               {
-                "name": "main_query",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_warnings",
                 "query": {
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "count(usecase_id)",
-                      "expression": "COUNT(`usecase_id`)"
+                      "name": "has_warnings",
+                      "expression": "`has_warnings`"
                     },
                     {
-                      "name": "msg",
-                      "expression": "`msg`"
-                    }
-                  ],
-                  "filters": [
-                    {
-                      "expression": "`category` NOT IN ('Opportunity') AND `category` IS NOT NULL"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "frame": {
-                "showTitle": true,
-                "title": "Hygiene Checks"
-              },
-              "widgetType": "heatmap",
-              "encodings": {
-                "x": {
-                  "fieldName": "msg",
-                  "axis": {
-                    "hideTitle": true
-                  },
-                  "scale": {
-                    "type": "categorical",
-                    "sort": {
-                      "by": "custom-order",
-                      "orderedValues": [
-                        "Go live < 30 days",
-                        "Onboarding < 30 days but evaluation not won yet",
-                        "Onboarding < 30 days and stage still in Confirming",
-                        "Onboarding < 30 days with Yellow health status",
-                        "Health status not defined"
-                      ]
-                    }
-                  }
-                },
-                "color": {
-                  "fieldName": "count(usecase_id)",
-                  "displayName": "UCO #",
-                  "scale": {
-                    "type": "quantitative",
-                    "colorRamp": {
-                      "mode": "scheme",
-                      "scheme": "reds"
-                    }
-                  }
-                },
-                "label": {
-                  "show": true
-                }
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 43,
-            "width": 12,
-            "height": 2
-          }
-        }
-      ],
-      "pageType": "PAGE_TYPE_CANVAS",
-      "layoutVersion": "GRID_V1"
-    },
-    {
-      "name": "80a8609b",
-      "displayName": "Fiscal View",
-      "layout": [
-        {
-          "widget": {
-            "name": "793fb202",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## <span style=\"color: #E8ECF0;\">Fiscal View</span>"
-              ]
-            },
-            "specExtensions": {
-              "widgetBackgroundColor": {
-                "light": "#006B9C"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 1,
-            "width": 12,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "b4a25979",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_fq",
-                "query": {
-                  "datasetName": "fe0ffa91",
-                  "fields": [
-                    {
-                      "name": "fq",
-                      "expression": "`fq`"
-                    },
-                    {
-                      "name": "fq_associativity",
+                      "name": "has_warnings_associativity",
                       "expression": "COUNT_IF(`associative_filter_predicate_group`)"
                     }
                   ],
@@ -8196,331 +6571,41 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Fiscal Quarter"
-              },
-              "selection": {
-                "defaultSelection": {
-                  "values": {
-                    "dataType": "STRING",
-                    "values": [
-                      {
-                        "value": "FY27-Q1"
-                      },
-                      {
-                        "value": "FY27-Q2"
-                      },
-                      {
-                        "value": "FY27-Q3"
-                      },
-                      {
-                        "value": "FY27-Q4"
-                      }
-                    ]
-                  }
-                }
-              },
-              "widgetType": "filter-multi-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "fq",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_fq"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 0,
-            "width": 3,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "6e14239d",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "fe0ffa91",
-                  "fields": [
-                    {
-                      "name": "sales_level",
-                      "expression": "`sales_level`"
-                    },
-                    {
-                      "name": "user_name",
-                      "expression": "`user_name`"
-                    },
-                    {
-                      "name": "fq",
-                      "expression": "`fq`"
-                    },
-                    {
-                      "name": "fin_target",
-                      "expression": "`fin_target`"
-                    },
-                    {
-                      "name": "submitted_my_call",
-                      "expression": "`submitted_my_call`"
-                    },
-                    {
-                      "name": "gaps",
-                      "expression": "`gaps`"
-                    },
-                    {
-                      "name": "sum(value)",
-                      "expression": "SUM(`value`)"
-                    }
-                  ],
-                  "cubeGroupingSets": {
-                    "sets": [
-                      {
-                        "fieldNames": [
-                          "sales_level",
-                          "user_name",
-                          "fq",
-                          "fin_target",
-                          "submitted_my_call"
-                        ]
-                      },
-                      {
-                        "fieldNames": [
-                          "gaps"
-                        ]
-                      }
-                    ]
-                  },
-                  "disaggregated": false,
-                  "orders": [
-                    {
-                      "direction": "ASC",
-                      "expression": "`sales_level`"
-                    },
-                    {
-                      "direction": "ASC",
-                      "expression": "`user_name`"
-                    },
-                    {
-                      "direction": "ASC",
-                      "expression": "`fq`"
-                    },
-                    {
-                      "direction": "ASC",
-                      "expression": "`fin_target`"
-                    },
-                    {
-                      "direction": "ASC",
-                      "expression": "`submitted_my_call`"
-                    },
-                    {
-                      "direction": "ASC",
-                      "expression": "`gaps`"
-                    }
-                  ]
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "frame": {
-                "showTitle": true,
-                "title": "Forecast gaps",
-                "showDescription": true,
-                "description": "Difference between the AE's Forecast and the following metrics: \nTarget = Financial Target, DS = Data Science Forecast, WP = Weighted Projection, T7D = T7D Projection, BC = Best Case, WC = Worst Case. "
-              },
-              "widgetType": "pivot",
-              "encodings": {
-                "rows": [
-                  {
-                    "fieldName": "sales_level",
-                    "scale": {
-                      "type": "categorical",
-                      "sort": {
-                        "by": "cell",
-                        "field": {
-                          "index": 0
-                        }
-                      }
-                    },
-                    "displayName": "Level"
-                  },
-                  {
-                    "fieldName": "user_name",
-                    "total": {
-                      "show": true
-                    },
-                    "displayName": "AE"
-                  },
-                  {
-                    "fieldName": "fq",
-                    "total": {
-                      "show": true
-                    }
-                  },
-                  {
-                    "fieldName": "fin_target",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 3
-                      },
-                      "hideGroupSeparator": false
-                    },
-                    "displayName": "Target"
-                  },
-                  {
-                    "fieldName": "submitted_my_call",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 3
-                      },
-                      "hideGroupSeparator": true
-                    },
-                    "displayName": "Forecast"
-                  }
-                ],
-                "columns": [
-                  {
-                    "fieldName": "gaps",
-                    "scale": {
-                      "type": "categorical",
-                      "sort": {
-                        "by": "custom-order",
-                        "orderedValues": [
-                          "Gap to Target",
-                          "Gap to DS",
-                          "Gap to Worst Case",
-                          "Gap to Best Case",
-                          "Gap to WP",
-                          "Gap to T7D Proj"
-                        ]
-                      }
-                    },
-                    "displayName": "Metrics"
-                  }
-                ],
-                "cell": {
-                  "type": "multi-cell",
-                  "fields": [
-                    {
-                      "fieldName": "sum(value)",
-                      "cellType": "text",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "compact",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "significantFigures": {
-                          "type": "all"
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "Totals",
-                      "style": {
-                        "type": "basic",
-                        "rules": [
-                          {
-                            "condition": {
-                              "operand": {
-                                "type": "data-value",
-                                "value": "0"
-                              },
-                              "operator": "<"
-                            },
-                            "foregroundColor": {
-                              "themeColorType": "visualizationColors",
-                              "position": 4
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 2,
-            "width": 12,
-            "height": 10
-          }
-        },
-        {
-          "widget": {
-            "name": "metrics",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_gaps",
-                "query": {
-                  "datasetName": "fe0ffa91",
-                  "fields": [
-                    {
-                      "name": "gaps",
-                      "expression": "`gaps`"
-                    },
-                    {
-                      "name": "gaps_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "Metrics"
+                "title": "Warnings?"
               },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "gaps",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_gaps"
+                    "fieldName": "has_warnings",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_warnings"
                   }
                 ]
               }
             }
           },
           "position": {
-            "x": 9,
-            "y": 0,
-            "width": 3,
+            "x": 4,
+            "y": 20,
+            "width": 2,
             "height": 1
           }
         },
         {
           "widget": {
-            "name": "ae",
+            "name": "hygiene",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_user_name",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_hygiene_issues",
                 "query": {
-                  "datasetName": "fe0ffa91",
+                  "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "user_name",
-                      "expression": "`user_name`"
+                      "name": "has_hygiene_issues",
+                      "expression": "`has_hygiene_issues`"
                     },
                     {
-                      "name": "user_name_associativity",
+                      "name": "has_hygiene_issues_associativity",
                       "expression": "COUNT_IF(`associative_filter_predicate_group`)"
                     }
                   ],
@@ -8532,72 +6617,14 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "AE"
-              },
-              "widgetType": "filter-multi-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "user_name",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_user_name"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 3,
-            "y": 0,
-            "width": 3,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "ae-level",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_sales_level",
-                "query": {
-                  "datasetName": "fe0ffa91",
-                  "fields": [
-                    {
-                      "name": "sales_level",
-                      "expression": "`sales_level`"
-                    },
-                    {
-                      "name": "sales_level_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "AE Level"
-              },
-              "selection": {
-                "defaultSelection": {
-                  "values": {
-                    "dataType": "INTEGER",
-                    "values": [
-                      {
-                        "value": "7"
-                      }
-                    ]
-                  }
-                }
+                "title": "Hygienize?"
               },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "sales_level",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f118d5f517133095c0ab609074b84b_sales_level"
+                    "fieldName": "has_hygiene_issues",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_hygiene_issues"
                   }
                 ]
               }
@@ -8605,8 +6632,8 @@
           },
           "position": {
             "x": 6,
-            "y": 0,
-            "width": 3,
+            "y": 20,
+            "width": 2,
             "height": 1
           }
         }
@@ -8640,8 +6667,24 @@
                       "expression": "SUM(`submitted_my_call`)"
                     },
                     {
+                      "name": "measure(v_my_call_attainment)",
+                      "expression": "MEASURE(`v_my_call_attainment`)"
+                    },
+                    {
+                      "name": "measure(v_my_call_qoq)",
+                      "expression": "MEASURE(`v_my_call_qoq`)"
+                    },
+                    {
                       "name": "sum(submitted_direct_field_consumption_forecast)",
                       "expression": "SUM(`submitted_direct_field_consumption_forecast`)"
+                    },
+                    {
+                      "name": "measure(v_ae_attainment)",
+                      "expression": "MEASURE(`v_ae_attainment`)"
+                    },
+                    {
+                      "name": "measure(v_ae_qoq)",
+                      "expression": "MEASURE(`v_ae_qoq`)"
                     },
                     {
                       "name": "sum(best_case_projection)",
@@ -8660,8 +6703,8 @@
                       "expression": "SUM(`worst_case_pipe_left_in_quarter`)"
                     },
                     {
-                      "name": "sum(current_ds_forecast)",
-                      "expression": "SUM(`current_ds_forecast`)"
+                      "name": "sum(current_ds_forecast_all_accounts)",
+                      "expression": "SUM(`current_ds_forecast_all_accounts`)"
                     },
                     {
                       "name": "sum(dbus_in_pipeline_green_in_plan)",
@@ -8678,6 +6721,31 @@
                     {
                       "name": "sum(dbus_in_pipeline_unknown_in_plan)",
                       "expression": "SUM(`dbus_in_pipeline_unknown_in_plan`)"
+                    },
+                    {
+                      "name": "sum(gap_my_call)",
+                      "expression": "SUM(`gap_my_call`)"
+                    },
+                    {
+                      "name": "sum(gap_directs_forecast)",
+                      "expression": "SUM(`gap_directs_forecast`)"
+                    },
+                    {
+                      "name": "sum(gap_best_case)",
+                      "expression": "SUM(`gap_best_case`)"
+                    },
+                    {
+                      "name": "sum(gap_worst_case)",
+                      "expression": "SUM(`gap_worst_case`)"
+                    },
+                    {
+                      "name": "sum(gap_ds_forecast)",
+                      "expression": "SUM(`gap_ds_forecast`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`fq` IN ('FY27-Q1', 'FY27-Q2', 'FY27-Q3', 'FY27-Q4')"
                     }
                   ],
                   "cubeGroupingSets": {
@@ -8707,6 +6775,9 @@
                 "columns": [
                   {
                     "fieldName": "fq",
+                    "total": {
+                      "show": true
+                    },
                     "displayName": "Fiscal Quarter"
                   }
                 ],
@@ -8726,7 +6797,11 @@
                         },
                         "hideGroupSeparator": false
                       },
-                      "displayName": "Target"
+                      "displayName": "Target",
+                      "style": {
+                        "type": "basic",
+                        "bold": true
+                      }
                     },
                     {
                       "fieldName": "sum(submitted_my_call)",
@@ -8744,12 +6819,96 @@
                       "displayName": "My Forecast",
                       "style": {
                         "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "bold": true,
                         "rules": [
                           {
                             "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0"
+                              },
+                              "operator": ">=",
+                              "fieldName": "sum(gap_my_call)"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            },
+                            "bold": true
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "fieldName": "measure(v_my_call_attainment)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-percent",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 1
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "displayName": "-- Attainment",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "1"
+                              },
                               "operator": ">="
                             },
-                            "backgroundColor": "#00A972"
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "fieldName": "measure(v_my_call_qoq)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-percent",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 1
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "displayName": "-- QoQ%",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0.1"
+                              },
+                              "operator": ">="
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            }
                           }
                         ]
                       }
@@ -8767,7 +6926,102 @@
                         },
                         "hideGroupSeparator": false
                       },
-                      "displayName": "AE Forecast"
+                      "displayName": "AE Forecast",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "bold": true,
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0"
+                              },
+                              "operator": ">=",
+                              "fieldName": "sum(gap_directs_forecast)"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            },
+                            "bold": true
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "fieldName": "measure(v_ae_attainment)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-percent",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 1
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "displayName": "-- Attainment",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "1"
+                              },
+                              "operator": ">="
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "fieldName": "measure(v_ae_qoq)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-percent",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 1
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "displayName": "-- QoQ",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0.1"
+                              },
+                              "operator": ">="
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            }
+                          }
+                        ]
+                      }
                     },
                     {
                       "fieldName": "sum(best_case_projection)",
@@ -8782,7 +7036,32 @@
                         },
                         "hideGroupSeparator": false
                       },
-                      "displayName": "Best Case"
+                      "displayName": "Best Case",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "bold": true,
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0"
+                              },
+                              "operator": ">=",
+                              "fieldName": "sum(gap_best_case)"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            },
+                            "bold": true
+                          }
+                        ]
+                      }
                     },
                     {
                       "fieldName": "sum(best_case_pipe_left_in_quarter)",
@@ -8812,7 +7091,32 @@
                         },
                         "hideGroupSeparator": false
                       },
-                      "displayName": "Worst Case"
+                      "displayName": "Worst Case",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "bold": true,
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0"
+                              },
+                              "operator": ">=",
+                              "fieldName": "sum(gap_worst_case)"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            },
+                            "bold": true
+                          }
+                        ]
+                      }
                     },
                     {
                       "fieldName": "sum(worst_case_pipe_left_in_quarter)",
@@ -8831,7 +7135,7 @@
                       "formatTemplate": "{{ @formatted }}"
                     },
                     {
-                      "fieldName": "sum(current_ds_forecast)",
+                      "fieldName": "sum(current_ds_forecast_all_accounts)",
                       "cellType": "text",
                       "format": {
                         "type": "number-currency",
@@ -8843,7 +7147,32 @@
                         },
                         "hideGroupSeparator": false
                       },
-                      "displayName": "DS Forecast"
+                      "displayName": "DS Forecast",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        },
+                        "bold": true,
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0"
+                              },
+                              "operator": ">=",
+                              "fieldName": "sum(gap_ds_forecast)"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 3
+                            },
+                            "bold": true
+                          }
+                        ]
+                      }
                     },
                     {
                       "fieldName": "sum(dbus_in_pipeline_green_in_plan)",
@@ -8914,7 +7243,7 @@
             "x": 0,
             "y": 0,
             "width": 7,
-            "height": 8
+            "height": 11
           }
         }
       ],
