@@ -1671,6 +1671,64 @@
         "  --AND Region_Level_1 = :subregion_level_1\n",
         "  --AND region_level_2 = :subregion_level_2"
       ]
+    },
+    {
+      "name": "9e0aa983",
+      "displayName": "Blockers",
+      "queryLines": [
+        "SELECT\n",
+        "  b.account_name,\n",
+        "  b.account_executive,\n",
+        "  b.usecase_id,\n",
+        "  concat('<a href=\"https://databricks.lightning.force.com/lightning/r/UseCase__c/', b.usecase_id, '/view\" target=\"_blank\">', b.use_case_name, '</a>') AS usecase_url,\n",
+        "  u.estimated_monthly_dollar_dbus,\n",
+        "  b.blocker_id,\n",
+        "  b.blocker_name,\n",
+        "  b.category,\n",
+        "  b.type,\n",
+        "  case when b.type = 'Blocked' then u.estimated_monthly_dollar_dbus else 0 end as blocked_dbus,\n",
+        "  case when b.type = 'Blocked' then 1 else 0 end as blocked_count,\n",
+        "  case when b.type = 'Friction' then u.estimated_monthly_dollar_dbus else 0 end as friction_dbus,\n",
+        "  case when b.type = 'Friction' then 1 else 0 end as friction_count,\n",
+        "  b.comment,\n",
+        "  aha_item.aha_reference,\n",
+        "  CASE\n",
+        "    WHEN aha_item.aha_reference IS NOT NULL\n",
+        "    THEN '<a href=\"https://databrickinternal.ideas.aha.io/ideas/' || aha_item.aha_reference || '\" target=\"_blank\">' || aha_item.aha_reference || '</a>'\n",
+        "  END                       AS aha_reference_url,\n",
+        "  aha_item.aha_name         AS aha_idea,\n",
+        "  aha_item.aha_status       AS aha_status,\n",
+        "  aha_item.aha_link         AS aha_link\n",
+        "FROM main.gtm_silver.blocker_detail b\n",
+        "INNER JOIN main.gtm_silver.use_case_detail u\n",
+        "  ON b.usecase_id = u.usecase_id\n",
+        "LATERAL VIEW OUTER EXPLODE(b.aha) AS aha_item\n",
+        "WHERE b.region_level_3 = 'Italy Strategic Core'\n",
+        "  AND b.snapshot_date  = current_date()\n",
+        "  AND (:ae_email = '' OR b.concatenated_emails LIKE '%' || :ae_email || '%')\n",
+        "  AND u.stage_number BETWEEN 1 AND 5\n",
+        "ORDER BY\n",
+        "  b.account_name,\n",
+        "  b.use_case_name,\n",
+        "  b.blocker_name"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "michele.guglielmo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
   "pages": [
@@ -3643,6 +3701,10 @@
                       "expression": "`hygiene_icon`"
                     },
                     {
+                      "name": "usecase_url",
+                      "expression": "`usecase_url`"
+                    },
+                    {
                       "name": "account_executive",
                       "expression": "`account_executive`"
                     },
@@ -3653,10 +3715,6 @@
                     {
                       "name": "account_name",
                       "expression": "`account_name`"
-                    },
-                    {
-                      "name": "usecase_url",
-                      "expression": "`usecase_url`"
                     },
                     {
                       "name": "estimated_quarterly_dollar_dbus",
@@ -3761,6 +3819,7 @@
               },
               "version": 2,
               "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 3,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -3795,6 +3854,22 @@
                     }
                   },
                   {
+                    "fieldName": "usecase_url",
+                    "useForSearch": true,
+                    "columnWidth": 300,
+                    "displayName": "Use Case",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    },
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
                     "fieldName": "account_executive",
                     "columnWidth": 150,
                     "displayName": "AE"
@@ -3814,22 +3889,6 @@
                         "type": "tooltip",
                         "tooltipTemplate": "{{ @ }}"
                       }
-                    }
-                  },
-                  {
-                    "fieldName": "usecase_url",
-                    "useForSearch": true,
-                    "columnWidth": 300,
-                    "displayName": "Use Case",
-                    "actions": {
-                      "hover": {
-                        "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
-                      }
-                    },
-                    "style": {
-                      "type": "html",
-                      "highlightLinks": false
                     }
                   },
                   {
@@ -7593,6 +7652,665 @@
             "y": 13,
             "width": 2,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "a0d6ab51",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color:#E8ECF0\">Blocker Analysis</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "mitigation-plan",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "usecase_url",
+                      "expression": "`usecase_url`"
+                    },
+                    {
+                      "name": "account_name",
+                      "expression": "`account_name`"
+                    },
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "comment",
+                      "expression": "`comment`"
+                    },
+                    {
+                      "name": "aha_reference_url",
+                      "expression": "`aha_reference_url`"
+                    },
+                    {
+                      "name": "aha_idea",
+                      "expression": "`aha_idea`"
+                    },
+                    {
+                      "name": "aha_status",
+                      "expression": "`aha_status`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Blockers - Mitigation Plan "
+              },
+              "freezeUpToColumnNumber": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "usecase_url",
+                    "columnWidth": 300,
+                    "useForSearch": true,
+                    "displayName": "Use Case",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "account_name",
+                    "columnWidth": 250,
+                    "useForSearch": true,
+                    "displayName": "Account"
+                  },
+                  {
+                    "fieldName": "category",
+                    "displayName": "Category"
+                  },
+                  {
+                    "fieldName": "type",
+                    "displayName": "Type"
+                  },
+                  {
+                    "fieldName": "comment",
+                    "columnWidth": 400,
+                    "useForSearch": true,
+                    "displayName": "Blocker Description"
+                  },
+                  {
+                    "fieldName": "aha_reference_url",
+                    "columnWidth": 100,
+                    "displayName": "AHA",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "aha_idea",
+                    "columnWidth": 300,
+                    "displayName": "AHA Description"
+                  },
+                  {
+                    "fieldName": "aha_status",
+                    "displayName": "Status"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 32,
+            "width": 12,
+            "height": 9
+          }
+        },
+        {
+          "widget": {
+            "name": "blocked",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "countdistinct(usecase_id)",
+                      "expression": "COUNT(DISTINCT `usecase_id`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`type` IS NOT NULL"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Blocked use cases by category"
+              },
+              "mark": {
+                "layout": "stack"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "type",
+                  "displayName": "Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "countdistinct(usecase_id)",
+                  "axis": {
+                    "hideLabels": false
+                  },
+                  "displayName": "UCO Count",
+                  "scale": {
+                    "type": "quantitative",
+                    "reverse": false
+                  }
+                },
+                "color": {
+                  "fieldName": "category",
+                  "legend": {
+                    "hide": false,
+                    "hideTitle": false,
+                    "position": "right"
+                  },
+                  "displayName": "Category",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 26,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "customer",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_account_name",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "account_name",
+                      "expression": "`account_name`"
+                    },
+                    {
+                      "name": "account_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Account"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "account_name",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_account_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "category",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_category",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "category",
+                      "expression": "`category`"
+                    },
+                    {
+                      "name": "category_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Category"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "category",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_category"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 23,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "type",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_type",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "type_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Type"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "type",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_type"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 23,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "aha",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_aha_idea",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "aha_idea",
+                      "expression": "`aha_idea`"
+                    },
+                    {
+                      "name": "aha_idea_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "AHA"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "aha_idea",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_aha_idea"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 23,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "top-blockers",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "aha_reference_url",
+                      "expression": "`aha_reference_url`"
+                    },
+                    {
+                      "name": "aha_idea",
+                      "expression": "`aha_idea`"
+                    },
+                    {
+                      "name": "sum(blocked_dbus)",
+                      "expression": "SUM(`blocked_dbus`)"
+                    },
+                    {
+                      "name": "sum(friction_dbus)",
+                      "expression": "SUM(`friction_dbus`)"
+                    },
+                    {
+                      "name": "countdistinct(usecase_id)",
+                      "expression": "COUNT(DISTINCT `usecase_id`)"
+                    },
+                    {
+                      "name": "aha_status",
+                      "expression": "`aha_status`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`aha_reference` IS NOT NULL"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "TOP Blockers"
+              },
+              "rowsPerPage": 10,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "aha_reference_url",
+                    "columnWidth": 110,
+                    "useForSearch": true,
+                    "displayName": "AHA",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "aha_idea",
+                    "columnWidth": 400,
+                    "useForSearch": true,
+                    "displayName": "Aha Description"
+                  },
+                  {
+                    "fieldName": "sum(blocked_dbus)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "columnWidth": 140,
+                    "displayName": "Blocked $DBUs"
+                  },
+                  {
+                    "fieldName": "sum(friction_dbus)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "columnWidth": 140,
+                    "displayName": "Friction $DBUs"
+                  },
+                  {
+                    "fieldName": "countdistinct(usecase_id)",
+                    "columnWidth": 80,
+                    "displayName": "UCO #"
+                  },
+                  {
+                    "fieldName": "aha_status",
+                    "displayName": "AHA Status",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Released"
+                            },
+                            "operator": "contains"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 24,
+            "width": 8,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "block1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "sum(blocked_count)",
+                      "expression": "SUM(`blocked_count`)"
+                    },
+                    {
+                      "name": "sum(blocked_dbus)",
+                      "expression": "SUM(`blocked_dbus`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Blocked $DBUs",
+                "showDescription": true,
+                "description": "Blocked UCOs"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(blocked_dbus)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(blocked_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 24,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "141b8181",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9e0aa983",
+                  "fields": [
+                    {
+                      "name": "sum(friction_count)",
+                      "expression": "SUM(`friction_count`)"
+                    },
+                    {
+                      "name": "sum(friction_dbus)",
+                      "expression": "SUM(`friction_dbus`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Friction $DBUs",
+                "showDescription": true,
+                "description": "Friction UCOs"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(friction_dbus)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(friction_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 24,
+            "width": 2,
+            "height": 2
           }
         }
       ],
