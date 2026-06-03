@@ -1759,11 +1759,12 @@
     },
     {
       "name": "0464c74f",
-      "displayName": "OKRs - Product",
+      "displayName": "OKR - Product",
       "queryLines": [
         "SELECT   \n",
         "a.deployable_account_name\n",
-        ", a.fiscal_year_quarter\n",
+        ", fiscal_year\n",
+        ", REPLACE(REPLACE(a.fiscal_year_quarter, '\\'', ''), ' ', '-') AS fiscal_year_quarter\n",
         ", a.usage_date\n",
         ", CASE WHEN a.usage_date = (SELECT MAX(usage_date) FROM main.gtm_gold.account_consumption_daily) THEN 'Y' ELSE 'N' END AS latest_snapshot\n",
         "\n",
@@ -1798,7 +1799,7 @@
         "--AND a.usage_date = '2026-05-28' --TEST!!\n",
         "--AND a.sales_subregion_level_3 = 'Italy Strategic Core'\n",
         "AND a.dbu_dollars_t7d_avg > 0\n",
-        "AND a.fiscal_year in (2027)\n",
+        "AND a.fiscal_year >= 2026\n",
         "AND (\n",
         "  dayofweek(a.usage_date) = 6  -- Fridays\n",
         "  OR a.usage_date = (SELECT MAX(usage_date) FROM main.gtm_gold.account_consumption_daily)  -- latest available day\n",
@@ -1862,8 +1863,8 @@
       "queryLines": [
         "SELECT\n",
         "  deployable_account_name\n",
-        "  , year(target_go_live_fiscal_year_end_date) as target_live_fiscal_year\n",
-        "  , target_live_fiscal_year_quarter\n",
+        "  , target_live_fiscal_year\n",
+        "  , REPLACE(REPLACE(target_live_fiscal_year_quarter, '\\'', ''), ' ', '-') AS target_live_fiscal_year_quarter\n",
         "  , ROUND(SUM(estimated_quarterly_dollar_dbus), 2) AS estimated_quarterly_dollar_dbus\n",
         "  , ROUND(SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus ELSE 0 END), 2) AS migration_pipeline\n",
         "  /*, ROUND(\n",
@@ -1885,10 +1886,48 @@
         "  --AND sales_subregion_level_3 = 'Italy Strategic Core'\n",
         "  AND stage_number <= 6\n",
         "  --AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa')\n",
-        "  AND CAST(SUBSTR(target_live_fiscal_year_quarter, 4, 2) AS INT) >= 27\n",
+        "  --AND CAST(SUBSTR(target_live_fiscal_year_quarter, 4, 2) AS INT) >= 27\n",
         "  AND is_incremental = true\n",
-        "  AND year(target_go_live_fiscal_year_end_date) in (2027, 2028)\n",
-        "GROUP BY ALL"
+        "  AND year(target_go_live_fiscal_year_end_date) >= 2026\n",
+        "GROUP BY ALL\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "---2026 Stats\n",
+        "/*\n",
+        "SELECT\n",
+        "  LEFT(target_live_fiscal_year_quarter, 5) AS fiscal_year,\n",
+        "  -- deployable_account_name,\n",
+        "  --target_live_fiscal_year_quarter,\n",
+        "  ROUND(SUM(estimated_quarterly_dollar_dbus), 2) AS estimated_quarterly_dollar_dbus,\n",
+        "  ROUND(SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus ELSE 0 END), 2) AS migration_pipeline,\n",
+        "  ROUND(SUM(estimated_quarterly_dollar_dbus_weighted), 2) AS total_weighted_pipeline,\n",
+        "  ROUND(SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus_weighted ELSE 0 END), 2) AS migration_weighted_pipeline,\n",
+        "  ROUND(\n",
+        "    TRY_DIVIDE(\n",
+        "      SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus_weighted ELSE 0 END),\n",
+        "      SUM(estimated_quarterly_dollar_dbus_weighted)\n",
+        "    ) * 100, 2\n",
+        "  ) AS weighted_migration_pct,\n",
+        "  ROUND(\n",
+        "    TRY_DIVIDE(\n",
+        "      SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus ELSE 0 END),\n",
+        "      SUM(estimated_quarterly_dollar_dbus)\n",
+        "    ) * 100, 2\n",
+        "  ) AS migration_pct\n",
+        "FROM main.gtm_gold.rpt_use_case_detail\n",
+        "WHERE sales_subregion_level_3 = 'Italy Strategic Core'\n",
+        "  AND stage_number = 6\n",
+        "  AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa')\n",
+        "  AND CAST(SUBSTR(target_live_fiscal_year_quarter, 4, 2) AS INT) = 26\n",
+        "  AND is_incremental = true\n",
+        "GROUP BY ALL\n",
+        "ORDER BY fiscal_year\n",
+        "*/"
       ],
       "parameters": [
         {
@@ -1923,13 +1962,13 @@
         "  SELECT\n",
         "    fiscal_year,\n",
         "    deployable_account_name,\n",
-        "    fiscal_year_quarter,\n",
+        "    REPLACE(REPLACE(fiscal_year_quarter, '\\'', ''), ' ', '-') AS fiscal_year_quarter,\n",
         "    usage_date,\n",
         "    AVG(dbu_dollars_t28d_avg) AS dbu_dollars_t28d_avg\n",
         "  FROM main.gtm_gold.account_consumption_daily\n",
         "  WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
         "    --AND deployable_account_name IN ('CNH Industrial', 'Iveco', 'EssilorLuxottica (see Luxottica)', 'Poste Italiane', 'Eni')\n",
-        "    AND fiscal_year in (2026,2027)\n",
+        "    AND fiscal_year >= 2026\n",
         "  GROUP BY fiscal_year, deployable_account_name, fiscal_year_quarter, usage_date\n",
         "  QUALIFY ROW_NUMBER() OVER (PARTITION BY deployable_account_name, fiscal_year_quarter ORDER BY usage_date DESC) = 1\n",
         "\n",
@@ -1995,8 +2034,8 @@
         "  --onboarding_date,\n",
         "  --live_date,\n",
         "\n",
-        "  concat('FY', date_format(add_months(confirming_date, 11), 'yy')) as confirming_date_fiscal,\n",
-        "  concat('FY', date_format(add_months(confirming_date, 11), 'yy'), ' Q', date_format(add_months(confirming_date, 11), 'Q')) as confirming_date_fq,\n",
+        "  date_format(add_months(confirming_date, 11), 'yyyy') as confirming_date_fiscal,\n",
+        "  date_format(dateadd(year, +1, dateadd(month, -1, confirming_date)), \"'FY'yy'-Q'Q\") as confirming_date_fq,\n",
         "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating_all_time = 0 THEN 1 END) AS uco_count_eval_skipped,    \n",
         "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating > 0 AND days_in_evaluating <= 60 THEN 1 END) as eval_lt_60_days_uco_count,\n",
         "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating > 0 THEN days_in_evaluating END) AS past_eval_days_sum,\n",
@@ -2010,7 +2049,7 @@
         "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
         "--AND sales_subregion_level_3 = 'Italy Strategic Core'\n",
         "--AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa') --interim accounts\n",
-        "AND date_format(add_months(confirming_date, 11), 'yyyy') = 2027\n",
+        "AND date_format(add_months(confirming_date, 11), 'yyyy') >= 2026\n",
         "AND stage_number > 3 --UCOs which completed evaluation.\n",
         "AND solution_architect_user_name IS NOT NULL\n",
         "  \n",
@@ -2066,8 +2105,8 @@
         "  --onboarding_date,\n",
         "  --live_date,\n",
         "\n",
-        "  concat('FY', date_format(add_months(live_date, 11), 'yy')) as live_date_fiscal,\n",
-        "  concat('FY', date_format(add_months(live_date, 11), 'yy'), ' Q', date_format(add_months(live_date, 11), 'Q')) as live_date_fq,\n",
+        "  date_format(add_months(live_date, 11), 'yyyy') as live_date_fiscal,\n",
+        "  date_format(dateadd(year, +1, dateadd(month, -1, live_date)), \"'FY'yy'-Q'Q\") as live_date_fq,\n",
         "  SUM(CASE WHEN stage_number = 6 AND days_in_confirming_all_time = 0 THEN 1 END) AS uco_count_confirm_skipped,\n",
         "  SUM(CASE WHEN stage_number = 6 AND days_in_confirming > 0 AND days_in_confirming <= 60 THEN 1 END) as confirm_lt_60_days_uco_count,\n",
         "  SUM(CASE WHEN stage_number = 6 AND days_in_confirming > 0 THEN days_in_confirming END) AS past_confirm_days_sum,\n",
@@ -2080,7 +2119,7 @@
         "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
         "--AND sales_subregion_level_3 = 'Italy Strategic Core'\n",
         "--AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa') --interim accounts\n",
-        "AND date_format(add_months(live_date, 11), 'yyyy') = 2027\n",
+        "AND date_format(add_months(live_date, 11), 'yyyy') >= 2026\n",
         "AND stage_number = 6 --LIVE UCOs\n",
         "AND solution_architect_user_name IS NOT NULL\n",
         "  \n",
@@ -2114,6 +2153,28 @@
           "description": "",
           "expression": "try_divide(SUM(confirm_lt_60_days_uco_count), SUM(past_confirm_total_uco_count))\n"
         }
+      ]
+    },
+    {
+      "name": "3d88f3de",
+      "displayName": "Quarters",
+      "queryLines": [
+        "select fiscal_quarter\n",
+        "from (\n",
+        "    values \n",
+        "        ('FY26-Q1'),\n",
+        "        ('FY26-Q2'),\n",
+        "        ('FY26-Q3'),\n",
+        "        ('FY26-Q4'),\n",
+        "        ('FY27-Q1'),\n",
+        "        ('FY27-Q2'),\n",
+        "        ('FY27-Q3'),\n",
+        "        ('FY27-Q4'),\n",
+        "        ('FY28-Q1'),\n",
+        "        ('FY28-Q2'),\n",
+        "        ('FY28-Q3'),\n",
+        "        ('FY28-Q4')\n",
+        ") as t(fiscal_quarter)"
       ]
     }
   ],
@@ -8504,7 +8565,7 @@
             }
           },
           "position": {
-            "x": 0,
+            "x": 2,
             "y": 0,
             "width": 3,
             "height": 1
@@ -9583,6 +9644,26 @@
                 "showTitle": true,
                 "title": "Tech Won UCO (>U3): Average days in Evaluating"
               },
+              "annotations": [
+                {
+                  "type": "horizontal-line",
+                  "encodings": {
+                    "y": {
+                      "dataValue": "60",
+                      "dataType": "DOUBLE"
+                    },
+                    "label": {
+                      "value": "Target"
+                    },
+                    "color": {
+                      "value": {
+                        "themeColorType": "visualizationColors",
+                        "position": 4
+                      }
+                    }
+                  }
+                }
+              ],
               "widgetType": "line",
               "encodings": {
                 "x": {
@@ -9648,6 +9729,26 @@
                 "showTitle": true,
                 "title": "Live UCO (=U6): Average days in Confirming"
               },
+              "annotations": [
+                {
+                  "type": "horizontal-line",
+                  "encodings": {
+                    "y": {
+                      "dataValue": "60",
+                      "dataType": "DOUBLE"
+                    },
+                    "label": {
+                      "value": "Target"
+                    },
+                    "color": {
+                      "value": {
+                        "themeColorType": "visualizationColors",
+                        "position": 4
+                      }
+                    }
+                  }
+                }
+              ],
               "widgetType": "line",
               "encodings": {
                 "x": {
@@ -10182,6 +10283,178 @@
             "y": 54,
             "width": 2,
             "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "fiscal-qtr",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15f2ee1e319d28e945735cc5445f7_fiscal_quarter",
+                "query": {
+                  "datasetName": "3d88f3de",
+                  "fields": [
+                    {
+                      "name": "fiscal_quarter",
+                      "expression": "`fiscal_quarter`"
+                    },
+                    {
+                      "name": "fiscal_quarter_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_target_live_date_fq",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "target_live_date_fq",
+                      "expression": "`target_live_date_fq`"
+                    },
+                    {
+                      "name": "target_live_date_fq_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15da6d6631b678da2e4624fc7859c_fiscal_year_quarter",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "fiscal_year_quarter",
+                      "expression": "`fiscal_year_quarter`"
+                    },
+                    {
+                      "name": "fiscal_year_quarter_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dc027eb195fa5a5ebe1c488366e_target_live_fiscal_year_quarter",
+                "query": {
+                  "datasetName": "8776160d",
+                  "fields": [
+                    {
+                      "name": "target_live_fiscal_year_quarter",
+                      "expression": "`target_live_fiscal_year_quarter`"
+                    },
+                    {
+                      "name": "target_live_fiscal_year_quarter_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_fiscal_year_quarter",
+                "query": {
+                  "datasetName": "5527b4d6",
+                  "fields": [
+                    {
+                      "name": "fiscal_year_quarter",
+                      "expression": "`fiscal_year_quarter`"
+                    },
+                    {
+                      "name": "fiscal_year_quarter_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15e890e111c41aeaaccbd961aba82_confirming_date_fq",
+                "query": {
+                  "datasetName": "8b30c0f1",
+                  "fields": [
+                    {
+                      "name": "confirming_date_fq",
+                      "expression": "`confirming_date_fq`"
+                    },
+                    {
+                      "name": "confirming_date_fq_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15ed16078104dbee05b6721d4f6e9_live_date_fq",
+                "query": {
+                  "datasetName": "e3f8b50c",
+                  "fields": [
+                    {
+                      "name": "live_date_fq",
+                      "expression": "`live_date_fq`"
+                    },
+                    {
+                      "name": "live_date_fq_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Fiscal Qtr"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "fiscal_quarter",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15f2ee1e319d28e945735cc5445f7_fiscal_quarter"
+                  },
+                  {
+                    "fieldName": "target_live_date_fq",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_target_live_date_fq"
+                  },
+                  {
+                    "fieldName": "fiscal_year_quarter",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15da6d6631b678da2e4624fc7859c_fiscal_year_quarter"
+                  },
+                  {
+                    "fieldName": "target_live_fiscal_year_quarter",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dc027eb195fa5a5ebe1c488366e_target_live_fiscal_year_quarter"
+                  },
+                  {
+                    "fieldName": "fiscal_year_quarter",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_fiscal_year_quarter"
+                  },
+                  {
+                    "fieldName": "confirming_date_fq",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15e890e111c41aeaaccbd961aba82_confirming_date_fq"
+                  },
+                  {
+                    "fieldName": "live_date_fq",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15ed16078104dbee05b6721d4f6e9_live_date_fq"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 1
           }
         }
       ],
