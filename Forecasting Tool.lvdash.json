@@ -275,7 +275,9 @@
         "\n",
         "uco_view as (\n",
         "  select c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.account_executive, c.solution_architect, c.dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
-        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq, c.target_cloud, c.is_migration_usecase, c.is_incremental, b.is_keytechwin\n",
+        "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq, c.target_cloud, c.is_migration_usecase\n",
+        "    , nullif(trim(c.migration_source_platform), '') as migration_source_platform_adj\n",
+        "    , c.is_incremental, b.is_keytechwin\n",
         "    , c.stage, c.stage_number, c.stage_name_ui, c.days_in_stage, c.days_in_validating, c.days_in_scoping, c.days_in_evaluating, c.days_in_confirming, c.days_in_onboarding\n",
         "    , c.usecase_description, c.demand_plan_next_steps, c.implementation_notes\n",
         "    , c.implementation_partner_name, c.has_ps_project, c.use_case_product_enriched\n",
@@ -377,6 +379,21 @@
           "displayName": "keytechwin_icon",
           "description": "",
           "expression": "CASE WHEN `is_keytechwin` THEN '<img src=\"https://www.freeiconspng.com/thumbs/key-icon/black-key-symbol-icon-6.png\" width=\"18\" height=\"18\"/>' ELSE '' END\n\n"
+        },
+        {
+          "displayName": "uco_count_with_partner",
+          "description": "",
+          "expression": "SUM(CASE WHEN implementation_partner_name is not null THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "uco_count",
+          "description": "",
+          "expression": "count(*)"
+        },
+        {
+          "displayName": "partner_attach_rate_pct",
+          "description": "",
+          "expression": "MEASURE(uco_count_with_partner) / MEASURE(uco_count)"
         }
       ]
     },
@@ -1690,7 +1707,7 @@
         "  b.account_name,\n",
         "  b.account_executive,\n",
         "  b.usecase_id,\n",
-        "  concat('<a href=\"https://databricks.lightning.force.com/lightning/r/UseCase__c/', b.usecase_id, '/view\" target=\"_blank\">', b.use_case_name, '</a>') AS usecase_url,\n",
+        "  concat('<a href=\"htatps://databricks.lightning.force.com/lightning/r/UseCase__c/', b.usecase_id, '/view\" target=\"_blank\">', b.use_case_name, '</a>') AS usecase_url,\n",
         "  u.estimated_monthly_dollar_dbus,\n",
         "  b.blocker_id,\n",
         "  b.blocker_name,\n",
@@ -1737,6 +1754,365 @@
               ]
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "0464c74f",
+      "displayName": "OKRs - Product",
+      "queryLines": [
+        "SELECT   \n",
+        "a.deployable_account_name\n",
+        ", a.fiscal_year_quarter\n",
+        ", a.usage_date\n",
+        ", CASE WHEN a.usage_date = (SELECT MAX(usage_date) FROM main.gtm_gold.account_consumption_daily) THEN 'Y' ELSE 'N' END AS latest_snapshot\n",
+        "\n",
+        "/* All */\n",
+        ", ROUND(SUM(a.dbu_dollars_t7d_avg), 2) AS dbu_dollars_t7d_avg\n",
+        ", ROUND(SUM(a.dbu_dollars_t28d_avg), 2) AS dbu_dollars_t28d_avg\n",
+        "\n",
+        "/* Lakebase */\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_ytd), 2) AS lakebase_dbu_dollars_ytd\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_t7d_avg), 2) AS lakebase_dbu_dollars_t7d_avg\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_t7d_avg_prev), 2) AS lakebase_dbu_dollars_t7d_prev\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_t28d_avg), 2) AS lakebase_dbu_dollars_t28d_avg\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_t28d_avg_prev), 2) AS lakebase_dbu_dollars_t28d_avg_prev\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_t28d_sum), 2) AS lakebase_dbu_dollars_t28d_sum\n",
+        ", ROUND(SUM(a.lakebase_dbu_dollars_t28d_sum_prev), 2) AS lakebase_dbu_dollars_t28d_sum_prev\n",
+        ", CASE when(lakebase_dbu_dollars_t28d_sum > 5000 and lakebase_dbu_dollars_t28d_sum_prev > 5000) then true else false end as lakebase_activated\n",
+        "--, ROUND(TRY_DIVIDE(SUM(a.lakebase_dbu_dollars_t7d_avg), SUM(a.dbu_dollars_t7d_avg)) * 100, 4) AS lakebase_penetration_pct\n",
+        "--, ROUND(TRY_DIVIDE(SUM(a.lakebase_dbu_dollars_t28d_avg), SUM(a.dbu_dollars_t28d_avg)) * 100, 4) AS lakebase_penetration_t28d_pct\n",
+        "\n",
+        "/* DWH */\n",
+        ", ROUND(SUM(a.dwh_dbu_dollars_ytd), 2) AS dwh_dbu_dollars_ytd\n",
+        ", ROUND(SUM(dwh_dbu_dollars_t7d_avg), 2) AS dwh_dbu_dollars_t7d_avg\n",
+        ", ROUND(SUM(dwh_dbu_dollars_t28d_avg), 2) AS dwh_dbu_dollars_t28d_avg\n",
+        ", ROUND(SUM(dwh_dbu_dollars_t7d_avg_prev), 2) AS dwh_dbu_dollars_t7d_avg_prev\n",
+        ", ROUND(SUM(dwh_dbu_dollars_t28d_avg_prev), 2) AS dwh_dbu_dollars_t28d_avg_prev\n",
+        "--, ROUND(TRY_DIVIDE(SUM(dwh_dbu_dollars_t7d_avg), SUM(dbu_dollars_t7d_avg)) * 100, 2) AS dwh_penetration_t7d_pct\n",
+        "--, ROUND(TRY_DIVIDE(SUM(dwh_dbu_dollars_t28d_avg), SUM(dbu_dollars_t28d_avg)) * 100, 2) AS dwh_penetration_t28d_pct\n",
+        "\n",
+        "FROM main.gtm_gold.account_consumption_daily AS a\n",
+        "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "--AND a.deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa')\n",
+        "--AND a.usage_date = '2026-05-28' --TEST!!\n",
+        "--AND a.sales_subregion_level_3 = 'Italy Strategic Core'\n",
+        "AND a.dbu_dollars_t7d_avg > 0\n",
+        "AND a.fiscal_year in (2027)\n",
+        "AND (\n",
+        "  dayofweek(a.usage_date) = 6  -- Fridays\n",
+        "  OR a.usage_date = (SELECT MAX(usage_date) FROM main.gtm_gold.account_consumption_daily)  -- latest available day\n",
+        ")\n",
+        "GROUP BY ALL\n",
+        "ORDER BY dbu_dollars_t7d_avg DESC\n"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "antonio.carrozzo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "lakebase_penetration_t7d_pct",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(lakebase_dbu_dollars_t7d_avg), SUM(dbu_dollars_t7d_avg))\n"
+        },
+        {
+          "displayName": "lakebase_penetration_t28d_pct",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(lakebase_dbu_dollars_t28d_avg), SUM(dbu_dollars_t28d_avg))\n"
+        },
+        {
+          "displayName": "dwh_penetration_t7d_pct",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(dwh_dbu_dollars_t7d_avg), SUM(dbu_dollars_t7d_avg))\n"
+        },
+        {
+          "displayName": "dwh_penetration_t28d_pct",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(dwh_dbu_dollars_t28d_avg), SUM(dbu_dollars_t28d_avg))\n"
+        },
+        {
+          "displayName": "lakebase_dbu_dollars_t7d_wow",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(lakebase_dbu_dollars_t7d_avg) - SUM(lakebase_dbu_dollars_t7d_prev), SUM(lakebase_dbu_dollars_t7d_prev))\n"
+        },
+        {
+          "displayName": "dwh_dbu_dollars_t7d_wow",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(dwh_dbu_dollars_t7d_avg) - SUM(dwh_dbu_dollars_t7d_avg_prev), SUM(dwh_dbu_dollars_t7d_avg_prev))\n"
+        }
+      ]
+    },
+    {
+      "name": "8776160d",
+      "displayName": "OKR - Migrations",
+      "queryLines": [
+        "SELECT\n",
+        "  deployable_account_name\n",
+        "  , year(target_go_live_fiscal_year_end_date) as target_live_fiscal_year\n",
+        "  , target_live_fiscal_year_quarter\n",
+        "  , ROUND(SUM(estimated_quarterly_dollar_dbus), 2) AS estimated_quarterly_dollar_dbus\n",
+        "  , ROUND(SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus ELSE 0 END), 2) AS migration_pipeline\n",
+        "  /*, ROUND(\n",
+        "  TRY_DIVIDE(\n",
+        "      SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus ELSE 0 END),\n",
+        "      SUM(estimated_quarterly_dollar_dbus)\n",
+        "    ) * 100, 2\n",
+        "  ) AS migration_pct */\n",
+        "  , ROUND(SUM(estimated_quarterly_dollar_dbus_weighted), 2) AS total_weighted_pipeline\n",
+        "  , ROUND(SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus_weighted ELSE 0 END), 2) AS migration_weighted_pipeline\n",
+        "  /*ROUND(\n",
+        "    TRY_DIVIDE(\n",
+        "      SUM(CASE WHEN is_migration_usecase THEN estimated_quarterly_dollar_dbus_weighted ELSE 0 END),\n",
+        "      SUM(estimated_quarterly_dollar_dbus_weighted)\n",
+        "    ) * 100, 2\n",
+        "  ) AS weighted_migration_pct*/\n",
+        "FROM main.gtm_gold.rpt_use_case_detail\n",
+        "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "  --AND sales_subregion_level_3 = 'Italy Strategic Core'\n",
+        "  AND stage_number <= 6\n",
+        "  --AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa')\n",
+        "  AND CAST(SUBSTR(target_live_fiscal_year_quarter, 4, 2) AS INT) >= 27\n",
+        "  AND is_incremental = true\n",
+        "  AND year(target_go_live_fiscal_year_end_date) in (2027, 2028)\n",
+        "GROUP BY ALL"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "antonio.carrozzo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "migration_pct",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(migration_pipeline), SUM(estimated_quarterly_dollar_dbus)\n)"
+        }
+      ]
+    },
+    {
+      "name": "5527b4d6",
+      "displayName": "OKR - QoQ Growth",
+      "queryLines": [
+        "WITH quarter_end AS (\n",
+        "  SELECT\n",
+        "    fiscal_year,\n",
+        "    deployable_account_name,\n",
+        "    fiscal_year_quarter,\n",
+        "    usage_date,\n",
+        "    AVG(dbu_dollars_t28d_avg) AS dbu_dollars_t28d_avg\n",
+        "  FROM main.gtm_gold.account_consumption_daily\n",
+        "  WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "    --AND deployable_account_name IN ('CNH Industrial', 'Iveco', 'EssilorLuxottica (see Luxottica)', 'Poste Italiane', 'Eni')\n",
+        "    AND fiscal_year in (2026,2027)\n",
+        "  GROUP BY fiscal_year, deployable_account_name, fiscal_year_quarter, usage_date\n",
+        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY deployable_account_name, fiscal_year_quarter ORDER BY usage_date DESC) = 1\n",
+        "\n",
+        ")\n",
+        "\n",
+        "SELECT\n",
+        "  deployable_account_name,\n",
+        "  fiscal_year,\n",
+        "  fiscal_year_quarter,\n",
+        "  usage_date AS snapshot_date,\n",
+        "  ROUND(dbu_dollars_t28d_avg, 2) AS dbu_dollars_t28d_avg,\n",
+        "  ROUND(LAG(dbu_dollars_t28d_avg) OVER (PARTITION BY deployable_account_name ORDER BY usage_date), 2) AS prev_quarter_t28d_avg,\n",
+        "  ROUND(dbu_dollars_t28d_avg - LAG(dbu_dollars_t28d_avg) OVER (PARTITION BY deployable_account_name ORDER BY usage_date), 2) AS qoq_change,\n",
+        "  TRY_DIVIDE(\n",
+        "    dbu_dollars_t28d_avg - LAG(dbu_dollars_t28d_avg) OVER (PARTITION BY deployable_account_name ORDER BY usage_date),\n",
+        "    LAG(dbu_dollars_t28d_avg) OVER (PARTITION BY deployable_account_name ORDER BY usage_date)\n",
+        "  ) AS qoq_change_pct\n",
+        "FROM quarter_end\n",
+        "ORDER BY fiscal_year_quarter desc"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "antonio.carrozzo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "qoq_change_pct_all",
+          "description": "",
+          "expression": "TRY_DIVIDE(SUM(dbu_dollars_t28d_avg) - SUM(prev_quarter_t28d_avg), SUM(prev_quarter_t28d_avg))"
+        }
+      ]
+    },
+    {
+      "name": "8b30c0f1",
+      "displayName": "OKR - U3 Velocity",
+      "queryLines": [
+        "SELECT\n",
+        "  solution_architect_user_name as solution_architect,\n",
+        "  --target_live_fiscal_year_quarter,\n",
+        "  --usecase_name,\n",
+        "  --stage_number,\n",
+        "  -- days_in_stage,\n",
+        "  -- days_in_validating,\n",
+        "  -- days_in_scoping,\n",
+        "  --days_in_evaluating, \n",
+        "  --days_in_evaluating_all_time, \n",
+        "  --days_in_confirming,\n",
+        "  --evaluating_date,\n",
+        "  --confirming_date,\n",
+        "  --onboarding_date,\n",
+        "  --live_date,\n",
+        "\n",
+        "  concat('FY', date_format(add_months(confirming_date, 11), 'yy')) as confirming_date_fiscal,\n",
+        "  concat('FY', date_format(add_months(confirming_date, 11), 'yy'), ' Q', date_format(add_months(confirming_date, 11), 'Q')) as confirming_date_fq,\n",
+        "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating_all_time = 0 THEN 1 END) AS uco_count_eval_skipped,    \n",
+        "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating > 0 AND days_in_evaluating <= 60 THEN 1 END) as eval_lt_60_days_uco_count,\n",
+        "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating > 0 THEN days_in_evaluating END) AS past_eval_days_sum,\n",
+        "  NULLIF(COUNT(CASE WHEN stage_number > 3 AND days_in_evaluating > 0 THEN 1 END), 0) as past_eval_total_uco_count\n",
+        "  --COUNT(try_divide(eval_lt_60_days_uco_count, past_eval_total_uco_count)) AS pct_won_within_60_days,\n",
+        "  --ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY CASE WHEN stage_number > 3 AND days_in_evaluating > 0 THEN days_in_evaluating END), 0) AS median_days_in_evaluating,\n",
+        "  --ROUND(AVG(CASE WHEN stage_number > 3 AND days_in_evaluating > 0 THEN days_in_evaluating END), 0) AS avg_days_in_evaluating,\n",
+        "  --try_divide(past_eval_days_sum, past_eval_total_uco_count) as avg_days_in_evaluating_calc,\n",
+        "\n",
+        "FROM main.gtm_gold.rpt_use_case_detail\n",
+        "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "--AND sales_subregion_level_3 = 'Italy Strategic Core'\n",
+        "--AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa') --interim accounts\n",
+        "AND date_format(add_months(confirming_date, 11), 'yyyy') = 2027\n",
+        "AND stage_number > 3 --UCOs which completed evaluation.\n",
+        "AND solution_architect_user_name IS NOT NULL\n",
+        "  \n",
+        "GROUP BY ALL"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "antonio.carrozzo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "pct_won_within_60_days",
+          "description": "",
+          "expression": "try_divide(SUM(eval_lt_60_days_uco_count), SUM(past_eval_total_uco_count))\n"
+        },
+        {
+          "displayName": "avg_days_in_evaluating",
+          "description": "",
+          "expression": "try_divide(SUM(past_eval_days_sum), SUM(past_eval_total_uco_count))\n"
+        }
+      ]
+    },
+    {
+      "name": "e3f8b50c",
+      "displayName": "OKR - U5 Velocity",
+      "queryLines": [
+        "SELECT\n",
+        "  solution_architect_user_name as solution_architect,\n",
+        "  --target_live_fiscal_year_quarter,\n",
+        "  --usecase_name,\n",
+        "  --stage_number,\n",
+        "  -- days_in_stage,\n",
+        "  -- days_in_validating,\n",
+        "  -- days_in_scoping,\n",
+        "  --days_in_evaluating, \n",
+        "  --days_in_evaluating_all_time, \n",
+        "  --days_in_confirming,\n",
+        "  --evaluating_date,\n",
+        "  --confirming_date,\n",
+        "  --onboarding_date,\n",
+        "  --live_date,\n",
+        "\n",
+        "  concat('FY', date_format(add_months(live_date, 11), 'yy')) as live_date_fiscal,\n",
+        "  concat('FY', date_format(add_months(live_date, 11), 'yy'), ' Q', date_format(add_months(live_date, 11), 'Q')) as live_date_fq,\n",
+        "  SUM(CASE WHEN stage_number = 6 AND days_in_confirming_all_time = 0 THEN 1 END) AS uco_count_confirm_skipped,\n",
+        "  SUM(CASE WHEN stage_number = 6 AND days_in_confirming > 0 AND days_in_confirming <= 60 THEN 1 END) as confirm_lt_60_days_uco_count,\n",
+        "  SUM(CASE WHEN stage_number = 6 AND days_in_confirming > 0 THEN days_in_confirming END) AS past_confirm_days_sum,\n",
+        "  NULLIF(COUNT(CASE WHEN stage_number = 6 AND days_in_confirming > 0 THEN 1 END), 0) as past_confirm_total_uco_count  \n",
+        "  --COUNT(CASE WHEN tage_number = 6 AND days_in_confirming > 0 AND days_in_confirming <= 60 THEN 1 END) / NULLIF(COUNT(CASE WHEN tage_number = 6 AND days_in_confirming > 0 THEN 1 END), 0) AS pct_live_within_60_days\n",
+        "  --ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY days_in_confirming) FILTER (WHERE tage_number = 6 AND days_in_confirming > 0), 0) AS median_days_in_confirming,\n",
+        "  --ROUND(AVG(CASE WHEN tage_number = 6 AND days_in_confirming > 0 THEN days_in_confirming END), 0) AS avg_days_in_confirming,\n",
+        "\n",
+        "FROM main.gtm_gold.rpt_use_case_detail\n",
+        "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "--AND sales_subregion_level_3 = 'Italy Strategic Core'\n",
+        "--AND deployable_account_name NOT IN ('Gruppo Hera', 'ALIA SERVIZI AMBIENTALI SPA', 'Snam Spa') --interim accounts\n",
+        "AND date_format(add_months(live_date, 11), 'yyyy') = 2027\n",
+        "AND stage_number = 6 --LIVE UCOs\n",
+        "AND solution_architect_user_name IS NOT NULL\n",
+        "  \n",
+        "GROUP BY ALL"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "antonio.carrozzo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "avg_days_in_confirming",
+          "description": "",
+          "expression": "try_divide(SUM(past_confirm_days_sum), SUM(past_confirm_total_uco_count))\n"
+        },
+        {
+          "displayName": "pct_live_within_60_days",
+          "description": "",
+          "expression": "try_divide(SUM(confirm_lt_60_days_uco_count), SUM(past_confirm_total_uco_count))\n"
         }
       ]
     }
@@ -2078,7 +2454,7 @@
             "name": "view-as",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a65b7888cf2525dc4d4_user_email",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c120aa87ddb9aa232739a_user_email",
                 "query": {
                   "datasetName": "a3f7b2c9",
                   "fields": [
@@ -2095,7 +2471,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_ae_email",
                 "query": {
                   "datasetName": "d284f3b9",
                   "parameters": [
@@ -2108,7 +2484,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_ae_email",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -2121,7 +2497,7 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c1201a5fde3a138a09bd0_ae_email",
                 "query": {
                   "datasetName": "fe0ffa91",
                   "parameters": [
@@ -2134,9 +2510,74 @@
                 }
               },
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_ae_email",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c120e8f82383d5bb318ed_ae_email",
                 "query": {
                   "datasetName": "9e0aa983",
+                  "parameters": [
+                    {
+                      "name": "ae_email",
+                      "keyword": "ae_email"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15da6d6631b678da2e4624fc7859c_ae_email",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "parameters": [
+                    {
+                      "name": "ae_email",
+                      "keyword": "ae_email"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dc027eb195fa5a5ebe1c488366e_ae_email",
+                "query": {
+                  "datasetName": "8776160d",
+                  "parameters": [
+                    {
+                      "name": "ae_email",
+                      "keyword": "ae_email"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_ae_email",
+                "query": {
+                  "datasetName": "5527b4d6",
+                  "parameters": [
+                    {
+                      "name": "ae_email",
+                      "keyword": "ae_email"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15e890e111c41aeaaccbd961aba82_ae_email",
+                "query": {
+                  "datasetName": "8b30c0f1",
+                  "parameters": [
+                    {
+                      "name": "ae_email",
+                      "keyword": "ae_email"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15ed16078104dbee05b6721d4f6e9_ae_email",
+                "query": {
+                  "datasetName": "e3f8b50c",
                   "parameters": [
                     {
                       "name": "ae_email",
@@ -2170,23 +2611,43 @@
                 "fields": [
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_ae_email"
                   },
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe019e69fe20a418ce77906_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_ae_email"
                   },
                   {
                     "fieldName": "user_email",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a65b7888cf2525dc4d4_user_email"
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c120aa87ddb9aa232739a_user_email"
                   },
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01a04a61e806f0c969fa0_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c1201a5fde3a138a09bd0_ae_email"
                   },
                   {
                     "parameterName": "ae_email",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f152b317ab13d18ee9d69ed428e339_ae_email"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c120e8f82383d5bb318ed_ae_email"
+                  },
+                  {
+                    "parameterName": "ae_email",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15da6d6631b678da2e4624fc7859c_ae_email"
+                  },
+                  {
+                    "parameterName": "ae_email",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dc027eb195fa5a5ebe1c488366e_ae_email"
+                  },
+                  {
+                    "parameterName": "ae_email",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_ae_email"
+                  },
+                  {
+                    "parameterName": "ae_email",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15e890e111c41aeaaccbd961aba82_ae_email"
+                  },
+                  {
+                    "parameterName": "ae_email",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15ed16078104dbee05b6721d4f6e9_ae_email"
                   }
                 ]
               }
@@ -3808,10 +4269,6 @@
                       "expression": "`manager_notes`"
                     },
                     {
-                      "name": "implementation_partner_name",
-                      "expression": "`implementation_partner_name`"
-                    },
-                    {
                       "name": "eval_doc_link",
                       "expression": "`eval_doc_link`"
                     },
@@ -3820,16 +4277,28 @@
                       "expression": "`onboarding_doc_link`"
                     },
                     {
+                      "name": "dsa",
+                      "expression": "`dsa`"
+                    },
+                    {
+                      "name": "implementation_partner_name",
+                      "expression": "`implementation_partner_name`"
+                    },
+                    {
+                      "name": "migration_source_platform_adj",
+                      "expression": "`migration_source_platform_adj`"
+                    },
+                    {
+                      "name": "use_case_product_enriched",
+                      "expression": "`use_case_product_enriched`"
+                    },
+                    {
                       "name": "hygiene_rules",
                       "expression": "`hygiene_rules`"
                     },
                     {
                       "name": "warning_rules",
                       "expression": "`warning_rules`"
-                    },
-                    {
-                      "name": "use_case_product_enriched",
-                      "expression": "`use_case_product_enriched`"
                     },
                     {
                       "name": "`warning_rules`",
@@ -4351,11 +4820,6 @@
                     "displayName": "Acceleration Plan"
                   },
                   {
-                    "fieldName": "implementation_partner_name",
-                    "columnWidth": 200,
-                    "displayName": "Partner"
-                  },
-                  {
                     "fieldName": "eval_doc_link",
                     "columnWidth": 100,
                     "displayName": "Eval Doc",
@@ -4374,6 +4838,27 @@
                     }
                   },
                   {
+                    "fieldName": "dsa",
+                    "columnWidth": 150,
+                    "displayName": "DSA"
+                  },
+                  {
+                    "fieldName": "implementation_partner_name",
+                    "columnWidth": 200,
+                    "displayName": "Partner"
+                  },
+                  {
+                    "fieldName": "migration_source_platform_adj",
+                    "columnWidth": 150,
+                    "displayName": "Migration Source"
+                  },
+                  {
+                    "fieldName": "use_case_product_enriched",
+                    "useForSearch": true,
+                    "columnWidth": 300,
+                    "displayName": "Products"
+                  },
+                  {
                     "fieldName": "hygiene_rules",
                     "useForSearch": true,
                     "columnWidth": 150,
@@ -4384,12 +4869,6 @@
                     "useForSearch": true,
                     "columnWidth": 150,
                     "displayName": "Warning Rules"
-                  },
-                  {
-                    "fieldName": "use_case_product_enriched",
-                    "useForSearch": true,
-                    "columnWidth": 300,
-                    "displayName": "Products"
                   }
                 ]
               }
@@ -6695,7 +7174,7 @@
             }
           },
           "position": {
-            "x": 4,
+            "x": 8,
             "y": 20,
             "width": 2,
             "height": 1
@@ -6745,6 +7224,2964 @@
             "y": 20,
             "width": 2,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "migration",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_is_migration_usecase",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "is_migration_usecase",
+                      "expression": "`is_migration_usecase`"
+                    },
+                    {
+                      "name": "is_migration_usecase_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Migration?"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "is_migration_usecase",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_is_migration_usecase"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 20,
+            "width": 2,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "74e6c427",
+      "displayName": "FE OKRs",
+      "layout": [
+        {
+          "widget": {
+            "name": "baa9599b",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color: #E8ECF0;\">OKR 1: Accelerate Platform Expansion</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "641a0364",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Lakebase $DBU >= 1% EMEA revenue / Activations in DB700 accounts: cross $5K MRR for 2 months"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "912d96a9",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Achieve T28D consumption QoQ growth of >=10% in lighthouse accounts"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "074593dc",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Alignment of SA capacity to U2/U3 new business that will yield the highest growth in $DBU / % Growth."
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 32,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "e69ecb14",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### Median U3 time-in-stage <= 60 days. >=60% of U5 tech wins reach production within 60 days."
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 39,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "dwh",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "measure(lakebase_penetration_t28d_pct)",
+                      "expression": "MEASURE(`lakebase_penetration_t28d_pct`)"
+                    },
+                    {
+                      "name": "measure(lakebase_penetration_t7d_pct)",
+                      "expression": "MEASURE(`lakebase_penetration_t7d_pct`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Lakebase T7D Penetration",
+                "showDescription": true,
+                "description": "T28 Penetration"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(lakebase_penetration_t7d_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "measure(lakebase_penetration_t28d_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "lakebase",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t7d_avg`)"
+                    },
+                    {
+                      "name": "measure(lakebase_penetration_t7d_pct)",
+                      "expression": "MEASURE(`lakebase_penetration_t7d_pct`)"
+                    },
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Lakebase T7D Trends"
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(lakebase_dbu_dollars_t7d_avg)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "Lakebase T7D $DBUs",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "deployable_account_name",
+                  "displayName": "Account",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "extra": [
+                  {
+                    "fieldName": "sum(lakebase_dbu_dollars_t7d_avg)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "Lakebase T7D"
+                  },
+                  {
+                    "fieldName": "measure(lakebase_penetration_t7d_pct)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "Lakebase Penetration %"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 3,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "46405e33",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t7d_prev)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t7d_prev`)"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t7d_avg`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current Lakebase T7D ",
+                "showDescription": true,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(lakebase_dbu_dollars_t7d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(lakebase_dbu_dollars_t7d_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "b9df00b3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t28d_avg_prev)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t28d_avg_prev`)"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t28d_avg)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t28d_avg`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current Lakebase T28D ",
+                "showDescription": true,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(lakebase_dbu_dollars_t28d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(lakebase_dbu_dollars_t28d_avg_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 7,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "cb7256fa",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### 10 DBSQL accounts >$5M; 1 > $10M"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "4a08179c",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "measure(dwh_penetration_t28d_pct)",
+                      "expression": "MEASURE(`dwh_penetration_t28d_pct`)"
+                    },
+                    {
+                      "name": "measure(dwh_penetration_t7d_pct)",
+                      "expression": "MEASURE(`dwh_penetration_t7d_pct`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "DWH T7D Penetration",
+                "showDescription": true,
+                "description": "T28 Penetration"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(dwh_penetration_t7d_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "measure(dwh_penetration_t28d_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "t7d-trends",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(dwh_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`dwh_dbu_dollars_t7d_avg`)"
+                    },
+                    {
+                      "name": "measure(dwh_penetration_t7d_pct)",
+                      "expression": "MEASURE(`dwh_penetration_t7d_pct`)"
+                    },
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` IN (`latest_snapshot`) OR TRUE"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "DWH T7D Trends"
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(dwh_dbu_dollars_t7d_avg)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "DWH T7D $DBUs",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "deployable_account_name",
+                  "displayName": "Account",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "extra": [
+                  {
+                    "fieldName": "sum(dwh_dbu_dollars_t7d_avg)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "DWH T7D"
+                  },
+                  {
+                    "fieldName": "measure(dwh_penetration_t7d_pct)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "DWH Penetration %"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "d0eb48b3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "sum(dwh_dbu_dollars_t7d_avg_prev)",
+                      "expression": "SUM(`dwh_dbu_dollars_t7d_avg_prev`)"
+                    },
+                    {
+                      "name": "sum(dwh_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`dwh_dbu_dollars_t7d_avg`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current DWH T7D ",
+                "showDescription": true,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(dwh_dbu_dollars_t7d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(dwh_dbu_dollars_t7d_avg_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "1b33a175",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "sum(dwh_dbu_dollars_t28d_avg_prev)",
+                      "expression": "SUM(`dwh_dbu_dollars_t28d_avg_prev`)"
+                    },
+                    {
+                      "name": "sum(dwh_dbu_dollars_t28d_avg)",
+                      "expression": "SUM(`dwh_dbu_dollars_t28d_avg`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current DWH T28D ",
+                "showDescription": true,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(dwh_dbu_dollars_t28d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(dwh_dbu_dollars_t28d_avg_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "b230ed54",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### >=35% of $DBUs originating from migrations"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "lake-1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "lakebase_activated",
+                      "expression": "`lakebase_activated`"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t7d_avg`)"
+                    },
+                    {
+                      "name": "measure(lakebase_dbu_dollars_t7d_wow)",
+                      "expression": "MEASURE(`lakebase_dbu_dollars_t7d_wow`)"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_ytd)",
+                      "expression": "SUM(`lakebase_dbu_dollars_ytd`)"
+                    },
+                    {
+                      "name": "measure(lakebase_penetration_t7d_pct)",
+                      "expression": "MEASURE(`lakebase_penetration_t7d_pct`)"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t28d_sum)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t28d_sum`)"
+                    },
+                    {
+                      "name": "sum(lakebase_dbu_dollars_t28d_sum_prev)",
+                      "expression": "SUM(`lakebase_dbu_dollars_t28d_sum_prev`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Lakebase ACTIVATION"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 150,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "lakebase_activated",
+                    "headerTooltip": "Lakebased crossed $5k for 2 consecutive months (T28D)",
+                    "columnWidth": 130,
+                    "displayName": "Activated?",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "true"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "sum(lakebase_dbu_dollars_t7d_avg)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 80,
+                    "displayName": "T7D"
+                  },
+                  {
+                    "fieldName": "measure(lakebase_dbu_dollars_t7d_wow)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 100,
+                    "displayName": "T7D WoW",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "sum(lakebase_dbu_dollars_ytd)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 100,
+                    "displayName": "YTD"
+                  },
+                  {
+                    "fieldName": "measure(lakebase_penetration_t7d_pct)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 80,
+                    "displayName": "Pen %"
+                  },
+                  {
+                    "fieldName": "sum(lakebase_dbu_dollars_t28d_sum)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 140,
+                    "displayName": "T28D Sum Curr"
+                  },
+                  {
+                    "fieldName": "sum(lakebase_dbu_dollars_t28d_sum_prev)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 140,
+                    "displayName": "T28D Sum Prev"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 3,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "6f100435",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(dwh_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`dwh_dbu_dollars_t7d_avg`)"
+                    },
+                    {
+                      "name": "measure(lakebase_dbu_dollars_t7d_wow)",
+                      "expression": "MEASURE(`lakebase_dbu_dollars_t7d_wow`)"
+                    },
+                    {
+                      "name": "sum(dwh_dbu_dollars_ytd)",
+                      "expression": "SUM(`dwh_dbu_dollars_ytd`)"
+                    },
+                    {
+                      "name": "measure(dwh_penetration_t7d_pct)",
+                      "expression": "MEASURE(`dwh_penetration_t7d_pct`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "DWH Stats"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 150,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "sum(dwh_dbu_dollars_t7d_avg)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 80,
+                    "displayName": "T7D"
+                  },
+                  {
+                    "fieldName": "measure(lakebase_dbu_dollars_t7d_wow)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 100,
+                    "displayName": "T7D WoW",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "sum(dwh_dbu_dollars_ytd)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 100,
+                    "displayName": "YTD"
+                  },
+                  {
+                    "fieldName": "measure(dwh_penetration_t7d_pct)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 80,
+                    "displayName": "Pen %"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 10,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "account-name",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15da6d6631b678da2e4624fc7859c_deployable_account_name",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "deployable_account_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dc027eb195fa5a5ebe1c488366e_deployable_account_name",
+                "query": {
+                  "datasetName": "8776160d",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "deployable_account_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_deployable_account_name",
+                "query": {
+                  "datasetName": "5527b4d6",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "deployable_account_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Account Name"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15da6d6631b678da2e4624fc7859c_deployable_account_name"
+                  },
+                  {
+                    "fieldName": "deployable_account_name",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dc027eb195fa5a5ebe1c488366e_deployable_account_name"
+                  },
+                  {
+                    "fieldName": "deployable_account_name",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_deployable_account_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "migration-1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8776160d",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "target_live_fiscal_year_quarter",
+                      "expression": "`target_live_fiscal_year_quarter`"
+                    },
+                    {
+                      "name": "sum(migration_pipeline)",
+                      "expression": "SUM(`migration_pipeline`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Migration Pipeline"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "target_live_fiscal_year_quarter",
+                  "displayName": "Fiscal Year",
+                  "scale": {
+                    "type": "categorical",
+                    "categorySize": {
+                      "type": "number-of-categories",
+                      "number": 10
+                    },
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(migration_pipeline)",
+                  "displayName": "Weighted $DBUs",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "deployable_account_name",
+                  "displayName": "Account Name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 17,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "migration1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8776160d",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "measure(migration_pct)",
+                      "expression": "MEASURE(`migration_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Migration pipe vs Total",
+                "showDescription": true,
+                "description": "UCO Count"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(migration_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "count(*)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "migration-vs-total-pipe",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8776160d",
+                  "fields": [
+                    {
+                      "name": "sum(migration_pipeline)",
+                      "expression": "SUM(`migration_pipeline`)"
+                    },
+                    {
+                      "name": "sum(estimated_quarterly_dollar_dbus)",
+                      "expression": "SUM(`estimated_quarterly_dollar_dbus`)"
+                    },
+                    {
+                      "name": "target_live_fiscal_year",
+                      "expression": "`target_live_fiscal_year`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Migration vs Total pipe"
+              },
+              "mark": {
+                "layout": "group"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(migration_pipeline)",
+                      "displayName": "Migration $DBUs"
+                    },
+                    {
+                      "fieldName": "sum(estimated_quarterly_dollar_dbus)",
+                      "displayName": "$DBUs in pipe"
+                    }
+                  ],
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "target_live_fiscal_year",
+                  "axis": {
+                    "title": "FY"
+                  },
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 2,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "pi",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8776160d",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(migration_pipeline)",
+                      "expression": "SUM(`migration_pipeline`)"
+                    },
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    },
+                    {
+                      "name": "measure(migration_pct)",
+                      "expression": "MEASURE(`migration_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total open pipeline originated from migrations (monthly $dbus)"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 150,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "sum(migration_pipeline)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "headerTooltip": "Total $DBUs in pipeline from migrations",
+                    "columnWidth": 170,
+                    "displayName": "Migration $DBUs"
+                  },
+                  {
+                    "fieldName": "count(*)",
+                    "columnWidth": 80,
+                    "displayName": "UCO #"
+                  },
+                  {
+                    "fieldName": "measure(migration_pct)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "columnWidth": 120,
+                    "headerTooltip": "% of pipeline generated from migrations",
+                    "displayName": "Migration pipe %"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 17,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "qoq",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "5527b4d6",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "fiscal_year_quarter",
+                      "expression": "`fiscal_year_quarter`"
+                    },
+                    {
+                      "name": "sum(qoq_change_pct)",
+                      "expression": "SUM(`qoq_change_pct`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`fiscal_year` IN (2027)"
+                    }
+                  ],
+                  "cubeGroupingSets": {
+                    "sets": [
+                      {
+                        "fieldNames": [
+                          "deployable_account_name"
+                        ]
+                      },
+                      {
+                        "fieldNames": [
+                          "fiscal_year_quarter"
+                        ]
+                      }
+                    ]
+                  },
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "direction": "ASC",
+                      "expression": "`fiscal_year_quarter`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "T28D QoQ % Growth (captured at the end of closed quarters)"
+              },
+              "widgetType": "pivot",
+              "encodings": {
+                "rows": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "displayName": "Account Name"
+                  }
+                ],
+                "columns": [
+                  {
+                    "fieldName": "fiscal_year_quarter",
+                    "displayName": "FY Qtr"
+                  }
+                ],
+                "cell": {
+                  "type": "multi-cell",
+                  "fields": [
+                    {
+                      "fieldName": "sum(qoq_change_pct)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-percent",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 2
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "displayName": "T28D QoQ%",
+                      "style": {
+                        "type": "basic",
+                        "foregroundColor": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        },
+                        "rules": [
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0"
+                              },
+                              "operator": "<"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 4
+                            }
+                          },
+                          {
+                            "condition": {
+                              "operand": {
+                                "type": "data-value",
+                                "value": "0.1"
+                              },
+                              "operator": "<"
+                            },
+                            "foregroundColor": {
+                              "themeColorType": "visualizationColors",
+                              "position": 2
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 24,
+            "width": 4,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "t8",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "5527b4d6",
+                  "fields": [
+                    {
+                      "name": "measure(qoq_change_pct_all)",
+                      "expression": "MEASURE(`qoq_change_pct_all`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "T28D QoQ %"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(qoq_change_pct_all)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 24,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "t9",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "5527b4d6",
+                  "fields": [
+                    {
+                      "name": "sum(prev_quarter_t28d_avg)",
+                      "expression": "SUM(`prev_quarter_t28d_avg`)"
+                    },
+                    {
+                      "name": "sum(dbu_dollars_t28d_avg)",
+                      "expression": "SUM(`dbu_dollars_t28d_avg`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "T28D Current",
+                "showDescription": true,
+                "description": "T28D Prev Qtr"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(dbu_dollars_t28d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(prev_quarter_t28d_avg)",
+                  "change": {
+                    "type": "percent"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 26,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "incremental-dbus-by-sa",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "solution_architect",
+                      "expression": "`solution_architect`"
+                    },
+                    {
+                      "name": "sum(FY27_Q1)",
+                      "expression": "SUM(`FY27_Q1`)"
+                    },
+                    {
+                      "name": "sum(FY27_Q2)",
+                      "expression": "SUM(`FY27_Q2`)"
+                    },
+                    {
+                      "name": "sum(FY27_Q3)",
+                      "expression": "SUM(`FY27_Q3`)"
+                    },
+                    {
+                      "name": "sum(FY27_Q4)",
+                      "expression": "SUM(`FY27_Q4`)"
+                    }
+                  ],
+                  "cubeGroupingSets": {
+                    "sets": [
+                      {
+                        "fieldNames": [
+                          "solution_architect"
+                        ]
+                      },
+                      {}
+                    ]
+                  },
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`solution_architect`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "**Incremental** $DBUs by SA "
+              },
+              "widgetType": "pivot",
+              "encodings": {
+                "rows": [
+                  {
+                    "fieldName": "solution_architect",
+                    "displayName": "SA"
+                  }
+                ],
+                "cell": {
+                  "type": "multi-cell",
+                  "fields": [
+                    {
+                      "fieldName": "sum(FY27_Q1)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q1",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "fieldName": "sum(FY27_Q2)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q2",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "fieldName": "sum(FY27_Q3)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q3",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "fieldName": "sum(FY27_Q4)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "none",
+                        "decimalPlaces": {
+                          "type": "exact",
+                          "places": 0
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "displayName": "FY27 Q4",
+                      "style": {
+                        "type": "color-scale",
+                        "backgroundColor": {
+                          "scale": {
+                            "type": "quantitative",
+                            "domain": {
+                              "min": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "displayAs": "columns"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 33,
+            "width": 5,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "stage",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_stage",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "stage",
+                      "expression": "`stage`"
+                    },
+                    {
+                      "name": "stage_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Stage"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "stage",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_stage"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 33,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "keytechwin",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_is_keytechwin",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "is_keytechwin",
+                      "expression": "`is_keytechwin`"
+                    },
+                    {
+                      "name": "is_keytechwin_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "KeyTechWIn?"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "is_keytechwin",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_is_keytechwin"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 34,
+            "width": 2,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "uco",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e3f8b50c",
+                  "fields": [
+                    {
+                      "name": "sum(confirm_lt_60_days_uco_count)",
+                      "expression": "SUM(`confirm_lt_60_days_uco_count`)"
+                    },
+                    {
+                      "name": "measure(pct_live_within_60_days)",
+                      "expression": "MEASURE(`pct_live_within_60_days`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "% UCO Live within 60 days ",
+                "showDescription": true,
+                "description": "UCO #"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(pct_live_within_60_days)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(confirm_lt_60_days_uco_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 44,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "10b84cf4",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8b30c0f1",
+                  "fields": [
+                    {
+                      "name": "sum(eval_lt_60_days_uco_count)",
+                      "expression": "SUM(`eval_lt_60_days_uco_count`)"
+                    },
+                    {
+                      "name": "measure(pct_won_within_60_days)",
+                      "expression": "MEASURE(`pct_won_within_60_days`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "% UCO Won within 60 days ",
+                "showDescription": true,
+                "description": "UCO # "
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(pct_won_within_60_days)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(eval_lt_60_days_uco_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 40,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "a2e96863",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8b30c0f1",
+                  "fields": [
+                    {
+                      "name": "sum(past_eval_total_uco_count)",
+                      "expression": "SUM(`past_eval_total_uco_count`)"
+                    },
+                    {
+                      "name": "measure(avg_days_in_evaluating)",
+                      "expression": "MEASURE(`avg_days_in_evaluating`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Avg days in U3",
+                "showDescription": true,
+                "description": "UCO # (>U3)"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_days_in_evaluating)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(past_eval_total_uco_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 42,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "eb853fa2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e3f8b50c",
+                  "fields": [
+                    {
+                      "name": "sum(past_confirm_total_uco_count)",
+                      "expression": "SUM(`past_confirm_total_uco_count`)"
+                    },
+                    {
+                      "name": "measure(avg_days_in_confirming)",
+                      "expression": "MEASURE(`avg_days_in_confirming`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Avg days in U4",
+                "showDescription": true,
+                "description": "UCO # (U6)"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_days_in_confirming)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(past_confirm_total_uco_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 46,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "tech1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8b30c0f1",
+                  "fields": [
+                    {
+                      "name": "confirming_date_fq",
+                      "expression": "`confirming_date_fq`"
+                    },
+                    {
+                      "name": "measure(avg_days_in_evaluating)",
+                      "expression": "MEASURE(`avg_days_in_evaluating`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Tech Won UCO (>U3): Average days in Evaluating"
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "confirming_date_fq",
+                  "displayName": "FY Qtr (Confirming Date)",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_days_in_evaluating)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "AVG Days in U3",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 40,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "1c98f5ac",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e3f8b50c",
+                  "fields": [
+                    {
+                      "name": "live_date_fq",
+                      "expression": "`live_date_fq`"
+                    },
+                    {
+                      "name": "measure(avg_days_in_confirming)",
+                      "expression": "MEASURE(`avg_days_in_confirming`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Live UCO (=U6): Average days in Confirming"
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "live_date_fq",
+                  "displayName": "FY Qtr (Live Date)",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(avg_days_in_confirming)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "AVG Days in U5",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 45,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "8ae388ba",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8b30c0f1",
+                  "fields": [
+                    {
+                      "name": "solution_architect",
+                      "expression": "`solution_architect`"
+                    },
+                    {
+                      "name": "measure(avg_days_in_evaluating)",
+                      "expression": "MEASURE(`avg_days_in_evaluating`)"
+                    },
+                    {
+                      "name": "measure(pct_won_within_60_days)",
+                      "expression": "MEASURE(`pct_won_within_60_days`)"
+                    },
+                    {
+                      "name": "sum(past_eval_total_uco_count)",
+                      "expression": "SUM(`past_eval_total_uco_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "U3 to U4 Velocity"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "solution_architect",
+                    "columnWidth": 150,
+                    "displayName": "SA"
+                  },
+                  {
+                    "fieldName": "measure(avg_days_in_evaluating)",
+                    "columnWidth": 140,
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "displayName": "AVG Days in U3"
+                  },
+                  {
+                    "fieldName": "measure(pct_won_within_60_days)",
+                    "columnWidth": 180,
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "displayName": "% UCO won in 60 days"
+                  },
+                  {
+                    "fieldName": "sum(past_eval_total_uco_count)",
+                    "columnWidth": 120,
+                    "displayName": "UCO # (>U3)"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 40,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "dd06f936",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e3f8b50c",
+                  "fields": [
+                    {
+                      "name": "solution_architect",
+                      "expression": "`solution_architect`"
+                    },
+                    {
+                      "name": "measure(avg_days_in_confirming)",
+                      "expression": "MEASURE(`avg_days_in_confirming`)"
+                    },
+                    {
+                      "name": "measure(pct_live_within_60_days)",
+                      "expression": "MEASURE(`pct_live_within_60_days`)"
+                    },
+                    {
+                      "name": "sum(past_confirm_total_uco_count)",
+                      "expression": "SUM(`past_confirm_total_uco_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "U5 to U6 Velocity"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "solution_architect",
+                    "columnWidth": 150,
+                    "displayName": "SA"
+                  },
+                  {
+                    "fieldName": "measure(avg_days_in_confirming)",
+                    "columnWidth": 140,
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "displayName": "AVG Days in U5"
+                  },
+                  {
+                    "fieldName": "measure(pct_live_within_60_days)",
+                    "columnWidth": 180,
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 1
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "displayName": "% UCO Live in 60 days"
+                  },
+                  {
+                    "fieldName": "sum(past_confirm_total_uco_count)",
+                    "columnWidth": 120,
+                    "displayName": "UCO # (U6)"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 45,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "eb675896",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color: #E8ECF0;\">OKR 2: Amplify Our Impact With AI</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 31,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "e723830f",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color: #E8ECF0;\">OKR 2: Amplify Our Impact With AI</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 50,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "top-10-partner",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "implementation_partner_name",
+                      "expression": "`implementation_partner_name`"
+                    },
+                    {
+                      "name": "sum(estimated_monthly_dollar_dbus)",
+                      "expression": "SUM(`estimated_monthly_dollar_dbus`)"
+                    },
+                    {
+                      "name": "measure(uco_count)",
+                      "expression": "MEASURE(`uco_count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`implementation_partner_name` IS NOT NULL"
+                    },
+                    {
+                      "expression": "`target_live_date_fq` IN (`target_live_date_fq`) OR TRUE"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "FY27 - Top 10 Partners"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "implementation_partner_name",
+                    "columnWidth": 200,
+                    "displayName": "Partner"
+                  },
+                  {
+                    "fieldName": "sum(estimated_monthly_dollar_dbus)",
+                    "columnWidth": 150,
+                    "displayName": "$DBUs (monthly)"
+                  },
+                  {
+                    "fieldName": "measure(uco_count)",
+                    "columnWidth": 100,
+                    "displayName": "UCO #"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 52,
+            "width": 4,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "partner-attach",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(uco_count)",
+                      "expression": "MEASURE(`uco_count`)"
+                    },
+                    {
+                      "name": "measure(uco_count_with_partner)",
+                      "expression": "MEASURE(`uco_count_with_partner`)"
+                    },
+                    {
+                      "name": "account_name",
+                      "expression": "`account_name`"
+                    },
+                    {
+                      "name": "measure(partner_attach_rate_pct)",
+                      "expression": "MEASURE(`partner_attach_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Partner attach rate by Account"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "account_name",
+                  "displayName": "Account Name",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(partner_attach_rate_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  },
+                  "displayName": "Partner Attach rate %",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                },
+                "extra": [
+                  {
+                    "fieldName": "measure(uco_count)"
+                  },
+                  {
+                    "fieldName": "measure(uco_count_with_partner)"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 52,
+            "width": 6,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "553af422",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### 60% partner delivery attach to UCOs across EMEA."
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 51,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "partner-attach-1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(partner_attach_rate_pct)",
+                      "expression": "MEASURE(`partner_attach_rate_pct`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Partner Attach Rate % "
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(partner_attach_rate_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 52,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "63a1e1bf",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(uco_count)",
+                      "expression": "MEASURE(`uco_count`)"
+                    },
+                    {
+                      "name": "measure(uco_count_with_partner)",
+                      "expression": "MEASURE(`uco_count_with_partner`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "UCO # with partner",
+                "showDescription": true,
+                "description": "Total UCO #"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(uco_count_with_partner)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "measure(uco_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 54,
+            "width": 2,
+            "height": 2
           }
         }
       ],
@@ -7379,335 +10816,6 @@
         },
         {
           "widget": {
-            "name": "1baa7e7d",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## <span style=\"color:#E8ECF0\">UCO Coverage</span>"
-              ]
-            },
-            "specExtensions": {
-              "widgetBackgroundColor": {
-                "light": "#006B9C"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 12,
-            "width": 12,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "incremental",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "d284f3b9",
-                  "fields": [
-                    {
-                      "name": "solution_architect",
-                      "expression": "`solution_architect`"
-                    },
-                    {
-                      "name": "sum(FY27_Q1)",
-                      "expression": "SUM(`FY27_Q1`)"
-                    },
-                    {
-                      "name": "sum(FY27_Q2)",
-                      "expression": "SUM(`FY27_Q2`)"
-                    },
-                    {
-                      "name": "sum(FY27_Q3)",
-                      "expression": "SUM(`FY27_Q3`)"
-                    },
-                    {
-                      "name": "sum(FY27_Q4)",
-                      "expression": "SUM(`FY27_Q4`)"
-                    }
-                  ],
-                  "cubeGroupingSets": {
-                    "sets": [
-                      {
-                        "fieldNames": [
-                          "solution_architect"
-                        ]
-                      },
-                      {}
-                    ]
-                  },
-                  "disaggregated": false,
-                  "orders": [
-                    {
-                      "direction": "ASC",
-                      "expression": "`solution_architect`"
-                    }
-                  ]
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "frame": {
-                "showTitle": true,
-                "title": "**Incremental** $DBUs by SA "
-              },
-              "widgetType": "pivot",
-              "encodings": {
-                "rows": [
-                  {
-                    "fieldName": "solution_architect",
-                    "total": {
-                      "show": true
-                    },
-                    "displayName": "SA"
-                  }
-                ],
-                "cell": {
-                  "type": "multi-cell",
-                  "fields": [
-                    {
-                      "fieldName": "sum(FY27_Q1)",
-                      "cellType": "text",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "FY27 Q1",
-                      "style": {
-                        "type": "color-scale",
-                        "backgroundColor": {
-                          "scale": {
-                            "type": "quantitative",
-                            "colorRamp": {
-                              "mode": "custom-sequential",
-                              "colors": {
-                                "start": "#FFFFFF",
-                                "end": "#08519C"
-                              }
-                            },
-                            "reverse": false,
-                            "domain": {
-                              "min": 0
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "fieldName": "sum(FY27_Q2)",
-                      "cellType": "text",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "FY27 Q2",
-                      "style": {
-                        "type": "color-scale",
-                        "backgroundColor": {
-                          "scale": {
-                            "type": "quantitative",
-                            "colorRamp": {
-                              "mode": "custom-sequential",
-                              "colors": {
-                                "start": "#FFFFFF",
-                                "end": "#08519C"
-                              }
-                            },
-                            "domain": {
-                              "min": 0
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "fieldName": "sum(FY27_Q3)",
-                      "cellType": "text",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "FY27 Q3",
-                      "style": {
-                        "type": "color-scale",
-                        "backgroundColor": {
-                          "scale": {
-                            "type": "quantitative",
-                            "colorRamp": {
-                              "mode": "custom-sequential",
-                              "colors": {
-                                "start": "#FFFFFF",
-                                "end": "#08519C"
-                              }
-                            },
-                            "domain": {
-                              "min": 0
-                            }
-                          }
-                        }
-                      }
-                    },
-                    {
-                      "fieldName": "sum(FY27_Q4)",
-                      "cellType": "text",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "FY27 Q4",
-                      "style": {
-                        "type": "color-scale",
-                        "backgroundColor": {
-                          "scale": {
-                            "type": "quantitative",
-                            "colorRamp": {
-                              "mode": "custom-sequential",
-                              "colors": {
-                                "start": "#FFFFFF",
-                                "end": "#08519C"
-                              }
-                            },
-                            "domain": {
-                              "min": 0
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ],
-                  "displayAs": "columns"
-                }
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 14,
-            "width": 7,
-            "height": 8
-          }
-        },
-        {
-          "widget": {
-            "name": "stage",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_stage",
-                "query": {
-                  "datasetName": "d284f3b9",
-                  "fields": [
-                    {
-                      "name": "stage",
-                      "expression": "`stage`"
-                    },
-                    {
-                      "name": "stage_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "Stage"
-              },
-              "widgetType": "filter-multi-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "stage",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_stage"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 13,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "sa",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_solution_architect",
-                "query": {
-                  "datasetName": "d284f3b9",
-                  "fields": [
-                    {
-                      "name": "solution_architect",
-                      "expression": "`solution_architect`"
-                    },
-                    {
-                      "name": "solution_architect_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "SA"
-              },
-              "widgetType": "filter-multi-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "solution_architect",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_solution_architect"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 13,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
             "name": "a0d6ab51",
             "multilineTextboxSpec": {
               "lines": [
@@ -7722,7 +10830,7 @@
           },
           "position": {
             "x": 0,
-            "y": 22,
+            "y": 12,
             "width": 12,
             "height": 1
           }
@@ -7837,7 +10945,7 @@
           },
           "position": {
             "x": 0,
-            "y": 32,
+            "y": 22,
             "width": 12,
             "height": 9
           }
@@ -7925,7 +11033,7 @@
           },
           "position": {
             "x": 0,
-            "y": 26,
+            "y": 16,
             "width": 4,
             "height": 6
           }
@@ -7971,7 +11079,7 @@
           },
           "position": {
             "x": 0,
-            "y": 23,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -8017,7 +11125,7 @@
           },
           "position": {
             "x": 2,
-            "y": 23,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -8063,7 +11171,7 @@
           },
           "position": {
             "x": 4,
-            "y": 23,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -8109,7 +11217,7 @@
           },
           "position": {
             "x": 6,
-            "y": 23,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -8246,7 +11354,7 @@
           },
           "position": {
             "x": 4,
-            "y": 24,
+            "y": 14,
             "width": 8,
             "height": 8
           }
@@ -8303,7 +11411,7 @@
           },
           "position": {
             "x": 0,
-            "y": 24,
+            "y": 14,
             "width": 2,
             "height": 2
           }
@@ -8360,56 +11468,9 @@
           },
           "position": {
             "x": 2,
-            "y": 24,
+            "y": 14,
             "width": 2,
             "height": 2
-          }
-        },
-        {
-          "widget": {
-            "name": "key-to-tech-win",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_is_keytechwin",
-                "query": {
-                  "datasetName": "d284f3b9",
-                  "fields": [
-                    {
-                      "name": "is_keytechwin",
-                      "expression": "`is_keytechwin`"
-                    },
-                    {
-                      "name": "is_keytechwin_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "Key Tech Win?"
-              },
-              "disallowAll": false,
-              "widgetType": "filter-single-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "is_keytechwin",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_is_keytechwin"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 13,
-            "width": 3,
-            "height": 1
           }
         }
       ],
