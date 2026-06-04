@@ -8537,6 +8537,23 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_account_name",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "account_name",
+                      "expression": "`account_name`"
+                    },
+                    {
+                      "name": "account_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -8559,6 +8576,10 @@
                   {
                     "fieldName": "deployable_account_name",
                     "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15dd6fc871128977ebbceb56dba27_deployable_account_name"
+                  },
+                  {
+                    "fieldName": "account_name",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_account_name"
                   }
                 ]
               }
