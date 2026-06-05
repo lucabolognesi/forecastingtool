@@ -2176,6 +2176,131 @@
         "        ('FY28-Q4')\n",
         ") as t(fiscal_quarter)"
       ]
+    },
+    {
+      "name": "1d857de4",
+      "displayName": "OKR Genie",
+      "queryLines": [
+        "-- Genie Active Users + T7D $DBU – by AE Email – Daily Trend\n",
+        "WITH ae_accounts AS (\n",
+        "  SELECT DISTINCT deployable_account_name\n",
+        "  FROM main.gtm_gold.account_consumption_daily\n",
+        "  WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "    AND YEAR(usage_date) + CASE WHEN MONTH(usage_date) >= 2 THEN 1 ELSE 0 END >= 2026\n",
+        "),\n",
+        "genie_kpis AS (\n",
+        "  SELECT\n",
+        "    g.date,\n",
+        "    h.deployable_account_name,\n",
+        "    SUM(g.T7D_Users)  AS genie_t7d_users,\n",
+        "    SUM(g.T28D_Users) AS genie_t28d_users\n",
+        "  FROM main.eng_datarooms.genie_daily_kpis g\n",
+        "  INNER JOIN main.fin_live_gold.sfdc_hierarchy_mapping h\n",
+        "    ON g.salesforce_account_name = h.sfdc_account_name\n",
+        "  INNER JOIN ae_accounts a\n",
+        "    ON h.deployable_account_name = a.deployable_account_name\n",
+        "  WHERE YEAR(g.date) + CASE WHEN MONTH(g.date) >= 2 THEN 1 ELSE 0 END >= 2026\n",
+        "  GROUP BY g.date, h.deployable_account_name\n",
+        "),\n",
+        "genie_dbu AS (\n",
+        "  SELECT\n",
+        "    usage_date,\n",
+        "    deployable_account_name,\n",
+        "    SUM(genie_standalone_dbu_dollars)               AS genie_dbu_dollars,\n",
+        "    SUM(genie_standalone_dbu_dollars_t7d_sum)       AS genie_t7d_dbu_dollars,\n",
+        "    SUM(genie_standalone_dbu_dollars_t7d_sum_prev)  AS genie_t7d_dbu_dollars_prev,\n",
+        "    SUM(genie_standalone_dbu_dollars_t28d_sum)      AS genie_t28d_dbu_dollars,\n",
+        "    SUM(genie_standalone_dbu_dollars_t28d_sum_prev) AS genie_t28d_dbu_dollars_prev\n",
+        "  FROM main.gtm_gold.account_consumption_daily\n",
+        "  WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "    AND YEAR(usage_date) + CASE WHEN MONTH(usage_date) >= 2 THEN 1 ELSE 0 END >= 2026\n",
+        "  GROUP BY usage_date, deployable_account_name\n",
+        "),\n",
+        "fy_start AS (\n",
+        "  -- First date available in genie_daily_kpis >= start of the FY containing the latest snapshot\n",
+        "  --calculates the first day of the current fiscal.\n",
+        "  SELECT MIN(date) AS fy_first_date\n",
+        "  FROM main.eng_datarooms.genie_daily_kpis\n",
+        "  WHERE date >= MAKE_DATE(\n",
+        "    CASE WHEN MONTH((SELECT MAX(date) FROM main.eng_datarooms.genie_daily_kpis)) >= 2\n",
+        "         THEN YEAR((SELECT MAX(date) FROM main.eng_datarooms.genie_daily_kpis))\n",
+        "         ELSE YEAR((SELECT MAX(date) FROM main.eng_datarooms.genie_daily_kpis)) - 1\n",
+        "    END, 2, 1)\n",
+        "),\n",
+        "fy_start_kpis AS (\n",
+        "  -- T28D users per account on the first day of the current FY\n",
+        "  SELECT\n",
+        "    h.deployable_account_name,\n",
+        "    SUM(g.T28D_Users) AS fy_start_t28d_users\n",
+        "  FROM main.eng_datarooms.genie_daily_kpis g\n",
+        "  INNER JOIN main.fin_live_gold.sfdc_hierarchy_mapping h\n",
+        "    ON g.salesforce_account_name = h.sfdc_account_name\n",
+        "  INNER JOIN ae_accounts a\n",
+        "    ON h.deployable_account_name = a.deployable_account_name\n",
+        "  CROSS JOIN fy_start fs\n",
+        "  WHERE g.date = fs.fy_first_date\n",
+        "  GROUP BY h.deployable_account_name\n",
+        ")\n",
+        "\n",
+        "SELECT\n",
+        "  k.date,\n",
+        "  YEAR(k.date) + CASE WHEN MONTH(k.date) >= 2 THEN 1 ELSE 0 END AS fiscal_year,\n",
+        "  CONCAT(\n",
+        "    'FY', RIGHT(CAST(YEAR(k.date) + CASE WHEN MONTH(k.date) >= 2 THEN 1 ELSE 0 END AS STRING), 2),\n",
+        "    '-',\n",
+        "    CASE\n",
+        "      WHEN MONTH(k.date) IN (2,3,4)   THEN 'Q1'\n",
+        "      WHEN MONTH(k.date) IN (5,6,7)   THEN 'Q2'\n",
+        "      WHEN MONTH(k.date) IN (8,9,10)  THEN 'Q3'\n",
+        "      ELSE                                 'Q4'\n",
+        "    END\n",
+        "  )  AS fiscal_quarter,\n",
+        "  CASE WHEN k.date = (SELECT MAX(date) FROM genie_kpis) THEN 'Y' ELSE 'N' END AS latest_snapshot,\n",
+        "  k.deployable_account_name,\n",
+        "  k.genie_t7d_users,\n",
+        "  k.genie_t28d_users,\n",
+        "  k.genie_t28d_users - f.fy_start_t28d_users as t28d_users_ytd_diff,\n",
+        "  fy_start_t28d_users,\n",
+        "  --ROUND(100.0 * (k.genie_t28d_users - f.fy_start_t28d_users) / NULLIF(f.fy_start_t28d_users, 0), 1) AS t28d_users_growth_pct,\n",
+        "  d.genie_dbu_dollars,\n",
+        "  d.genie_t7d_dbu_dollars,\n",
+        "  d.genie_t7d_dbu_dollars_prev,\n",
+        "  d.genie_t28d_dbu_dollars,\n",
+        "  d.genie_t28d_dbu_dollars_prev\n",
+        "FROM genie_kpis k\n",
+        "LEFT JOIN genie_dbu d\n",
+        "  ON  k.deployable_account_name = d.deployable_account_name\n",
+        "  AND k.date = d.usage_date\n",
+        "LEFT JOIN fy_start_kpis f\n",
+        "  ON  k.deployable_account_name = f.deployable_account_name\n",
+        "WHERE (DAYOFWEEK(k.date) = 6                          -- Fridays only\n",
+        "   OR k.date = (SELECT MAX(date) FROM genie_kpis))    -- plus latest available day\n",
+        "ORDER BY k.date, k.deployable_account_name"
+      ],
+      "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "antonio.carrozzo@databricks.com"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "columns": [
+        {
+          "displayName": "t28d_users_growth_pct",
+          "description": "",
+          "expression": "try_divide(SUM(t28d_users_ytd_diff), NULLIF(SUM(fy_start_t28d_users), 0))"
+        }
+      ]
     }
   ],
   "pages": [
@@ -2647,6 +2772,19 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16017c1a817c490301990fb0981e7_ae_email",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "parameters": [
+                    {
+                      "name": "ae_email",
+                      "keyword": "ae_email"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -2709,6 +2847,10 @@
                   {
                     "parameterName": "ae_email",
                     "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15ed16078104dbee05b6721d4f6e9_ae_email"
+                  },
+                  {
+                    "parameterName": "ae_email",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16017c1a817c490301990fb0981e7_ae_email"
                   }
                 ]
               }
@@ -7399,7 +7541,7 @@
           },
           "position": {
             "x": 0,
-            "y": 23,
+            "y": 30,
             "width": 12,
             "height": 1
           }
@@ -7420,7 +7562,7 @@
           },
           "position": {
             "x": 0,
-            "y": 32,
+            "y": 39,
             "width": 12,
             "height": 1
           }
@@ -7441,7 +7583,7 @@
           },
           "position": {
             "x": 0,
-            "y": 39,
+            "y": 46,
             "width": 12,
             "height": 1
           }
@@ -7547,7 +7689,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Lakebase T7D Trends"
+                "title": "Lakebase T7D DBU Trends"
               },
               "widgetType": "area",
               "encodings": {
@@ -7775,7 +7917,7 @@
             "name": "cb7256fa",
             "multilineTextboxSpec": {
               "lines": [
-                "### 10 DBSQL accounts >$5M; 1 > $10M"
+                "### Activations in DB700 accounts; 2x Genie MAUs"
               ]
             },
             "specExtensions": {
@@ -7853,7 +7995,7 @@
           },
           "position": {
             "x": 0,
-            "y": 10,
+            "y": 17,
             "width": 2,
             "height": 2
           }
@@ -7897,7 +8039,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "DWH T7D Trends"
+                "title": "DWH T7D DBU Trends"
               },
               "widgetType": "area",
               "encodings": {
@@ -7967,7 +8109,7 @@
           },
           "position": {
             "x": 2,
-            "y": 10,
+            "y": 17,
             "width": 6,
             "height": 6
           }
@@ -8041,7 +8183,7 @@
           },
           "position": {
             "x": 0,
-            "y": 12,
+            "y": 19,
             "width": 2,
             "height": 2
           }
@@ -8115,7 +8257,7 @@
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 21,
             "width": 2,
             "height": 2
           }
@@ -8136,7 +8278,7 @@
           },
           "position": {
             "x": 0,
-            "y": 16,
+            "y": 23,
             "width": 12,
             "height": 1
           }
@@ -8478,7 +8620,7 @@
           },
           "position": {
             "x": 8,
-            "y": 10,
+            "y": 17,
             "width": 4,
             "height": 6
           }
@@ -8662,7 +8804,7 @@
           },
           "position": {
             "x": 2,
-            "y": 17,
+            "y": 24,
             "width": 6,
             "height": 6
           }
@@ -8717,7 +8859,7 @@
           },
           "position": {
             "x": 0,
-            "y": 17,
+            "y": 24,
             "width": 2,
             "height": 2
           }
@@ -8800,7 +8942,7 @@
           },
           "position": {
             "x": 0,
-            "y": 19,
+            "y": 26,
             "width": 2,
             "height": 4
           }
@@ -8890,7 +9032,7 @@
           },
           "position": {
             "x": 8,
-            "y": 17,
+            "y": 24,
             "width": 4,
             "height": 6
           }
@@ -9028,7 +9170,7 @@
           },
           "position": {
             "x": 2,
-            "y": 24,
+            "y": 31,
             "width": 4,
             "height": 7
           }
@@ -9074,7 +9216,7 @@
           },
           "position": {
             "x": 0,
-            "y": 24,
+            "y": 33,
             "width": 2,
             "height": 2
           }
@@ -9134,7 +9276,7 @@
           },
           "position": {
             "x": 0,
-            "y": 26,
+            "y": 31,
             "width": 2,
             "height": 2
           }
@@ -9318,7 +9460,7 @@
           },
           "position": {
             "x": 2,
-            "y": 33,
+            "y": 40,
             "width": 5,
             "height": 6
           }
@@ -9364,7 +9506,7 @@
           },
           "position": {
             "x": 0,
-            "y": 33,
+            "y": 40,
             "width": 2,
             "height": 1
           }
@@ -9410,7 +9552,7 @@
           },
           "position": {
             "x": 0,
-            "y": 34,
+            "y": 41,
             "width": 2,
             "height": 1
           }
@@ -9465,7 +9607,7 @@
           },
           "position": {
             "x": 0,
-            "y": 44,
+            "y": 51,
             "width": 2,
             "height": 2
           }
@@ -9520,7 +9662,7 @@
           },
           "position": {
             "x": 0,
-            "y": 40,
+            "y": 47,
             "width": 2,
             "height": 2
           }
@@ -9576,7 +9718,7 @@
           },
           "position": {
             "x": 0,
-            "y": 42,
+            "y": 49,
             "width": 2,
             "height": 2
           }
@@ -9632,7 +9774,7 @@
           },
           "position": {
             "x": 0,
-            "y": 46,
+            "y": 53,
             "width": 2,
             "height": 2
           }
@@ -9717,7 +9859,7 @@
           },
           "position": {
             "x": 2,
-            "y": 40,
+            "y": 47,
             "width": 6,
             "height": 5
           }
@@ -9802,7 +9944,7 @@
           },
           "position": {
             "x": 2,
-            "y": 45,
+            "y": 52,
             "width": 6,
             "height": 5
           }
@@ -9889,7 +10031,7 @@
           },
           "position": {
             "x": 8,
-            "y": 40,
+            "y": 47,
             "width": 4,
             "height": 5
           }
@@ -9976,7 +10118,7 @@
           },
           "position": {
             "x": 8,
-            "y": 45,
+            "y": 52,
             "width": 4,
             "height": 5
           }
@@ -9997,7 +10139,7 @@
           },
           "position": {
             "x": 0,
-            "y": 31,
+            "y": 38,
             "width": 12,
             "height": 1
           }
@@ -10018,7 +10160,7 @@
           },
           "position": {
             "x": 0,
-            "y": 50,
+            "y": 57,
             "width": 12,
             "height": 1
           }
@@ -10087,7 +10229,7 @@
           },
           "position": {
             "x": 8,
-            "y": 52,
+            "y": 59,
             "width": 4,
             "height": 7
           }
@@ -10170,7 +10312,7 @@
           },
           "position": {
             "x": 2,
-            "y": 52,
+            "y": 59,
             "width": 6,
             "height": 7
           }
@@ -10191,7 +10333,7 @@
           },
           "position": {
             "x": 0,
-            "y": 51,
+            "y": 58,
             "width": 12,
             "height": 1
           }
@@ -10237,7 +10379,7 @@
           },
           "position": {
             "x": 0,
-            "y": 52,
+            "y": 59,
             "width": 2,
             "height": 2
           }
@@ -10301,7 +10443,7 @@
           },
           "position": {
             "x": 0,
-            "y": 54,
+            "y": 61,
             "width": 2,
             "height": 2
           }
@@ -10428,6 +10570,23 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16017c1a817c490301990fb0981e7_fiscal_quarter",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "fields": [
+                    {
+                      "name": "fiscal_quarter",
+                      "expression": "`fiscal_quarter`"
+                    },
+                    {
+                      "name": "fiscal_quarter_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -10466,6 +10625,10 @@
                   {
                     "fieldName": "live_date_fq",
                     "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15ed16078104dbee05b6721d4f6e9_live_date_fq"
+                  },
+                  {
+                    "fieldName": "fiscal_quarter",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16017c1a817c490301990fb0981e7_fiscal_quarter"
                   }
                 ]
               }
@@ -10476,6 +10639,390 @@
             "y": 0,
             "width": 2,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "8e8b68b3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### 10 DBSQL accounts >$5M; 1 > $10M"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "lakebase-t7d-trends",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    },
+                    {
+                      "name": "sum(genie_t7d_dbu_dollars)",
+                      "expression": "SUM(`genie_t7d_dbu_dollars`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Genie T7D $DBU Trends",
+                "showDescription": true
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(genie_t7d_dbu_dollars)",
+                  "displayName": "Genie T7D $DBUs",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "deployable_account_name",
+                  "displayName": "Account Name",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "genie",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "fields": [
+                    {
+                      "name": "sum(genie_t7d_dbu_dollars_prev)",
+                      "expression": "SUM(`genie_t7d_dbu_dollars_prev`)"
+                    },
+                    {
+                      "name": "sum(genie_t7d_dbu_dollars)",
+                      "expression": "SUM(`genie_t7d_dbu_dollars`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` IN ('Y')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current Genie T7D $DBUs",
+                "showDescription": true,
+                "description": "Last Week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(genie_t7d_dbu_dollars)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(genie_t7d_dbu_dollars_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "50bd1bf8",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "fields": [
+                    {
+                      "name": "measure(t28d_users_growth_pct)",
+                      "expression": "MEASURE(`t28d_users_growth_pct`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` IN ('Y')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Genie T28D User Growth since start of FY",
+                "showDescription": false
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(t28d_users_growth_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "b90ff476",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "genie_t7d_users",
+                      "expression": "`genie_t7d_users`"
+                    },
+                    {
+                      "name": "genie_t28d_users",
+                      "expression": "`genie_t28d_users`"
+                    },
+                    {
+                      "name": "genie_t7d_dbu_dollars",
+                      "expression": "`genie_t7d_dbu_dollars`"
+                    },
+                    {
+                      "name": "genie_t28d_dbu_dollars",
+                      "expression": "`genie_t28d_dbu_dollars`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` IN ('Y')"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 160,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "genie_t7d_users",
+                    "columnWidth": 150,
+                    "displayName": "Genie T7D Users"
+                  },
+                  {
+                    "fieldName": "genie_t28d_users",
+                    "columnWidth": 150,
+                    "displayName": "Genie T28D Users"
+                  },
+                  {
+                    "fieldName": "genie_t7d_dbu_dollars",
+                    "columnWidth": 150,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "displayName": "Genie T7D $DBUs"
+                  },
+                  {
+                    "fieldName": "genie_t28d_dbu_dollars",
+                    "columnWidth": 160,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "displayName": "Genie T28D $DBUs"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 10,
+            "width": 4,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "45af845f",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "1d857de4",
+                  "fields": [
+                    {
+                      "name": "date",
+                      "expression": "`date`"
+                    },
+                    {
+                      "name": "sum(genie_t28d_users)",
+                      "expression": "SUM(`genie_t28d_users`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` IN (`latest_snapshot`) OR TRUE"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Genie T28D Users",
+                "showDescription": false
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "date",
+                  "axis": {
+                    "hideLabels": true,
+                    "hideGrid": true,
+                    "hideTitle": true
+                  },
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(genie_t28d_users)",
+                  "axis": {
+                    "hideLabels": true,
+                    "hideGrid": true,
+                    "hideTitle": true
+                  },
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 2,
+            "height": 2
           }
         }
       ],
