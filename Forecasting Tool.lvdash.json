@@ -306,7 +306,7 @@
         "),\n",
         "\n",
         "uco_view as (\n",
-        "  select c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.deployable_account_name, c.account_executive, c.solution_architect, c.dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
+        "  select c.sales_subregion_level_1, c.sales_subregion_level_2, c.sales_subregion_level_3, c.account_name, c.deployable_account_name, c.account_executive, c.solution_architect, c.dsa_user_name as dsa, c.arr_band, c.usecase_id, c.usecase_name \n",
         "    , c.target_onboarding_date, b.target_onboarding_date_fq, c.target_live_date, b.target_live_date_fq, c.target_cloud, c.is_migration_usecase\n",
         "    , nullif(trim(c.migration_source_platform), '') as migration_source_platform_adj\n",
         "    , c.is_incremental, b.is_keytechwin\n",
@@ -426,6 +426,16 @@
           "displayName": "partner_attach_rate_pct",
           "description": "",
           "expression": "MEASURE(uco_count_with_partner) / MEASURE(uco_count)"
+        },
+        {
+          "displayName": "keytechwin_count",
+          "description": "",
+          "expression": "SUM(CASE WHEN is_keytechwin THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "keytechwin_monthly_dollar_dbus",
+          "description": "",
+          "expression": "SUM(CASE WHEN is_keytechwin THEN estimated_monthly_dollar_dbus ELSE 0 END)"
         }
       ]
     },
@@ -9595,6 +9605,9 @@
                 "rows": [
                   {
                     "fieldName": "solution_architect",
+                    "total": {
+                      "show": true
+                    },
                     "displayName": "SA"
                   }
                 ],
@@ -11274,6 +11287,63 @@
           "position": {
             "x": 0,
             "y": 12,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "tech2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(keytechwin_count)",
+                      "expression": "MEASURE(`keytechwin_count`)"
+                    },
+                    {
+                      "name": "measure(keytechwin_monthly_dollar_dbus)",
+                      "expression": "MEASURE(`keytechwin_monthly_dollar_dbus`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "KeyTechWin $DBU Value",
+                "showDescription": true,
+                "description": "KeyTechWin Count"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(keytechwin_monthly_dollar_dbus)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "measure(keytechwin_count)"
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 42,
             "width": 2,
             "height": 2
           }
