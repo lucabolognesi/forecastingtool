@@ -1617,6 +1617,7 @@
         "  --onboarding_date,\n",
         "  --live_date,\n",
         "\n",
+        "  date_format(confirming_date, 'yyyy-MM') AS confirming_date_month,\n",
         "  date_format(add_months(confirming_date, 11), 'yyyy') as confirming_date_fiscal,\n",
         "  date_format(dateadd(year, +1, dateadd(month, -1, confirming_date)), \"'FY'yy'-Q'Q\") as confirming_date_fq,\n",
         "  SUM(CASE WHEN stage_number > 3 AND days_in_evaluating_all_time = 0 THEN 1 END) AS uco_count_eval_skipped,    \n",
@@ -10059,6 +10060,10 @@
                       "expression": "`confirming_date_fq`"
                     },
                     {
+                      "name": "sum(past_eval_total_uco_count)",
+                      "expression": "SUM(`past_eval_total_uco_count`)"
+                    },
+                    {
                       "name": "measure(avg_days_in_evaluating)",
                       "expression": "MEASURE(`avg_days_in_evaluating`)"
                     }
@@ -10068,32 +10073,13 @@
               }
             ],
             "spec": {
-              "version": 3,
+              "version": 1,
               "frame": {
                 "showTitle": true,
                 "title": "Tech Won UCO (>U3): Average days in Evaluating"
               },
-              "annotations": [
-                {
-                  "type": "horizontal-line",
-                  "encodings": {
-                    "y": {
-                      "dataValue": "60",
-                      "dataType": "DOUBLE"
-                    },
-                    "label": {
-                      "value": "Target"
-                    },
-                    "color": {
-                      "value": {
-                        "themeColorType": "visualizationColors",
-                        "position": 4
-                      }
-                    }
-                  }
-                }
-              ],
-              "widgetType": "line",
+              "annotations": [],
+              "widgetType": "combo",
               "encodings": {
                 "x": {
                   "fieldName": "confirming_date_fq",
@@ -10102,23 +10088,32 @@
                     "type": "categorical"
                   }
                 },
-                "y": {
-                  "fieldName": "measure(avg_days_in_evaluating)",
-                  "format": {
-                    "type": "number-plain",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 0
-                    }
-                  },
-                  "displayName": "AVG Days in U3",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                },
                 "label": {
                   "show": true
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "sum(past_eval_total_uco_count)",
+                        "displayName": "# Tech Wins"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "measure(avg_days_in_evaluating)",
+                        "displayName": "Avg Days in Eval"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  }
                 }
               }
             }
@@ -10144,6 +10139,10 @@
                       "expression": "`live_date_fq`"
                     },
                     {
+                      "name": "sum(past_confirm_total_uco_count)",
+                      "expression": "SUM(`past_confirm_total_uco_count`)"
+                    },
+                    {
                       "name": "measure(avg_days_in_confirming)",
                       "expression": "MEASURE(`avg_days_in_confirming`)"
                     }
@@ -10153,32 +10152,12 @@
               }
             ],
             "spec": {
-              "version": 3,
+              "version": 1,
               "frame": {
                 "showTitle": true,
                 "title": "Live UCO (=U6): Average days in Confirming"
               },
-              "annotations": [
-                {
-                  "type": "horizontal-line",
-                  "encodings": {
-                    "y": {
-                      "dataValue": "60",
-                      "dataType": "DOUBLE"
-                    },
-                    "label": {
-                      "value": "Target"
-                    },
-                    "color": {
-                      "value": {
-                        "themeColorType": "visualizationColors",
-                        "position": 4
-                      }
-                    }
-                  }
-                }
-              ],
-              "widgetType": "line",
+              "widgetType": "combo",
               "encodings": {
                 "x": {
                   "fieldName": "live_date_fq",
@@ -10187,23 +10166,40 @@
                     "type": "categorical"
                   }
                 },
-                "y": {
-                  "fieldName": "measure(avg_days_in_confirming)",
-                  "format": {
-                    "type": "number-plain",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 0
-                    }
-                  },
-                  "displayName": "AVG Days in U5",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                },
                 "label": {
                   "show": true
+                },
+                "y": {
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "sum(past_confirm_total_uco_count)",
+                        "displayName": "# UCOs gone Live"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    },
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "measure(avg_days_in_confirming)",
+                        "displayName": "Avg Days in U4"
+                      }
+                    ],
+                    "scale": {
+                      "type": "quantitative"
+                    }
+                  }
                 }
               }
             }
