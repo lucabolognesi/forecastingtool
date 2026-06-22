@@ -138,13 +138,18 @@
         "sales_forecast as (\n",
         "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
         "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
+        "  , coalesce(f_prev.submitted_my_call, 0) as prev_submitted_my_call\n",
         "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
-        "  , coalesce(submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
-        "  , coalesce(current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
-        "  , coalesce(submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "  , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(f.current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
+        "  left join gtm_silver.forecast_consumption_mcp_individual as f_prev\n",
+        "    on f_prev.Email = f.Email\n",
+        "    and f_prev.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
+        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual))\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
@@ -157,6 +162,7 @@
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
+        "  , coalesce(sum(f_prev.submitted_ae_forecast), 0) as prev_submitted_my_call\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
         "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
         "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
@@ -169,6 +175,12 @@
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
         "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
+        "  left join gtm_silver.forecast_consumption_mcp_account as f_prev\n",
+        "    on f_prev.account_id = f.account_id\n",
+        "    and f_prev.account_executive_user_id = f.account_executive_user_id\n",
+        "    and f_prev.forecast_fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
+        "    and f_prev.forecast_month_start_date = f.forecast_month_start_date\n",
+        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account))\n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
@@ -226,6 +238,7 @@
         "    , d.fy, d.q, d.fq, a.fiscal_quarter_start_date, a.dbu_actuals\n",
         "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
         "    , t.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , coalesce(try_divide(f.submitted_my_call - f.prev_submitted_my_call, nullif(f.prev_submitted_my_call, 0)), 0) as forecast_change_pct\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
@@ -258,7 +271,8 @@
         "    , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
         "    , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
         "    , coalesce(f.current_ds_forecast, 0) as current_ds_forecast\n",
-        "    , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection  \n",
+        "    , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "    , coalesce(try_divide(f.submitted_my_call - f.prev_submitted_my_call, nullif(f.prev_submitted_my_call, 0)), 0) as forecast_change_pct\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals\n",
         "    , coalesce(a.dbu_dollars_t7d_avg, 0) as dbu_dollars_t7d_avg\n",
         "    , coalesce(a.dbu_dollars_t28d_avg, 0) as dbu_dollars_t28d_avg\n",
@@ -466,6 +480,7 @@
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , f.forecast_change_pct\n",
         "    , f.dbu_actuals_coalesced, f.dbu_actuals_or_forecast\n",
         "    , f.dbu_dollars_t7d_avg_latest, f.dbu_dollars_t7d_adj\n",
         "    , f.dbu_dollars_t28d_avg_latest, f.dbu_dollars_t28d_adj\n",
@@ -498,6 +513,7 @@
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , f.forecast_change_pct\n",
         "    , f.dbu_actuals_coalesced, f.dbu_actuals_or_forecast\n",
         "    , f.dbu_dollars_t7d_avg_latest, f.dbu_dollars_t7d_adj\n",
         "    , f.dbu_dollars_t28d_avg_latest, f.dbu_dollars_t28d_adj\n",
@@ -524,6 +540,7 @@
         "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.Business_Unit, u.Region_Level_1, u.Region_Level_2, u.Region_Level_3, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
         "  , u.fin_target, u.submitted_my_call \n",
         "  , u.submitted_direct_field_consumption_forecast, u.current_ds_forecast, u.submitted_weighted_projection\n",
+        "  , u.forecast_change_pct\n",
         "  , u.dbu_actuals_coalesced as dbu_actuals, u.dbu_actuals_or_forecast, u.dbu_actuals_current_quarter\n",
         "  , u.dbu_dollars_t7d_adj, u.dbu_dollars_t7d_prev_adj, u.t7d_proj_left_in_quarter, u.target_t7d\n",
         "  , u.dbu_dollars_t28d_adj, u.dbu_dollars_t28d_prev_adj, u.t28d_proj_left_in_quarter\n",
@@ -583,8 +600,8 @@
         "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
         "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
         "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
-        "  , u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj as delta_t7d\n",
-        "  , u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj as delta_t28d\n",
+        "  , coalesce(try_divide(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
+        "  , coalesce(try_divide(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
         "\n",
         "  --labels\n",
         "  , format_number(try_divide(u.submitted_my_call, u.fin_target), '#.#%') || \n",
@@ -617,7 +634,7 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Individual Forecast'"
+        "where view_name = 'Individual Forecast'\n"
       ],
       "parameters": [
         {
@@ -962,13 +979,18 @@
         "sales_forecast as (\n",
         "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
         "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
+        "  , coalesce(f_prev.submitted_my_call, 0) as prev_submitted_my_call\n",
         "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
-        "  , coalesce(submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
-        "  , coalesce(current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
-        "  , coalesce(submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "  , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(f.current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
+        "  left join gtm_silver.forecast_consumption_mcp_individual as f_prev\n",
+        "    on f_prev.Email = f.Email\n",
+        "    and f_prev.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
+        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual))\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
@@ -981,6 +1003,7 @@
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
+        "  , coalesce(sum(f_prev.submitted_ae_forecast), 0) as prev_submitted_my_call\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
         "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
         "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
@@ -993,6 +1016,12 @@
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
         "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
+        "  left join gtm_silver.forecast_consumption_mcp_account as f_prev\n",
+        "    on f_prev.account_id = f.account_id\n",
+        "    and f_prev.account_executive_user_id = f.account_executive_user_id\n",
+        "    and f_prev.forecast_fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
+        "    and f_prev.forecast_month_start_date = f.forecast_month_start_date\n",
+        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account))\n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
@@ -1050,6 +1079,7 @@
         "    , d.fy, d.q, d.fq, a.fiscal_quarter_start_date, a.dbu_actuals\n",
         "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
         "    , t.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , coalesce(try_divide(f.submitted_my_call - f.prev_submitted_my_call, nullif(f.prev_submitted_my_call, 0)), 0) as forecast_change_pct\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
@@ -1082,7 +1112,8 @@
         "    , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
         "    , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
         "    , coalesce(f.current_ds_forecast, 0) as current_ds_forecast\n",
-        "    , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection  \n",
+        "    , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "    , coalesce(try_divide(f.submitted_my_call - f.prev_submitted_my_call, nullif(f.prev_submitted_my_call, 0)), 0) as forecast_change_pct\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals\n",
         "    , coalesce(a.dbu_dollars_t7d_avg, 0) as dbu_dollars_t7d_avg\n",
         "    , coalesce(a.dbu_dollars_t28d_avg, 0) as dbu_dollars_t28d_avg\n",
@@ -1290,6 +1321,7 @@
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , f.forecast_change_pct\n",
         "    , f.dbu_actuals_coalesced, f.dbu_actuals_or_forecast\n",
         "    , f.dbu_dollars_t7d_avg_latest, f.dbu_dollars_t7d_adj\n",
         "    , f.dbu_dollars_t28d_avg_latest, f.dbu_dollars_t28d_adj\n",
@@ -1322,6 +1354,7 @@
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , f.forecast_change_pct\n",
         "    , f.dbu_actuals_coalesced, f.dbu_actuals_or_forecast\n",
         "    , f.dbu_dollars_t7d_avg_latest, f.dbu_dollars_t7d_adj\n",
         "    , f.dbu_dollars_t28d_avg_latest, f.dbu_dollars_t28d_adj\n",
@@ -1348,6 +1381,7 @@
         "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.Business_Unit, u.Region_Level_1, u.Region_Level_2, u.Region_Level_3, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
         "  , u.fin_target, u.submitted_my_call \n",
         "  , u.submitted_direct_field_consumption_forecast, u.current_ds_forecast, u.submitted_weighted_projection\n",
+        "  , u.forecast_change_pct\n",
         "  , u.dbu_actuals_coalesced as dbu_actuals, u.dbu_actuals_or_forecast, u.dbu_actuals_current_quarter\n",
         "  , u.dbu_dollars_t7d_adj, u.dbu_dollars_t7d_prev_adj, u.t7d_proj_left_in_quarter, u.target_t7d\n",
         "  , u.dbu_dollars_t28d_adj, u.dbu_dollars_t28d_prev_adj, u.t28d_proj_left_in_quarter\n",
@@ -1407,8 +1441,8 @@
         "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
         "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
         "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
-        "  , u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj as delta_t7d\n",
-        "  , u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj as delta_t28d\n",
+        "  , coalesce(try_divide(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
+        "  , coalesce(try_divide(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
         "\n",
         "  --labels\n",
         "  , format_number(try_divide(u.submitted_my_call, u.fin_target), '#.#%') || \n",
@@ -1441,7 +1475,7 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Account Forecast'"
+        "where view_name = 'Account Forecast'\n"
       ],
       "parameters": [
         {
@@ -1796,13 +1830,18 @@
         "sales_forecast as (\n",
         "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
         "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
+        "  , coalesce(f_prev.submitted_my_call, 0) as prev_submitted_my_call\n",
         "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
-        "  , coalesce(submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
-        "  , coalesce(current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
-        "  , coalesce(submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "  , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(f.current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
+        "  left join gtm_silver.forecast_consumption_mcp_individual as f_prev\n",
+        "    on f_prev.Email = f.Email\n",
+        "    and f_prev.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
+        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual))\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
@@ -1815,6 +1854,7 @@
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
+        "  , coalesce(sum(f_prev.submitted_ae_forecast), 0) as prev_submitted_my_call\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
         "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
         "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
@@ -1827,6 +1867,12 @@
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
         "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
+        "  left join gtm_silver.forecast_consumption_mcp_account as f_prev\n",
+        "    on f_prev.account_id = f.account_id\n",
+        "    and f_prev.account_executive_user_id = f.account_executive_user_id\n",
+        "    and f_prev.forecast_fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
+        "    and f_prev.forecast_month_start_date = f.forecast_month_start_date\n",
+        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account))\n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
@@ -1884,6 +1930,7 @@
         "    , d.fy, d.q, d.fq, a.fiscal_quarter_start_date, a.dbu_actuals\n",
         "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
         "    , t.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , coalesce(try_divide(f.submitted_my_call - f.prev_submitted_my_call, nullif(f.prev_submitted_my_call, 0)), 0) as forecast_change_pct\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
@@ -1916,7 +1963,8 @@
         "    , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
         "    , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
         "    , coalesce(f.current_ds_forecast, 0) as current_ds_forecast\n",
-        "    , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection  \n",
+        "    , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "    , coalesce(try_divide(f.submitted_my_call - f.prev_submitted_my_call, nullif(f.prev_submitted_my_call, 0)), 0) as forecast_change_pct\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals\n",
         "    , coalesce(a.dbu_dollars_t7d_avg, 0) as dbu_dollars_t7d_avg\n",
         "    , coalesce(a.dbu_dollars_t28d_avg, 0) as dbu_dollars_t28d_avg\n",
@@ -2124,6 +2172,7 @@
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , f.forecast_change_pct\n",
         "    , f.dbu_actuals_coalesced, f.dbu_actuals_or_forecast\n",
         "    , f.dbu_dollars_t7d_avg_latest, f.dbu_dollars_t7d_adj\n",
         "    , f.dbu_dollars_t28d_avg_latest, f.dbu_dollars_t28d_adj\n",
@@ -2156,6 +2205,7 @@
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
+        "    , f.forecast_change_pct\n",
         "    , f.dbu_actuals_coalesced, f.dbu_actuals_or_forecast\n",
         "    , f.dbu_dollars_t7d_avg_latest, f.dbu_dollars_t7d_adj\n",
         "    , f.dbu_dollars_t28d_avg_latest, f.dbu_dollars_t28d_adj\n",
@@ -2182,6 +2232,7 @@
         "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.Business_Unit, u.Region_Level_1, u.Region_Level_2, u.Region_Level_3, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
         "  , u.fin_target, u.submitted_my_call \n",
         "  , u.submitted_direct_field_consumption_forecast, u.current_ds_forecast, u.submitted_weighted_projection\n",
+        "  , u.forecast_change_pct\n",
         "  , u.dbu_actuals_coalesced as dbu_actuals, u.dbu_actuals_or_forecast, u.dbu_actuals_current_quarter\n",
         "  , u.dbu_dollars_t7d_adj, u.dbu_dollars_t7d_prev_adj, u.t7d_proj_left_in_quarter, u.target_t7d\n",
         "  , u.dbu_dollars_t28d_adj, u.dbu_dollars_t28d_prev_adj, u.t28d_proj_left_in_quarter\n",
@@ -2241,8 +2292,8 @@
         "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
         "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
         "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
-        "  , u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj as delta_t7d\n",
-        "  , u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj as delta_t28d\n",
+        "  , coalesce(try_divide(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
+        "  , coalesce(try_divide(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
         "\n",
         "  --labels\n",
         "  , format_number(try_divide(u.submitted_my_call, u.fin_target), '#.#%') || \n",
@@ -2275,7 +2326,7 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Org Forecast'"
+        "where view_name = 'Org Forecast'\n"
       ],
       "parameters": [
         {
@@ -9785,12 +9836,12 @@
                       "expression": "`dbu_dollars_t28d_adj`"
                     },
                     {
-                      "name": "delta_t7d",
-                      "expression": "`delta_t7d`"
+                      "name": "t7d_change_perc",
+                      "expression": "`t7d_change_perc`"
                     },
                     {
-                      "name": "delta_t28d",
-                      "expression": "`delta_t28d`"
+                      "name": "t28d_change_perc",
+                      "expression": "`t28d_change_perc`"
                     }
                   ],
                   "filters": [
@@ -9825,14 +9876,14 @@
                   {
                     "fieldName": "fin_target",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "columnWidth": 100,
                     "displayName": "Target"
@@ -9840,14 +9891,14 @@
                   {
                     "fieldName": "dbu_actuals_or_forecast_prev_quarter",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "headerTooltip": "$DBU Actuals for closed quarters. Forecast otherwise",
                     "columnWidth": 100,
@@ -9862,24 +9913,24 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "QTD"
                   },
                   {
                     "fieldName": "submitted_direct_field_consumption_forecast",
-                    "columnWidth": 140,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
+                    "columnWidth": 140,
                     "displayName": "Directs Forecast",
                     "style": {
                       "type": "basic",
@@ -9908,14 +9959,14 @@
                   {
                     "fieldName": "gap_directs_forecast",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "columnWidth": 100,
                     "displayName": "Gap",
@@ -9944,15 +9995,14 @@
                   },
                   {
                     "fieldName": "directs_att",
-                    "columnWidth": 80,
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 2
+                      }
                     },
+                    "columnWidth": 80,
                     "displayName": "Att %",
                     "style": {
                       "type": "basic",
@@ -9983,10 +10033,9 @@
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 2
+                      }
                     },
                     "displayName": "QoQ%"
                   },
@@ -9994,14 +10043,14 @@
                     "fieldName": "worst_case_projection",
                     "columnWidth": 110,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "displayName": "Worst Case"
                   },
@@ -10009,14 +10058,14 @@
                     "fieldName": "best_case_projection",
                     "columnWidth": 110,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "displayName": "Best Case"
                   },
@@ -10024,14 +10073,14 @@
                     "fieldName": "submitted_weighted_projection",
                     "columnWidth": 130,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "displayName": "Weighted Proj"
                   },
@@ -10039,14 +10088,14 @@
                     "fieldName": "current_ds_forecast",
                     "columnWidth": 120,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "displayName": "DS Forecast"
                   },
@@ -10054,14 +10103,14 @@
                     "fieldName": "t7d_flat_projection",
                     "columnWidth": 120,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "displayName": "T7D Flat Proj"
                   },
@@ -10069,14 +10118,14 @@
                     "fieldName": "t28d_flat_projection",
                     "columnWidth": 130,
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "compact"
                     },
                     "displayName": "T28D Flat Proj"
                   },
@@ -10088,7 +10137,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "headerTooltip": "Green means positive trend vs previous period",
@@ -10108,7 +10157,7 @@
                               "value": "0"
                             },
                             "operator": ">=",
-                            "fieldName": "delta_t7d"
+                            "fieldName": "t7d_change_perc"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10127,7 +10176,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Target T7D"
@@ -10140,7 +10189,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "headerTooltip": "Green means positive trend vs previous period",
@@ -10160,11 +10209,79 @@
                               "value": "0"
                             },
                             "operator": ">=",
-                            "fieldName": "delta_t28d"
+                            "fieldName": "t28d_change_perc"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
                             "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "t7d_change_perc",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "columnWidth": 130,
+                    "displayName": "T7D Change %",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "t28d_change_perc",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "columnWidth": 140,
+                    "displayName": "T28D Change %",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
                           }
                         }
                       ]
@@ -11103,6 +11220,14 @@
                       "expression": "`my_call_qoq_perc`"
                     },
                     {
+                      "name": "submitted_direct_field_consumption_forecast",
+                      "expression": "`submitted_direct_field_consumption_forecast`"
+                    },
+                    {
+                      "name": "gap_directs_forecast",
+                      "expression": "`gap_directs_forecast`"
+                    },
+                    {
                       "name": "worst_case_projection",
                       "expression": "`worst_case_projection`"
                     },
@@ -11139,12 +11264,12 @@
                       "expression": "`dbu_dollars_t28d_adj`"
                     },
                     {
-                      "name": "delta_t7d",
-                      "expression": "`delta_t7d`"
+                      "name": "t7d_change_perc",
+                      "expression": "`t7d_change_perc`"
                     },
                     {
-                      "name": "delta_t28d",
-                      "expression": "`delta_t28d`"
+                      "name": "t28d_change_perc",
+                      "expression": "`t28d_change_perc`"
                     }
                   ],
                   "filters": [
@@ -11157,13 +11282,13 @@
               }
             ],
             "spec": {
-              "version": 2,
-              "rowsPerPage": 25,
-              "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
                 "title": "Org Forecast Summary (BU+3 Level)"
               },
+              "version": 2,
+              "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -11182,55 +11307,27 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Target"
                   },
                   {
                     "fieldName": "dbu_actuals",
-                    "columnWidth": 80,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
+                    "columnWidth": 100,
                     "displayName": "QTD"
                   },
                   {
                     "fieldName": "dbu_actuals_or_forecast_prev_quarter",
-                    "columnWidth": 80,
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 2
-                      }
-                    },
-                    "displayName": "Q-1"
-                  },
-                  {
-                    "fieldName": "submitted_my_call",
-                    "columnWidth": 110,
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 2
-                      }
-                    },
-                    "displayName": "Forecast"
-                  },
-                  {
-                    "fieldName": "gap_my_call",
                     "columnWidth": 100,
                     "format": {
                       "type": "number-currency",
@@ -11238,10 +11335,61 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
-                    "displayName": "Gap",
+                    "displayName": "Q-1"
+                  },
+                  {
+                    "fieldName": "submitted_my_call",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "columnWidth": 110,
+                    "displayName": "My Call",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 4
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">=",
+                            "fieldName": "gap_my_call"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "gap_my_call",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "columnWidth": 130,
+                    "displayName": "Gap to Target",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -11267,14 +11415,14 @@
                   },
                   {
                     "fieldName": "my_call_att",
-                    "columnWidth": 80,
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 1
+                        "places": 2
                       }
                     },
+                    "columnWidth": 80,
                     "displayName": "Att%",
                     "style": {
                       "type": "basic",
@@ -11306,10 +11454,59 @@
                       "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 1
+                        "places": 2
                       }
                     },
                     "displayName": "QoQ%"
+                  },
+                  {
+                    "fieldName": "submitted_direct_field_consumption_forecast",
+                    "columnWidth": 90,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "Directs"
+                  },
+                  {
+                    "fieldName": "gap_directs_forecast",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "Directs vs My Call",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 4
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
                   },
                   {
                     "fieldName": "worst_case_projection",
@@ -11320,7 +11517,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Worst Case"
@@ -11334,7 +11531,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Best Case"
@@ -11348,7 +11545,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Weighted Proj"
@@ -11362,7 +11559,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "DS Forecast"
@@ -11376,7 +11573,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T7D Flat Proj"
@@ -11390,7 +11587,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T28D Flat Proj"
@@ -11404,7 +11601,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T7D"
@@ -11418,7 +11615,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Target T7D"
@@ -11432,24 +11629,23 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T28D"
                   },
                   {
-                    "fieldName": "delta_t7d",
-                    "columnWidth": 80,
+                    "fieldName": "t7d_change_perc",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 2
-                      }
+                      },
+                      "hideGroupSeparator": true
                     },
-                    "displayName": "T7D",
+                    "columnWidth": 130,
+                    "displayName": "T7D Change %",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -11474,18 +11670,17 @@
                     }
                   },
                   {
-                    "fieldName": "delta_t28d",
-                    "columnWidth": 85,
+                    "fieldName": "t28d_change_perc",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 2
-                      }
+                      },
+                      "hideGroupSeparator": true
                     },
-                    "displayName": "T28D",
+                    "columnWidth": 140,
+                    "displayName": "T28D Change %",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -11601,12 +11796,12 @@
                       "expression": "`dbu_dollars_t28d_adj`"
                     },
                     {
-                      "name": "delta_t7d",
-                      "expression": "`delta_t7d`"
+                      "name": "t7d_change_perc",
+                      "expression": "`t7d_change_perc`"
                     },
                     {
-                      "name": "delta_t28d",
-                      "expression": "`delta_t28d`"
+                      "name": "t28d_change_perc",
+                      "expression": "`t28d_change_perc`"
                     }
                   ],
                   "filters": [
@@ -11619,13 +11814,13 @@
               }
             ],
             "spec": {
-              "version": 2,
-              "rowsPerPage": 25,
-              "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
                 "title": "Org Forecast Summary (AE Level)"
               },
+              "version": 2,
+              "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -11644,37 +11839,37 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Target"
                   },
                   {
                     "fieldName": "dbu_actuals",
-                    "columnWidth": 80,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
+                    "columnWidth": 100,
                     "displayName": "QTD"
                   },
                   {
                     "fieldName": "dbu_actuals_or_forecast_prev_quarter",
-                    "columnWidth": 80,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
+                    "columnWidth": 100,
                     "displayName": "Q-1"
                   },
                   {
@@ -11686,24 +11881,24 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
-                    "displayName": "Forecast"
+                    "displayName": "My Call"
                   },
                   {
                     "fieldName": "gap_my_call",
-                    "columnWidth": 100,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
-                    "displayName": "Gap",
+                    "columnWidth": 130,
+                    "displayName": "Gap to Target",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -11729,14 +11924,14 @@
                   },
                   {
                     "fieldName": "my_call_att",
-                    "columnWidth": 80,
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 1
+                        "places": 2
                       }
                     },
+                    "columnWidth": 80,
                     "displayName": "Att%",
                     "style": {
                       "type": "basic",
@@ -11768,7 +11963,7 @@
                       "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 1
+                        "places": 2
                       }
                     },
                     "displayName": "QoQ%"
@@ -11782,7 +11977,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Worst Case"
@@ -11796,7 +11991,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Best Case"
@@ -11810,7 +12005,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Weighted Proj"
@@ -11824,7 +12019,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "DS Forecast"
@@ -11838,7 +12033,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T7D Flat Proj"
@@ -11852,7 +12047,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T28D Flat Proj"
@@ -11866,7 +12061,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T7D"
@@ -11880,7 +12075,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "Target T7D"
@@ -11894,24 +12089,22 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 2
+                        "places": 3
                       }
                     },
                     "displayName": "T28D"
                   },
                   {
-                    "fieldName": "delta_t7d",
-                    "columnWidth": 80,
+                    "fieldName": "t7d_change_perc",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 2
                       }
                     },
-                    "displayName": "T7D",
+                    "columnWidth": 130,
+                    "displayName": "T7D Change %",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -11925,7 +12118,7 @@
                               "type": "data-value",
                               "value": "0"
                             },
-                            "operator": "<="
+                            "operator": "<"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11936,18 +12129,16 @@
                     }
                   },
                   {
-                    "fieldName": "delta_t28d",
-                    "columnWidth": 85,
+                    "fieldName": "t28d_change_perc",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
+                      "type": "number-percent",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 2
                       }
                     },
-                    "displayName": "T28D",
+                    "columnWidth": 140,
+                    "displayName": "T28D Change %",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -11961,7 +12152,7 @@
                               "type": "data-value",
                               "value": "0"
                             },
-                            "operator": "<="
+                            "operator": "<"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12012,6 +12203,19 @@
               "frame": {
                 "showTitle": true,
                 "title": "FQ"
+              },
+              "disallowAll": true,
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "FY27-Q1"
+                      }
+                    ]
+                  }
+                }
               },
               "widgetType": "filter-single-select",
               "encodings": {
@@ -12891,11 +13095,11 @@
               }
             ],
             "spec": {
-              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Lakebase ACTIVATION"
+                "title": "Bar 11"
               },
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -12930,28 +13134,28 @@
                   },
                   {
                     "fieldName": "sum(lakebase_dbu_dollars_t7d_avg)",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
-                    },
                     "columnWidth": 80,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
+                    },
                     "displayName": "T7D"
                   },
                   {
                     "fieldName": "measure(lakebase_dbu_dollars_t7d_wow)",
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 2
+                      }
                     },
                     "columnWidth": 100,
                     "displayName": "T7D WoW",
@@ -12976,63 +13180,66 @@
                   },
                   {
                     "fieldName": "sum(lakebase_dbu_dollars_ytd)",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
-                    },
                     "columnWidth": 100,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
+                    },
                     "displayName": "YTD"
                   },
                   {
                     "fieldName": "measure(lakebase_penetration_t7d_pct)",
+                    "columnWidth": 80,
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
+                        "type": "max",
                         "places": 2
-                      },
-                      "hideGroupSeparator": true
+                      }
                     },
-                    "columnWidth": 80,
                     "displayName": "Pen %"
                   },
                   {
                     "fieldName": "sum(lakebase_dbu_dollars_t28d_sum)",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 2
-                      },
-                      "hideGroupSeparator": true
-                    },
                     "columnWidth": 140,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
+                    },
                     "displayName": "T28D Sum Curr"
                   },
                   {
                     "fieldName": "sum(lakebase_dbu_dollars_t28d_sum_prev)",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 2
-                      },
-                      "hideGroupSeparator": true
-                    },
                     "columnWidth": 140,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
+                    },
                     "displayName": "T28D Sum Prev"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -13083,11 +13290,11 @@
               }
             ],
             "spec": {
-              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "DWH Stats"
+                "title": "Bar 12"
               },
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -13098,28 +13305,28 @@
                   },
                   {
                     "fieldName": "sum(dwh_dbu_dollars_t7d_avg)",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
-                    },
                     "columnWidth": 80,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
+                    },
                     "displayName": "T7D"
                   },
                   {
                     "fieldName": "measure(lakebase_dbu_dollars_t7d_wow)",
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 2
+                      }
                     },
                     "columnWidth": 100,
                     "displayName": "T7D WoW",
@@ -13144,33 +13351,36 @@
                   },
                   {
                     "fieldName": "sum(dwh_dbu_dollars_ytd)",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
-                      "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
-                    },
                     "columnWidth": 100,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
+                    },
                     "displayName": "YTD"
                   },
                   {
                     "fieldName": "measure(dwh_penetration_t7d_pct)",
+                    "columnWidth": 80,
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
+                        "type": "max",
                         "places": 2
-                      },
-                      "hideGroupSeparator": true
+                      }
                     },
-                    "columnWidth": 80,
                     "displayName": "Pen %"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -13555,11 +13765,11 @@
               }
             ],
             "spec": {
-              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Total open pipeline originated from migrations (monthly $dbus)"
+                "title": "Bar 17"
               },
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -13571,14 +13781,14 @@
                   {
                     "fieldName": "sum(migration_pipeline)",
                     "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "none",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 0
+                        "type": "max",
+                        "places": 3
                       },
-                      "hideGroupSeparator": true
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none"
                     },
                     "headerTooltip": "Total $DBUs in pipeline from migrations",
                     "columnWidth": 170,
@@ -13593,17 +13803,20 @@
                     "fieldName": "measure(migration_pct)",
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
+                        "type": "max",
                         "places": 2
-                      },
-                      "hideGroupSeparator": true
+                      }
                     },
-                    "columnWidth": 120,
                     "headerTooltip": "% of pipeline generated from migrations",
+                    "columnWidth": 120,
                     "displayName": "Migration pipe %"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -13670,11 +13883,11 @@
               }
             ],
             "spec": {
-              "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "T28D QoQ % Growth (captured at the end of closed quarters)"
+                "title": "Bar 18"
               },
+              "version": 3,
               "widgetType": "pivot",
               "encodings": {
                 "rows": [
@@ -13694,15 +13907,15 @@
                   "fields": [
                     {
                       "fieldName": "sum(qoq_change_pct)",
-                      "cellType": "text",
                       "format": {
                         "type": "number-percent",
+                        "hideGroupSeparator": true,
                         "decimalPlaces": {
-                          "type": "exact",
+                          "type": "max",
                           "places": 2
-                        },
-                        "hideGroupSeparator": true
+                        }
                       },
+                      "cellType": "text",
                       "displayName": "T28D QoQ%",
                       "style": {
                         "type": "basic",
@@ -13742,6 +13955,9 @@
                     }
                   ]
                 }
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -13909,11 +14125,11 @@
               }
             ],
             "spec": {
-              "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "**Incremental** $DBUs by SA "
+                "title": "Bar 21"
               },
+              "version": 3,
               "widgetType": "pivot",
               "encodings": {
                 "rows": [
@@ -13927,20 +14143,21 @@
                 ],
                 "cell": {
                   "type": "multi-cell",
+                  "displayAs": "columns",
                   "fields": [
                     {
                       "fieldName": "sum(FY27_Q1)",
-                      "cellType": "text",
                       "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
+                        "hideGroupSeparator": false,
                         "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
+                          "type": "max",
+                          "places": 3
                         },
-                        "hideGroupSeparator": false
+                        "currencyCode": "USD",
+                        "type": "number-currency",
+                        "abbreviation": "none"
                       },
+                      "cellType": "text",
                       "displayName": "FY27 Q1",
                       "style": {
                         "type": "color-scale",
@@ -13956,17 +14173,17 @@
                     },
                     {
                       "fieldName": "sum(FY27_Q2)",
-                      "cellType": "text",
                       "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
+                        "hideGroupSeparator": false,
                         "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
+                          "type": "max",
+                          "places": 3
                         },
-                        "hideGroupSeparator": false
+                        "currencyCode": "USD",
+                        "type": "number-currency",
+                        "abbreviation": "none"
                       },
+                      "cellType": "text",
                       "displayName": "FY27 Q2",
                       "style": {
                         "type": "color-scale",
@@ -13982,17 +14199,17 @@
                     },
                     {
                       "fieldName": "sum(FY27_Q3)",
-                      "cellType": "text",
                       "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
+                        "hideGroupSeparator": false,
                         "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
+                          "type": "max",
+                          "places": 3
                         },
-                        "hideGroupSeparator": false
+                        "currencyCode": "USD",
+                        "type": "number-currency",
+                        "abbreviation": "none"
                       },
+                      "cellType": "text",
                       "displayName": "FY27 Q3",
                       "style": {
                         "type": "color-scale",
@@ -14008,17 +14225,17 @@
                     },
                     {
                       "fieldName": "sum(FY27_Q4)",
-                      "cellType": "text",
                       "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "none",
+                        "hideGroupSeparator": false,
                         "decimalPlaces": {
-                          "type": "exact",
-                          "places": 0
+                          "type": "max",
+                          "places": 3
                         },
-                        "hideGroupSeparator": false
+                        "currencyCode": "USD",
+                        "type": "number-currency",
+                        "abbreviation": "none"
                       },
+                      "cellType": "text",
                       "displayName": "FY27 Q4",
                       "style": {
                         "type": "color-scale",
@@ -14032,9 +14249,11 @@
                         }
                       }
                     }
-                  ],
-                  "displayAs": "columns"
+                  ]
                 }
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -14555,11 +14774,11 @@
               }
             ],
             "spec": {
-              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "U3 to U4 Velocity"
+                "title": "Bar 28"
               },
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -14574,11 +14793,11 @@
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 3
+                      }
                     },
                     "displayName": "AVG Days in U3"
                   },
@@ -14587,11 +14806,11 @@
                     "columnWidth": 180,
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 2
+                      }
                     },
                     "displayName": "% UCO won in 60 days"
                   },
@@ -14601,6 +14820,9 @@
                     "displayName": "UCO # (>U3)"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -14642,11 +14864,11 @@
               }
             ],
             "spec": {
-              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "U5 to U6 Velocity"
+                "title": "Bar 29"
               },
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -14661,11 +14883,11 @@
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 3
+                      }
                     },
                     "displayName": "AVG Days in U5"
                   },
@@ -14674,11 +14896,11 @@
                     "columnWidth": 180,
                     "format": {
                       "type": "number-percent",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
-                        "type": "exact",
-                        "places": 1
-                      },
-                      "hideGroupSeparator": true
+                        "type": "max",
+                        "places": 2
+                      }
                     },
                     "displayName": "% UCO Live in 60 days"
                   },
@@ -14688,6 +14910,9 @@
                     "displayName": "UCO # (U6)"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -14775,11 +15000,11 @@
               }
             ],
             "spec": {
-              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "FY27 - Top 10 Partners"
+                "title": "Bar 30"
               },
+              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -14791,6 +15016,16 @@
                   {
                     "fieldName": "sum(estimated_monthly_dollar_dbus)",
                     "columnWidth": 150,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
                     "displayName": "$DBUs (monthly)"
                   },
                   {
@@ -14799,6 +15034,9 @@
                     "displayName": "UCO #"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
