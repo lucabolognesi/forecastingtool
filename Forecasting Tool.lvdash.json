@@ -39,11 +39,6 @@
         "  ) as dates(m, fq, fy, q)\n",
         "),\n",
         "\n",
-        "snapshot_date (\n",
-        "  select max(snapshot_date) as latest_snapshot_date\n",
-        "  from gtm_silver.forecast_consumption_mcp_account\n",
-        "),\n",
-        "\n",
         "-- Resolve :ae_email to a list of AE emails.\n",
         "-- If :ae_email is an AE, returns just that email. If a manager, returns all AEs reporting to them.\n",
         "ae_list as (\n",
@@ -60,15 +55,39 @@
         "    end as sales_level, \n",
         "    crominus2name as bu_plus_1_lead, \n",
         "    crominus3name as bu_plus_2_lead, \n",
-        "    crominus4name as bu_plus_3_lead\n",
+        "    crominus4name as bu_plus_3_lead,\n",
+        "    Business_Unit, Region_Level_1, Region_Level_2, Region_Level_3\n",
         "  from main.gtm_silver.individual_hierarchy_salesforce\n",
-        "  where snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  where snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)\n",
         "  --and IsAE = true\n",
         "  and IsActive = true\n",
         "  and Business_Unit = :business_unit\n",
         "  and Region_Level_1 = :region_level_1\n",
         "  and Region_Level_2 = :region_level_2\n",
         "  and concatenated_emails like '%' || :ae_email || '%'\n",
+        "),\n",
+        "\n",
+        "latest_accounts AS (\n",
+        "  SELECT id, name\n",
+        "  FROM main.sfdc_bronze.account\n",
+        "  WHERE isdeleted = false\n",
+        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY name ORDER BY SystemModstamp DESC) = 1\n",
+        "),\n",
+        "\n",
+        "account_region as (\n",
+        "  SELECT  \n",
+        "    m.account_id,\n",
+        "    a.name AS account_name,\n",
+        "    m.territory_name,\n",
+        "    m.parent_name3 AS business_unit,\n",
+        "    m.parent_name2 AS subregion_level_1,\n",
+        "    m.parent_name1 AS subregion_level_2,\n",
+        "    m.parent_name0 AS subregion_level_3\n",
+        "  FROM main.gtm_silver.account_territory_map m\n",
+        "  JOIN latest_accounts a ON m.account_id = a.id\n",
+        "  WHERE m.parent_name3 = :business_unit\n",
+        "  AND m.parent_name2 = :region_level_1\n",
+        "  AND m.parent_name1 = :region_level_2\n",
         "),\n",
         "\n",
         "financial_quarters as (\n",
@@ -95,12 +114,14 @@
         "  and t.Region_Level_1 = :region_level_1\n",
         "  and t.Region_Level_2 = :region_level_2\n",
         "  and t.type_target = 'dbu'\n",
-        "  and t.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and t.snapshot_date = (select max(snapshot_date) from main.gtm_silver.targets_individual)\n",
         "),\n",
         "\n",
         "account_targets as (\n",
         "  SELECT\n",
-        "    t.account_id, t.account_name, ae.ae_email, ih.Region_Level_1, ih.Region_Level_2, ih.Region_Level_3, ih.user_id, t.dbu_dollar_target as fin_target, t.fiscal_year, t.fiscal_quarter, cast(right(t.fiscal_quarter, 1) as int) as fiscal_quarter_number\n",
+        "    t.account_id, t.account_name, ae.ae_email\n",
+        "    , ih.Region_Level_1, ih.Region_Level_2, ih.Region_Level_3, ih.user_id\n",
+        "    , t.dbu_dollar_target as fin_target, t.fiscal_year, t.fiscal_quarter, cast(right(t.fiscal_quarter, 1) as int) as fiscal_quarter_number\n",
         "  FROM main.gtm_silver.targets_account AS t\n",
         "  INNER JOIN main.gtm_silver.account_dim ad\n",
         "    ON t.account_id = ad.account_id\n",
@@ -115,15 +136,19 @@
         "),\n",
         "\n",
         "sales_forecast as (\n",
-        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date, f.submitted_my_call, f.submitted_my_call_w_closed_month_actuals\n",
-        "    , submitted_direct_field_consumption_forecast, current_ds_forecast_all_accounts as current_ds_forecast, submitted_weighted_projection\n",
-        "    , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name, *\n",
+        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
+        "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
+        "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
+        "  , coalesce(submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and f.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual)\n",
         "),\n",
         "\n",
         "account_forecast as (\n",
@@ -131,30 +156,30 @@
         "  f.account_id, a.account_name, i.Email as ae_email, f.account_executive_user_id as user_id, \n",
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
-        "  , sum(f.submitted_ae_forecast) as submitted_my_call\n",
-        "  , sum(f.submitted_ae_forecast) as submitted_direct_field_consumption_forecast\n",
-        "  , sum(f.submitted_ae_forecast_w_closed_month_actuals) as submitted_my_call_w_closed_month_actuals\n",
-        "  , sum(f.current_ds_forecast) as current_ds_forecast\n",
-        "  , sum(f.submitted_weighted_projection) as submitted_weighted_projection\n",
+        "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
+        "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
+        "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
+        "  , coalesce(sum(f.submitted_weighted_projection), 0) as submitted_weighted_projection\n",
         "  from gtm_silver.forecast_consumption_mcp_account as f\n",
         "  inner join ae_list ae on f.account_executive_user_id = ae.user_id\n",
         "  left join main.gtm_silver.account_dim as a\n",
         "    on f.account_id = a.account_id\n",
-        "    and a.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "    and a.snapshot_date = (select max(snapshot_date) from main.gtm_silver.account_dim)\n",
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
-        "    and i.snapshot_date = (select latest_snapshot_date from snapshot_date)  \n",
+        "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and f.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account)\n",
         "  group by all\n",
         "),\n",
-        "\n",
         "\n",
         "actuals as (\n",
         "  select :ae_email as selected_user, ae.user_id, ae.ae_email, c.fiscal_quarter_start_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
+        "  , ae.business_unit AS Business_Unit, ae.region_level_1 AS Region_Level_1, ae.region_level_2 AS Region_Level_2, ae.region_level_3 AS Region_Level_3\n",
         "  , sum(c.dbu_dollars_qtd) as dbu_actuals\n",
         "  , sum(c.dbu_dollars_t7d_avg) as dbu_dollars_t7d_avg, sum(c.dbu_dollars_t28d_avg) as dbu_dollars_t28d_avg\n",
         "  , sum(c.dbu_dollars_t7d_avg_prev) as dbu_dollars_t7d_avg_prev, sum(c.dbu_dollars_t28d_avg_prev) as dbu_dollars_t28d_avg_prev\n",
@@ -163,6 +188,8 @@
         "    on c.concatenated_emails like '%' || ae.ae_email || '%' -- I need the Sales hierarchy, not just the AE\n",
         "  left outer join main.gtm_silver.account_dim as b\n",
         "    on c.account_id = b.account_id\n",
+        "  --left outer join account_region as ar\n",
+        "  --on ar.account_id = c.account_id\n",
         "  where b.business_unit = :business_unit\n",
         "  and b.region_level_1 = :region_level_1\n",
         "  and b.region_level_2 = :region_level_2\n",
@@ -172,6 +199,7 @@
         "account_actuals as (\n",
         "  select :ae_email as selected_user, ae.user_id, ae.ae_email\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
+        "  , ar.business_unit AS Business_Unit, ar.subregion_level_1 AS Region_Level_1, ar.subregion_level_2 AS Region_Level_2, ar.subregion_level_3 AS Region_Level_3\n",
         "  , c.account_id, c.account_name, c.fiscal_quarter_start_date\n",
         "  , coalesce(sum(c.dbu_dollars_qtd), 0) as dbu_actuals\n",
         "  , coalesce(sum(c.dbu_dollars_t7d_avg), 0) as dbu_dollars_t7d_avg\n",
@@ -184,6 +212,8 @@
         "    --on c.concatenated_emails like '%' || ae.ae_email || '%' --\n",
         "  left outer join main.gtm_silver.account_dim as b\n",
         "    on c.account_id = b.account_id\n",
+        "  left outer join account_region as ar\n",
+        "    on ar.account_id = c.account_id\n",
         "  where b.business_unit = :business_unit\n",
         "  and b.region_level_1 = :region_level_1\n",
         "  and b.region_level_2 = :region_level_2\n",
@@ -192,7 +222,8 @@
         "\n",
         "target_forecast_actuals as (\n",
         "  select a.selected_user, a.user_id, a.ae_email, a.bu_plus_2_lead, a.bu_plus_3_lead, a.sales_level, a.user_name\n",
-        "    , d.fy, d.q, a.fiscal_quarter_start_date, a.dbu_actuals\n",
+        "    , a.Business_Unit, a.Region_Level_1, a.Region_Level_2, a.Region_Level_3\n",
+        "    , d.fy, d.q, d.fq, a.fiscal_quarter_start_date, a.dbu_actuals\n",
         "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
         "    , t.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
@@ -221,7 +252,8 @@
         "\n",
         "account_target_forecast_actuals as (\n",
         "  select a.selected_user, a.user_id, a.bu_plus_2_lead, a.bu_plus_3_lead, a.sales_level, a.user_name\n",
-        "    , a.ae_email, a.account_id, a.account_name, a.fiscal_quarter_start_date, d.fy, d.q\n",
+        "    , a.Business_Unit, a.Region_Level_1, a.Region_Level_2, a.Region_Level_3\n",
+        "    , a.ae_email, a.account_id, a.account_name, a.fiscal_quarter_start_date, d.fy, d.q, d.fq\n",
         "    , coalesce(t.fin_target, 0) as fin_target\n",
         "    , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
         "    , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
@@ -291,11 +323,11 @@
         "        when days_to_go_live < 60 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 / U5')\n",
         "        when days_to_onboarding between 0 and 60 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
         "      end as uco_info\n",
-        "  , coalesce(implementation_status, 'Unknown') as implementation_status\n",
+        "  , coalesce(implementation_status, 'Unknown') as impl_status\n",
         "    \n",
         "  from gtm_silver.use_case_detail\n",
         "  inner join ae_list ae on use_case_detail.concatenated_emails like '%' || ae.ae_email || '%'\n",
-        "  where Business_Unit = :business_unit\n",
+        "  where use_case_detail.Business_Unit = :business_unit\n",
         "  and sales_subregion_level_1 = :region_level_1\n",
         "  and sales_subregion_level_2 = :region_level_2\n",
         "  and is_incremental = true --Excludes upgrades\n",
@@ -311,7 +343,7 @@
         "incremental_projections as (\n",
         "  select uco.user_id, uco.ae_email, uco.usecase_id, uco.account_name, d.fq, d.fy, d.q, d.m, d.cm, d.last_day_of_month\n",
         "    , uco.target_onboarding_date, uco.target_onboarding_date_fq, uco.target_live_date, uco.target_live_date_fq, uco.target_onboarding_date_15, uco.target_live_date_15\n",
-        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.implementation_status, uco.usecase_url, uco.num_of_blockers \n",
+        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.impl_status, uco.usecase_url, uco.num_of_blockers \n",
         "    , (select max(usage_date) from main.gtm_gold.individual_consumption_daily) as latest_usage_date\n",
         "    , datediff(latest_usage_date, target_onboarding_date_15) as current_ramping_days \n",
         "    -- Calculate this month's baseline for each use case, .i.e. how much are they consuming today? This is used to calculate the actual incremental consumption at the next step.\n",
@@ -378,13 +410,13 @@
         "        end, 0) as quarterly_incremental_dbus\n",
         "\n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_green \n",
+        "        case when ip.impl_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_green \n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_yellow \n",
+        "        case when ip.impl_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_yellow \n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_red\n",
+        "        case when ip.impl_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_red\n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_unknown\n",
+        "        case when ip.impl_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_unknown\n",
         "  \n",
         "  from incremental_projections as ip\n",
         "  inner join quarterly_projection_by_use_case as qp\n",
@@ -429,7 +461,8 @@
         "    , cast(NULL as string) as account_id\n",
         "    , 'All' as account_name\n",
         "    , f.selected_user, f.user_id, f.ae_email, f.bu_plus_2_lead, f.bu_plus_3_lead, f.sales_level, f.user_name\n",
-        "    , f.fy, f.q, p.fq, f.fiscal_quarter_start_date    \n",
+        "    , f.Business_Unit, f.Region_Level_1, f.Region_Level_2, f.Region_Level_3\n",
+        "    , f.fy, f.q, f.fq, f.fiscal_quarter_start_date    \n",
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
@@ -460,7 +493,8 @@
         "    'Account Forecast' as view_name\n",
         "    , f.account_id, f.account_name\n",
         "    , f.selected_user, f.user_id, f.ae_email, f.bu_plus_2_lead, f.bu_plus_3_lead, f.sales_level, f.user_name\n",
-        "    , f.fy, f.q, p.fq, f.fiscal_quarter_start_date    \n",
+        "    , f.Business_Unit, f.Region_Level_1, f.Region_Level_2, f.Region_Level_3\n",
+        "    , f.fy, f.q, f.fq, f.fiscal_quarter_start_date    \n",
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
@@ -487,7 +521,7 @@
         "\n",
         "quarterly_summary as (\n",
         "  SELECT \n",
-        "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
+        "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.Business_Unit, u.Region_Level_1, u.Region_Level_2, u.Region_Level_3, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
         "  , u.fin_target, u.submitted_my_call \n",
         "  , u.submitted_direct_field_consumption_forecast, u.current_ds_forecast, u.submitted_weighted_projection\n",
         "  , u.dbu_actuals_coalesced as dbu_actuals, u.dbu_actuals_or_forecast, u.dbu_actuals_current_quarter\n",
@@ -495,7 +529,7 @@
         "  , u.dbu_dollars_t28d_adj, u.dbu_dollars_t28d_prev_adj, u.t28d_proj_left_in_quarter\n",
         "\n",
         "  , coalesce(lag(u.dbu_actuals_or_forecast) over (partition by u.user_id, u.account_id order by u.fq asc), 0) as dbu_actuals_or_forecast_prev_quarter\n",
-        "  , try_divide(u.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter) as qoq_target_growth\n",
+        "  , coalesce(try_divide(u.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), 0) as qoq_target_growth\n",
         "\n",
         "  --incremental pipeline\n",
         "  , u.quarterly_incremental_dbus \n",
@@ -545,10 +579,10 @@
         "  , u.current_ds_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_ds_forecast\n",
         "  , u.submitted_direct_field_consumption_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_directs_forecast\n",
         "\n",
-        "  , try_divide(u.submitted_my_call, u.fin_target) as my_call_att\n",
-        "  , try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter) as my_call_qoq_perc\n",
-        "  , try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target) as directs_att\n",
-        "  , try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter) as directs_qoq_perc\n",
+        "  , coalesce(try_divide(u.submitted_my_call, u.fin_target), 0) as my_call_att\n",
+        "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
+        "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
+        "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
         "  , u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj as delta_t7d\n",
         "  , u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj as delta_t28d\n",
         "\n",
@@ -829,11 +863,6 @@
         "  ) as dates(m, fq, fy, q)\n",
         "),\n",
         "\n",
-        "snapshot_date (\n",
-        "  select max(snapshot_date) as latest_snapshot_date\n",
-        "  from gtm_silver.forecast_consumption_mcp_account\n",
-        "),\n",
-        "\n",
         "-- Resolve :ae_email to a list of AE emails.\n",
         "-- If :ae_email is an AE, returns just that email. If a manager, returns all AEs reporting to them.\n",
         "ae_list as (\n",
@@ -850,15 +879,39 @@
         "    end as sales_level, \n",
         "    crominus2name as bu_plus_1_lead, \n",
         "    crominus3name as bu_plus_2_lead, \n",
-        "    crominus4name as bu_plus_3_lead\n",
+        "    crominus4name as bu_plus_3_lead,\n",
+        "    Business_Unit, Region_Level_1, Region_Level_2, Region_Level_3\n",
         "  from main.gtm_silver.individual_hierarchy_salesforce\n",
-        "  where snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  where snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)\n",
         "  --and IsAE = true\n",
         "  and IsActive = true\n",
         "  and Business_Unit = :business_unit\n",
         "  and Region_Level_1 = :region_level_1\n",
         "  and Region_Level_2 = :region_level_2\n",
         "  and concatenated_emails like '%' || :ae_email || '%'\n",
+        "),\n",
+        "\n",
+        "latest_accounts AS (\n",
+        "  SELECT id, name\n",
+        "  FROM main.sfdc_bronze.account\n",
+        "  WHERE isdeleted = false\n",
+        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY name ORDER BY SystemModstamp DESC) = 1\n",
+        "),\n",
+        "\n",
+        "account_region as (\n",
+        "  SELECT  \n",
+        "    m.account_id,\n",
+        "    a.name AS account_name,\n",
+        "    m.territory_name,\n",
+        "    m.parent_name3 AS business_unit,\n",
+        "    m.parent_name2 AS subregion_level_1,\n",
+        "    m.parent_name1 AS subregion_level_2,\n",
+        "    m.parent_name0 AS subregion_level_3\n",
+        "  FROM main.gtm_silver.account_territory_map m\n",
+        "  JOIN latest_accounts a ON m.account_id = a.id\n",
+        "  WHERE m.parent_name3 = :business_unit\n",
+        "  AND m.parent_name2 = :region_level_1\n",
+        "  AND m.parent_name1 = :region_level_2\n",
         "),\n",
         "\n",
         "financial_quarters as (\n",
@@ -885,12 +938,14 @@
         "  and t.Region_Level_1 = :region_level_1\n",
         "  and t.Region_Level_2 = :region_level_2\n",
         "  and t.type_target = 'dbu'\n",
-        "  and t.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and t.snapshot_date = (select max(snapshot_date) from main.gtm_silver.targets_individual)\n",
         "),\n",
         "\n",
         "account_targets as (\n",
         "  SELECT\n",
-        "    t.account_id, t.account_name, ae.ae_email, ih.Region_Level_1, ih.Region_Level_2, ih.Region_Level_3, ih.user_id, t.dbu_dollar_target as fin_target, t.fiscal_year, t.fiscal_quarter, cast(right(t.fiscal_quarter, 1) as int) as fiscal_quarter_number\n",
+        "    t.account_id, t.account_name, ae.ae_email\n",
+        "    , ih.Region_Level_1, ih.Region_Level_2, ih.Region_Level_3, ih.user_id\n",
+        "    , t.dbu_dollar_target as fin_target, t.fiscal_year, t.fiscal_quarter, cast(right(t.fiscal_quarter, 1) as int) as fiscal_quarter_number\n",
         "  FROM main.gtm_silver.targets_account AS t\n",
         "  INNER JOIN main.gtm_silver.account_dim ad\n",
         "    ON t.account_id = ad.account_id\n",
@@ -905,15 +960,19 @@
         "),\n",
         "\n",
         "sales_forecast as (\n",
-        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date, f.submitted_my_call, f.submitted_my_call_w_closed_month_actuals\n",
-        "    , submitted_direct_field_consumption_forecast, current_ds_forecast_all_accounts as current_ds_forecast, submitted_weighted_projection\n",
-        "    , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name, *\n",
+        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
+        "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
+        "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
+        "  , coalesce(submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and f.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual)\n",
         "),\n",
         "\n",
         "account_forecast as (\n",
@@ -921,30 +980,30 @@
         "  f.account_id, a.account_name, i.Email as ae_email, f.account_executive_user_id as user_id, \n",
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
-        "  , sum(f.submitted_ae_forecast) as submitted_my_call\n",
-        "  , sum(f.submitted_ae_forecast) as submitted_direct_field_consumption_forecast\n",
-        "  , sum(f.submitted_ae_forecast_w_closed_month_actuals) as submitted_my_call_w_closed_month_actuals\n",
-        "  , sum(f.current_ds_forecast) as current_ds_forecast\n",
-        "  , sum(f.submitted_weighted_projection) as submitted_weighted_projection\n",
+        "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
+        "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
+        "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
+        "  , coalesce(sum(f.submitted_weighted_projection), 0) as submitted_weighted_projection\n",
         "  from gtm_silver.forecast_consumption_mcp_account as f\n",
         "  inner join ae_list ae on f.account_executive_user_id = ae.user_id\n",
         "  left join main.gtm_silver.account_dim as a\n",
         "    on f.account_id = a.account_id\n",
-        "    and a.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "    and a.snapshot_date = (select max(snapshot_date) from main.gtm_silver.account_dim)\n",
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
-        "    and i.snapshot_date = (select latest_snapshot_date from snapshot_date)  \n",
+        "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and f.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account)\n",
         "  group by all\n",
         "),\n",
-        "\n",
         "\n",
         "actuals as (\n",
         "  select :ae_email as selected_user, ae.user_id, ae.ae_email, c.fiscal_quarter_start_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
+        "  , ae.business_unit AS Business_Unit, ae.region_level_1 AS Region_Level_1, ae.region_level_2 AS Region_Level_2, ae.region_level_3 AS Region_Level_3\n",
         "  , sum(c.dbu_dollars_qtd) as dbu_actuals\n",
         "  , sum(c.dbu_dollars_t7d_avg) as dbu_dollars_t7d_avg, sum(c.dbu_dollars_t28d_avg) as dbu_dollars_t28d_avg\n",
         "  , sum(c.dbu_dollars_t7d_avg_prev) as dbu_dollars_t7d_avg_prev, sum(c.dbu_dollars_t28d_avg_prev) as dbu_dollars_t28d_avg_prev\n",
@@ -953,6 +1012,8 @@
         "    on c.concatenated_emails like '%' || ae.ae_email || '%' -- I need the Sales hierarchy, not just the AE\n",
         "  left outer join main.gtm_silver.account_dim as b\n",
         "    on c.account_id = b.account_id\n",
+        "  --left outer join account_region as ar\n",
+        "  --on ar.account_id = c.account_id\n",
         "  where b.business_unit = :business_unit\n",
         "  and b.region_level_1 = :region_level_1\n",
         "  and b.region_level_2 = :region_level_2\n",
@@ -962,6 +1023,7 @@
         "account_actuals as (\n",
         "  select :ae_email as selected_user, ae.user_id, ae.ae_email\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
+        "  , ar.business_unit AS Business_Unit, ar.subregion_level_1 AS Region_Level_1, ar.subregion_level_2 AS Region_Level_2, ar.subregion_level_3 AS Region_Level_3\n",
         "  , c.account_id, c.account_name, c.fiscal_quarter_start_date\n",
         "  , coalesce(sum(c.dbu_dollars_qtd), 0) as dbu_actuals\n",
         "  , coalesce(sum(c.dbu_dollars_t7d_avg), 0) as dbu_dollars_t7d_avg\n",
@@ -974,6 +1036,8 @@
         "    --on c.concatenated_emails like '%' || ae.ae_email || '%' --\n",
         "  left outer join main.gtm_silver.account_dim as b\n",
         "    on c.account_id = b.account_id\n",
+        "  left outer join account_region as ar\n",
+        "    on ar.account_id = c.account_id\n",
         "  where b.business_unit = :business_unit\n",
         "  and b.region_level_1 = :region_level_1\n",
         "  and b.region_level_2 = :region_level_2\n",
@@ -982,7 +1046,8 @@
         "\n",
         "target_forecast_actuals as (\n",
         "  select a.selected_user, a.user_id, a.ae_email, a.bu_plus_2_lead, a.bu_plus_3_lead, a.sales_level, a.user_name\n",
-        "    , d.fy, d.q, a.fiscal_quarter_start_date, a.dbu_actuals\n",
+        "    , a.Business_Unit, a.Region_Level_1, a.Region_Level_2, a.Region_Level_3\n",
+        "    , d.fy, d.q, d.fq, a.fiscal_quarter_start_date, a.dbu_actuals\n",
         "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
         "    , t.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
@@ -1011,7 +1076,8 @@
         "\n",
         "account_target_forecast_actuals as (\n",
         "  select a.selected_user, a.user_id, a.bu_plus_2_lead, a.bu_plus_3_lead, a.sales_level, a.user_name\n",
-        "    , a.ae_email, a.account_id, a.account_name, a.fiscal_quarter_start_date, d.fy, d.q\n",
+        "    , a.Business_Unit, a.Region_Level_1, a.Region_Level_2, a.Region_Level_3\n",
+        "    , a.ae_email, a.account_id, a.account_name, a.fiscal_quarter_start_date, d.fy, d.q, d.fq\n",
         "    , coalesce(t.fin_target, 0) as fin_target\n",
         "    , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
         "    , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
@@ -1081,11 +1147,11 @@
         "        when days_to_go_live < 60 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 / U5')\n",
         "        when days_to_onboarding between 0 and 60 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
         "      end as uco_info\n",
-        "  , coalesce(implementation_status, 'Unknown') as implementation_status\n",
+        "  , coalesce(implementation_status, 'Unknown') as impl_status\n",
         "    \n",
         "  from gtm_silver.use_case_detail\n",
         "  inner join ae_list ae on use_case_detail.concatenated_emails like '%' || ae.ae_email || '%'\n",
-        "  where Business_Unit = :business_unit\n",
+        "  where use_case_detail.Business_Unit = :business_unit\n",
         "  and sales_subregion_level_1 = :region_level_1\n",
         "  and sales_subregion_level_2 = :region_level_2\n",
         "  and is_incremental = true --Excludes upgrades\n",
@@ -1101,7 +1167,7 @@
         "incremental_projections as (\n",
         "  select uco.user_id, uco.ae_email, uco.usecase_id, uco.account_name, d.fq, d.fy, d.q, d.m, d.cm, d.last_day_of_month\n",
         "    , uco.target_onboarding_date, uco.target_onboarding_date_fq, uco.target_live_date, uco.target_live_date_fq, uco.target_onboarding_date_15, uco.target_live_date_15\n",
-        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.implementation_status, uco.usecase_url, uco.num_of_blockers \n",
+        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.impl_status, uco.usecase_url, uco.num_of_blockers \n",
         "    , (select max(usage_date) from main.gtm_gold.individual_consumption_daily) as latest_usage_date\n",
         "    , datediff(latest_usage_date, target_onboarding_date_15) as current_ramping_days \n",
         "    -- Calculate this month's baseline for each use case, .i.e. how much are they consuming today? This is used to calculate the actual incremental consumption at the next step.\n",
@@ -1168,13 +1234,13 @@
         "        end, 0) as quarterly_incremental_dbus\n",
         "\n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_green \n",
+        "        case when ip.impl_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_green \n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_yellow \n",
+        "        case when ip.impl_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_yellow \n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_red\n",
+        "        case when ip.impl_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_red\n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_unknown\n",
+        "        case when ip.impl_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_unknown\n",
         "  \n",
         "  from incremental_projections as ip\n",
         "  inner join quarterly_projection_by_use_case as qp\n",
@@ -1219,7 +1285,8 @@
         "    , cast(NULL as string) as account_id\n",
         "    , 'All' as account_name\n",
         "    , f.selected_user, f.user_id, f.ae_email, f.bu_plus_2_lead, f.bu_plus_3_lead, f.sales_level, f.user_name\n",
-        "    , f.fy, f.q, p.fq, f.fiscal_quarter_start_date    \n",
+        "    , f.Business_Unit, f.Region_Level_1, f.Region_Level_2, f.Region_Level_3\n",
+        "    , f.fy, f.q, f.fq, f.fiscal_quarter_start_date    \n",
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
@@ -1250,7 +1317,8 @@
         "    'Account Forecast' as view_name\n",
         "    , f.account_id, f.account_name\n",
         "    , f.selected_user, f.user_id, f.ae_email, f.bu_plus_2_lead, f.bu_plus_3_lead, f.sales_level, f.user_name\n",
-        "    , f.fy, f.q, p.fq, f.fiscal_quarter_start_date    \n",
+        "    , f.Business_Unit, f.Region_Level_1, f.Region_Level_2, f.Region_Level_3\n",
+        "    , f.fy, f.q, f.fq, f.fiscal_quarter_start_date    \n",
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
@@ -1277,7 +1345,7 @@
         "\n",
         "quarterly_summary as (\n",
         "  SELECT \n",
-        "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
+        "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.Business_Unit, u.Region_Level_1, u.Region_Level_2, u.Region_Level_3, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
         "  , u.fin_target, u.submitted_my_call \n",
         "  , u.submitted_direct_field_consumption_forecast, u.current_ds_forecast, u.submitted_weighted_projection\n",
         "  , u.dbu_actuals_coalesced as dbu_actuals, u.dbu_actuals_or_forecast, u.dbu_actuals_current_quarter\n",
@@ -1285,7 +1353,7 @@
         "  , u.dbu_dollars_t28d_adj, u.dbu_dollars_t28d_prev_adj, u.t28d_proj_left_in_quarter\n",
         "\n",
         "  , coalesce(lag(u.dbu_actuals_or_forecast) over (partition by u.user_id, u.account_id order by u.fq asc), 0) as dbu_actuals_or_forecast_prev_quarter\n",
-        "  , try_divide(u.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter) as qoq_target_growth\n",
+        "  , coalesce(try_divide(u.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), 0) as qoq_target_growth\n",
         "\n",
         "  --incremental pipeline\n",
         "  , u.quarterly_incremental_dbus \n",
@@ -1335,10 +1403,10 @@
         "  , u.current_ds_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_ds_forecast\n",
         "  , u.submitted_direct_field_consumption_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_directs_forecast\n",
         "\n",
-        "  , try_divide(u.submitted_my_call, u.fin_target) as my_call_att\n",
-        "  , try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter) as my_call_qoq_perc\n",
-        "  , try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target) as directs_att\n",
-        "  , try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter) as directs_qoq_perc\n",
+        "  , coalesce(try_divide(u.submitted_my_call, u.fin_target), 0) as my_call_att\n",
+        "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
+        "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
+        "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
         "  , u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj as delta_t7d\n",
         "  , u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj as delta_t28d\n",
         "\n",
@@ -1566,7 +1634,7 @@
         {
           "displayName": "v_my_call_qoq",
           "description": "",
-          "expression": "try_divide(sum(qoq_delta_target), sum(dbu_actuals_or_forecast_prev_quarter))"
+          "expression": "try_divide(sum(submitted_my_call) - sum(dbu_actuals_or_forecast_prev_quarter), sum(dbu_actuals_or_forecast_prev_quarter))"
         },
         {
           "displayName": "v_ae_attainment",
@@ -1577,6 +1645,16 @@
           "displayName": "v_ae_qoq",
           "description": "",
           "expression": "try_divide(sum(qoq_delta_directs_forecast), sum(dbu_actuals_or_forecast_prev_quarter))"
+        },
+        {
+          "displayName": "v_directs_att",
+          "description": "",
+          "expression": "try_divide(sum(submitted_direct_field_consumption_forecast), sum(fin_target))\n"
+        },
+        {
+          "displayName": "v_directs_qoq_perc",
+          "description": "",
+          "expression": "try_divide(sum(submitted_direct_field_consumption_forecast) - sum(dbu_actuals_or_forecast_prev_quarter), sum(dbu_actuals_or_forecast_prev_quarter))\n"
         }
       ]
     },
@@ -1619,11 +1697,6 @@
         "  ) as dates(m, fq, fy, q)\n",
         "),\n",
         "\n",
-        "snapshot_date (\n",
-        "  select max(snapshot_date) as latest_snapshot_date\n",
-        "  from gtm_silver.forecast_consumption_mcp_account\n",
-        "),\n",
-        "\n",
         "-- Resolve :ae_email to a list of AE emails.\n",
         "-- If :ae_email is an AE, returns just that email. If a manager, returns all AEs reporting to them.\n",
         "ae_list as (\n",
@@ -1640,15 +1713,39 @@
         "    end as sales_level, \n",
         "    crominus2name as bu_plus_1_lead, \n",
         "    crominus3name as bu_plus_2_lead, \n",
-        "    crominus4name as bu_plus_3_lead\n",
+        "    crominus4name as bu_plus_3_lead,\n",
+        "    Business_Unit, Region_Level_1, Region_Level_2, Region_Level_3\n",
         "  from main.gtm_silver.individual_hierarchy_salesforce\n",
-        "  where snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  where snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)\n",
         "  --and IsAE = true\n",
         "  and IsActive = true\n",
         "  and Business_Unit = :business_unit\n",
         "  and Region_Level_1 = :region_level_1\n",
         "  and Region_Level_2 = :region_level_2\n",
         "  and concatenated_emails like '%' || :ae_email || '%'\n",
+        "),\n",
+        "\n",
+        "latest_accounts AS (\n",
+        "  SELECT id, name\n",
+        "  FROM main.sfdc_bronze.account\n",
+        "  WHERE isdeleted = false\n",
+        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY name ORDER BY SystemModstamp DESC) = 1\n",
+        "),\n",
+        "\n",
+        "account_region as (\n",
+        "  SELECT  \n",
+        "    m.account_id,\n",
+        "    a.name AS account_name,\n",
+        "    m.territory_name,\n",
+        "    m.parent_name3 AS business_unit,\n",
+        "    m.parent_name2 AS subregion_level_1,\n",
+        "    m.parent_name1 AS subregion_level_2,\n",
+        "    m.parent_name0 AS subregion_level_3\n",
+        "  FROM main.gtm_silver.account_territory_map m\n",
+        "  JOIN latest_accounts a ON m.account_id = a.id\n",
+        "  WHERE m.parent_name3 = :business_unit\n",
+        "  AND m.parent_name2 = :region_level_1\n",
+        "  AND m.parent_name1 = :region_level_2\n",
         "),\n",
         "\n",
         "financial_quarters as (\n",
@@ -1675,12 +1772,14 @@
         "  and t.Region_Level_1 = :region_level_1\n",
         "  and t.Region_Level_2 = :region_level_2\n",
         "  and t.type_target = 'dbu'\n",
-        "  and t.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and t.snapshot_date = (select max(snapshot_date) from main.gtm_silver.targets_individual)\n",
         "),\n",
         "\n",
         "account_targets as (\n",
         "  SELECT\n",
-        "    t.account_id, t.account_name, ae.ae_email, ih.Region_Level_1, ih.Region_Level_2, ih.Region_Level_3, ih.user_id, t.dbu_dollar_target as fin_target, t.fiscal_year, t.fiscal_quarter, cast(right(t.fiscal_quarter, 1) as int) as fiscal_quarter_number\n",
+        "    t.account_id, t.account_name, ae.ae_email\n",
+        "    , ih.Region_Level_1, ih.Region_Level_2, ih.Region_Level_3, ih.user_id\n",
+        "    , t.dbu_dollar_target as fin_target, t.fiscal_year, t.fiscal_quarter, cast(right(t.fiscal_quarter, 1) as int) as fiscal_quarter_number\n",
         "  FROM main.gtm_silver.targets_account AS t\n",
         "  INNER JOIN main.gtm_silver.account_dim ad\n",
         "    ON t.account_id = ad.account_id\n",
@@ -1695,15 +1794,19 @@
         "),\n",
         "\n",
         "sales_forecast as (\n",
-        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date, f.submitted_my_call, f.submitted_my_call_w_closed_month_actuals\n",
-        "    , submitted_direct_field_consumption_forecast, current_ds_forecast_all_accounts as current_ds_forecast, submitted_weighted_projection\n",
-        "    , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name, *\n",
+        "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
+        "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
+        "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
+        "  , coalesce(submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(submitted_weighted_projection, 0) as submitted_weighted_projection\n",
+        "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and f.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual)\n",
         "),\n",
         "\n",
         "account_forecast as (\n",
@@ -1711,30 +1814,30 @@
         "  f.account_id, a.account_name, i.Email as ae_email, f.account_executive_user_id as user_id, \n",
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
-        "  , sum(f.submitted_ae_forecast) as submitted_my_call\n",
-        "  , sum(f.submitted_ae_forecast) as submitted_direct_field_consumption_forecast\n",
-        "  , sum(f.submitted_ae_forecast_w_closed_month_actuals) as submitted_my_call_w_closed_month_actuals\n",
-        "  , sum(f.current_ds_forecast) as current_ds_forecast\n",
-        "  , sum(f.submitted_weighted_projection) as submitted_weighted_projection\n",
+        "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
+        "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
+        "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
+        "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
+        "  , coalesce(sum(f.submitted_weighted_projection), 0) as submitted_weighted_projection\n",
         "  from gtm_silver.forecast_consumption_mcp_account as f\n",
         "  inner join ae_list ae on f.account_executive_user_id = ae.user_id\n",
         "  left join main.gtm_silver.account_dim as a\n",
         "    on f.account_id = a.account_id\n",
-        "    and a.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "    and a.snapshot_date = (select max(snapshot_date) from main.gtm_silver.account_dim)\n",
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
-        "    and i.snapshot_date = (select latest_snapshot_date from snapshot_date)  \n",
+        "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
-        "  and f.snapshot_date = (select latest_snapshot_date from snapshot_date)\n",
+        "  and f.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account)\n",
         "  group by all\n",
         "),\n",
-        "\n",
         "\n",
         "actuals as (\n",
         "  select :ae_email as selected_user, ae.user_id, ae.ae_email, c.fiscal_quarter_start_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
+        "  , ae.business_unit AS Business_Unit, ae.region_level_1 AS Region_Level_1, ae.region_level_2 AS Region_Level_2, ae.region_level_3 AS Region_Level_3\n",
         "  , sum(c.dbu_dollars_qtd) as dbu_actuals\n",
         "  , sum(c.dbu_dollars_t7d_avg) as dbu_dollars_t7d_avg, sum(c.dbu_dollars_t28d_avg) as dbu_dollars_t28d_avg\n",
         "  , sum(c.dbu_dollars_t7d_avg_prev) as dbu_dollars_t7d_avg_prev, sum(c.dbu_dollars_t28d_avg_prev) as dbu_dollars_t28d_avg_prev\n",
@@ -1743,6 +1846,8 @@
         "    on c.concatenated_emails like '%' || ae.ae_email || '%' -- I need the Sales hierarchy, not just the AE\n",
         "  left outer join main.gtm_silver.account_dim as b\n",
         "    on c.account_id = b.account_id\n",
+        "  --left outer join account_region as ar\n",
+        "  --on ar.account_id = c.account_id\n",
         "  where b.business_unit = :business_unit\n",
         "  and b.region_level_1 = :region_level_1\n",
         "  and b.region_level_2 = :region_level_2\n",
@@ -1752,6 +1857,7 @@
         "account_actuals as (\n",
         "  select :ae_email as selected_user, ae.user_id, ae.ae_email\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
+        "  , ar.business_unit AS Business_Unit, ar.subregion_level_1 AS Region_Level_1, ar.subregion_level_2 AS Region_Level_2, ar.subregion_level_3 AS Region_Level_3\n",
         "  , c.account_id, c.account_name, c.fiscal_quarter_start_date\n",
         "  , coalesce(sum(c.dbu_dollars_qtd), 0) as dbu_actuals\n",
         "  , coalesce(sum(c.dbu_dollars_t7d_avg), 0) as dbu_dollars_t7d_avg\n",
@@ -1764,6 +1870,8 @@
         "    --on c.concatenated_emails like '%' || ae.ae_email || '%' --\n",
         "  left outer join main.gtm_silver.account_dim as b\n",
         "    on c.account_id = b.account_id\n",
+        "  left outer join account_region as ar\n",
+        "    on ar.account_id = c.account_id\n",
         "  where b.business_unit = :business_unit\n",
         "  and b.region_level_1 = :region_level_1\n",
         "  and b.region_level_2 = :region_level_2\n",
@@ -1772,7 +1880,8 @@
         "\n",
         "target_forecast_actuals as (\n",
         "  select a.selected_user, a.user_id, a.ae_email, a.bu_plus_2_lead, a.bu_plus_3_lead, a.sales_level, a.user_name\n",
-        "    , d.fy, d.q, a.fiscal_quarter_start_date, a.dbu_actuals\n",
+        "    , a.Business_Unit, a.Region_Level_1, a.Region_Level_2, a.Region_Level_3\n",
+        "    , d.fy, d.q, d.fq, a.fiscal_quarter_start_date, a.dbu_actuals\n",
         "    , a.dbu_dollars_t7d_avg, a.dbu_dollars_t28d_avg, a.dbu_dollars_t7d_avg_prev, a.dbu_dollars_t28d_avg_prev\n",
         "    , t.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
@@ -1801,7 +1910,8 @@
         "\n",
         "account_target_forecast_actuals as (\n",
         "  select a.selected_user, a.user_id, a.bu_plus_2_lead, a.bu_plus_3_lead, a.sales_level, a.user_name\n",
-        "    , a.ae_email, a.account_id, a.account_name, a.fiscal_quarter_start_date, d.fy, d.q\n",
+        "    , a.Business_Unit, a.Region_Level_1, a.Region_Level_2, a.Region_Level_3\n",
+        "    , a.ae_email, a.account_id, a.account_name, a.fiscal_quarter_start_date, d.fy, d.q, d.fq\n",
         "    , coalesce(t.fin_target, 0) as fin_target\n",
         "    , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
         "    , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
@@ -1871,11 +1981,11 @@
         "        when days_to_go_live < 60 and stage_number = 5 then named_struct('category', 'Opportunity', 'msg', 'Go live < 60 / U5')\n",
         "        when days_to_onboarding between 0 and 60 and stage_number between 2 and 3 then named_struct('category', 'Opportunity', 'msg', 'Tech win to accelerate')\n",
         "      end as uco_info\n",
-        "  , coalesce(implementation_status, 'Unknown') as implementation_status\n",
+        "  , coalesce(implementation_status, 'Unknown') as impl_status\n",
         "    \n",
         "  from gtm_silver.use_case_detail\n",
         "  inner join ae_list ae on use_case_detail.concatenated_emails like '%' || ae.ae_email || '%'\n",
-        "  where Business_Unit = :business_unit\n",
+        "  where use_case_detail.Business_Unit = :business_unit\n",
         "  and sales_subregion_level_1 = :region_level_1\n",
         "  and sales_subregion_level_2 = :region_level_2\n",
         "  and is_incremental = true --Excludes upgrades\n",
@@ -1891,7 +2001,7 @@
         "incremental_projections as (\n",
         "  select uco.user_id, uco.ae_email, uco.usecase_id, uco.account_name, d.fq, d.fy, d.q, d.m, d.cm, d.last_day_of_month\n",
         "    , uco.target_onboarding_date, uco.target_onboarding_date_fq, uco.target_live_date, uco.target_live_date_fq, uco.target_onboarding_date_15, uco.target_live_date_15\n",
-        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.implementation_status, uco.usecase_url, uco.num_of_blockers \n",
+        "    , uco.total_ramping_days, uco.estimated_monthly_dollar_dbus, uco.impl_status, uco.usecase_url, uco.num_of_blockers \n",
         "    , (select max(usage_date) from main.gtm_gold.individual_consumption_daily) as latest_usage_date\n",
         "    , datediff(latest_usage_date, target_onboarding_date_15) as current_ramping_days \n",
         "    -- Calculate this month's baseline for each use case, .i.e. how much are they consuming today? This is used to calculate the actual incremental consumption at the next step.\n",
@@ -1958,13 +2068,13 @@
         "        end, 0) as quarterly_incremental_dbus\n",
         "\n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_green \n",
+        "        case when ip.impl_status = 'Green' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_green \n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_yellow \n",
+        "        case when ip.impl_status = 'Yellow' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_yellow \n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_red\n",
+        "        case when ip.impl_status = 'Red' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_red\n",
         "    , coalesce(\n",
-        "        case when ip.implementation_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_unknown\n",
+        "        case when ip.impl_status = 'Unknown' and not f.is_quarter_closed then quarterly_incremental_dbus else 0 end, 0) as dbus_in_pipeline_unknown\n",
         "  \n",
         "  from incremental_projections as ip\n",
         "  inner join quarterly_projection_by_use_case as qp\n",
@@ -2009,7 +2119,8 @@
         "    , cast(NULL as string) as account_id\n",
         "    , 'All' as account_name\n",
         "    , f.selected_user, f.user_id, f.ae_email, f.bu_plus_2_lead, f.bu_plus_3_lead, f.sales_level, f.user_name\n",
-        "    , f.fy, f.q, p.fq, f.fiscal_quarter_start_date    \n",
+        "    , f.Business_Unit, f.Region_Level_1, f.Region_Level_2, f.Region_Level_3\n",
+        "    , f.fy, f.q, f.fq, f.fiscal_quarter_start_date    \n",
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
@@ -2040,7 +2151,8 @@
         "    'Account Forecast' as view_name\n",
         "    , f.account_id, f.account_name\n",
         "    , f.selected_user, f.user_id, f.ae_email, f.bu_plus_2_lead, f.bu_plus_3_lead, f.sales_level, f.user_name\n",
-        "    , f.fy, f.q, p.fq, f.fiscal_quarter_start_date    \n",
+        "    , f.Business_Unit, f.Region_Level_1, f.Region_Level_2, f.Region_Level_3\n",
+        "    , f.fy, f.q, f.fq, f.fiscal_quarter_start_date    \n",
         "    , f.dbu_actuals\n",
         "    , f.dbu_dollars_t7d_avg, f.dbu_dollars_t28d_avg, f.dbu_dollars_t7d_avg_prev, f.dbu_dollars_t28d_avg_prev\n",
         "    , f.fin_target, f.submitted_my_call, f.submitted_direct_field_consumption_forecast, f.current_ds_forecast, f.submitted_weighted_projection\n",
@@ -2067,7 +2179,7 @@
         "\n",
         "quarterly_summary as (\n",
         "  SELECT \n",
-        "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
+        "  u.view_name, u.ae_email, u.account_id, u.account_name, u.sales_level, u.user_name, u.bu_plus_2_lead, u.bu_plus_3_lead, u.Business_Unit, u.Region_Level_1, u.Region_Level_2, u.Region_Level_3, u.fy, u.fq, u.days_left_in_quarter, u.is_quarter_closed , u.is_current_fiscal_quarter\n",
         "  , u.fin_target, u.submitted_my_call \n",
         "  , u.submitted_direct_field_consumption_forecast, u.current_ds_forecast, u.submitted_weighted_projection\n",
         "  , u.dbu_actuals_coalesced as dbu_actuals, u.dbu_actuals_or_forecast, u.dbu_actuals_current_quarter\n",
@@ -2075,7 +2187,7 @@
         "  , u.dbu_dollars_t28d_adj, u.dbu_dollars_t28d_prev_adj, u.t28d_proj_left_in_quarter\n",
         "\n",
         "  , coalesce(lag(u.dbu_actuals_or_forecast) over (partition by u.user_id, u.account_id order by u.fq asc), 0) as dbu_actuals_or_forecast_prev_quarter\n",
-        "  , try_divide(u.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter) as qoq_target_growth\n",
+        "  , coalesce(try_divide(u.fin_target - dbu_actuals_or_forecast_prev_quarter, dbu_actuals_or_forecast_prev_quarter), 0) as qoq_target_growth\n",
         "\n",
         "  --incremental pipeline\n",
         "  , u.quarterly_incremental_dbus \n",
@@ -2125,10 +2237,10 @@
         "  , u.current_ds_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_ds_forecast\n",
         "  , u.submitted_direct_field_consumption_forecast - dbu_actuals_or_forecast_prev_quarter as qoq_delta_directs_forecast\n",
         "\n",
-        "  , try_divide(u.submitted_my_call, u.fin_target) as my_call_att\n",
-        "  , try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter) as my_call_qoq_perc\n",
-        "  , try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target) as directs_att\n",
-        "  , try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter) as directs_qoq_perc\n",
+        "  , coalesce(try_divide(u.submitted_my_call, u.fin_target), 0) as my_call_att\n",
+        "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
+        "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
+        "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
         "  , u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj as delta_t7d\n",
         "  , u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj as delta_t28d\n",
         "\n",
@@ -2163,8 +2275,7 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Org Forecast'\n",
-        "\n"
+        "where view_name = 'Org Forecast'\n"
       ],
       "parameters": [
         {
@@ -6448,7 +6559,7 @@
           },
           "position": {
             "x": 0,
-            "y": 50,
+            "y": 32,
             "width": 12,
             "height": 1
           }
@@ -7183,7 +7294,7 @@
           },
           "position": {
             "x": 0,
-            "y": 63,
+            "y": 45,
             "width": 12,
             "height": 12
           }
@@ -7229,7 +7340,7 @@
           },
           "position": {
             "x": 6,
-            "y": 51,
+            "y": 33,
             "width": 2,
             "height": 1
           }
@@ -7275,7 +7386,7 @@
           },
           "position": {
             "x": 8,
-            "y": 51,
+            "y": 33,
             "width": 2,
             "height": 1
           }
@@ -7321,7 +7432,7 @@
           },
           "position": {
             "x": 0,
-            "y": 52,
+            "y": 34,
             "width": 2,
             "height": 1
           }
@@ -7367,7 +7478,7 @@
           },
           "position": {
             "x": 2,
-            "y": 52,
+            "y": 34,
             "width": 2,
             "height": 1
           }
@@ -7413,7 +7524,7 @@
           },
           "position": {
             "x": 10,
-            "y": 51,
+            "y": 33,
             "width": 2,
             "height": 1
           }
@@ -7459,7 +7570,7 @@
           },
           "position": {
             "x": 0,
-            "y": 51,
+            "y": 33,
             "width": 2,
             "height": 1
           }
@@ -7783,7 +7894,7 @@
           },
           "position": {
             "x": 0,
-            "y": 53,
+            "y": 35,
             "width": 4,
             "height": 5
           }
@@ -7895,7 +8006,7 @@
           },
           "position": {
             "x": 8,
-            "y": 53,
+            "y": 35,
             "width": 4,
             "height": 5
           }
@@ -8007,7 +8118,7 @@
           },
           "position": {
             "x": 4,
-            "y": 53,
+            "y": 35,
             "width": 4,
             "height": 5
           }
@@ -8085,7 +8196,7 @@
           },
           "position": {
             "x": 2,
-            "y": 51,
+            "y": 33,
             "width": 2,
             "height": 1
           }
@@ -8131,7 +8242,7 @@
           },
           "position": {
             "x": 4,
-            "y": 51,
+            "y": 33,
             "width": 2,
             "height": 1
           }
@@ -8939,7 +9050,7 @@
           },
           "position": {
             "x": 3,
-            "y": 58,
+            "y": 40,
             "width": 3,
             "height": 4
           }
@@ -9045,7 +9156,7 @@
           },
           "position": {
             "x": 6,
-            "y": 58,
+            "y": 40,
             "width": 3,
             "height": 4
           }
@@ -9151,7 +9262,7 @@
           },
           "position": {
             "x": 9,
-            "y": 58,
+            "y": 40,
             "width": 3,
             "height": 4
           }
@@ -9257,7 +9368,7 @@
           },
           "position": {
             "x": 0,
-            "y": 58,
+            "y": 40,
             "width": 3,
             "height": 4
           }
@@ -9305,7 +9416,7 @@
           },
           "position": {
             "x": 0,
-            "y": 62,
+            "y": 44,
             "width": 3,
             "height": 1
           }
@@ -9353,7 +9464,7 @@
           },
           "position": {
             "x": 3,
-            "y": 62,
+            "y": 44,
             "width": 3,
             "height": 1
           }
@@ -9401,7 +9512,7 @@
           },
           "position": {
             "x": 6,
-            "y": 62,
+            "y": 44,
             "width": 3,
             "height": 1
           }
@@ -9449,7 +9560,7 @@
           },
           "position": {
             "x": 9,
-            "y": 62,
+            "y": 44,
             "width": 3,
             "height": 1
           }
@@ -9495,7 +9606,7 @@
           },
           "position": {
             "x": 8,
-            "y": 52,
+            "y": 34,
             "width": 2,
             "height": 1
           }
@@ -9541,7 +9652,7 @@
           },
           "position": {
             "x": 6,
-            "y": 52,
+            "y": 34,
             "width": 2,
             "height": 1
           }
@@ -9587,7 +9698,7 @@
           },
           "position": {
             "x": 4,
-            "y": 52,
+            "y": 34,
             "width": 2,
             "height": 1
           }
@@ -10068,7 +10179,7 @@
           },
           "position": {
             "x": 0,
-            "y": 43,
+            "y": 25,
             "width": 12,
             "height": 7
           }
@@ -10114,8 +10225,8 @@
           },
           "position": {
             "x": 0,
-            "y": 37,
-            "width": 4,
+            "y": 19,
+            "width": 3,
             "height": 1
           }
         },
@@ -10159,9 +10270,9 @@
             }
           },
           "position": {
-            "x": 8,
-            "y": 37,
-            "width": 4,
+            "x": 9,
+            "y": 19,
+            "width": 3,
             "height": 1
           }
         },
@@ -10205,9 +10316,9 @@
             }
           },
           "position": {
-            "x": 4,
-            "y": 37,
-            "width": 4,
+            "x": 6,
+            "y": 19,
+            "width": 3,
             "height": 1
           }
         },
@@ -10227,7 +10338,7 @@
           },
           "position": {
             "x": 0,
-            "y": 36,
+            "y": 18,
             "width": 12,
             "height": 1
           }
@@ -10263,7 +10374,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top Positive Forecast vs Target"
+                "title": "Top Positive Difference (Forecast - Target)"
               },
               "mark": {
                 "colors": [
@@ -10316,6 +10427,7 @@
                   "axis": {
                     "title": "Forecast gap vs target ($DBUs)"
                   },
+                  "displayName": "Gap (Forecast - Target)",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -10346,9 +10458,9 @@
             }
           },
           "position": {
-            "x": 0,
-            "y": 38,
-            "width": 6,
+            "x": 2,
+            "y": 20,
+            "width": 5,
             "height": 5
           }
         },
@@ -10383,7 +10495,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top Negative Forecast vs Target"
+                "title": "Top Negative Differende (Forecast - Target)"
               },
               "mark": {
                 "colors": [
@@ -10436,6 +10548,7 @@
                   "axis": {
                     "title": "Forecast gap vs target ($DBUs)"
                   },
+                  "displayName": "Gap (Forecast - Target)",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -10466,10 +10579,235 @@
             }
           },
           "position": {
-            "x": 6,
-            "y": 38,
-            "width": 6,
+            "x": 7,
+            "y": 20,
+            "width": 5,
             "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "bu-lev-3",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16b50617f15e98245a3e29ea508ab_Region_Level_3",
+                "query": {
+                  "datasetName": "201a8ec4",
+                  "fields": [
+                    {
+                      "name": "Region_Level_3",
+                      "expression": "`Region_Level_3`"
+                    },
+                    {
+                      "name": "Region_Level_3_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "BU L3 (Account)"
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "Region_Level_3",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16b50617f15e98245a3e29ea508ab_Region_Level_3"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 19,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "account-roll",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "201a8ec4",
+                  "fields": [
+                    {
+                      "name": "measure(v_directs_att)",
+                      "expression": "MEASURE(`v_directs_att`)"
+                    },
+                    {
+                      "name": "sum(submitted_direct_field_consumption_forecast)",
+                      "expression": "SUM(`submitted_direct_field_consumption_forecast`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Forecast (Account roll-up)",
+                "showDescription": true,
+                "description": "Attainment"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(submitted_direct_field_consumption_forecast)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    },
+                    "significantFigures": {
+                      "type": "all"
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "measure(v_directs_att)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "36bbd1a2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "201a8ec4",
+                  "fields": [
+                    {
+                      "name": "sum(fin_target)",
+                      "expression": "SUM(`fin_target`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Target (Account roll-up)",
+                "showDescription": false,
+                "description": "Attainment"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(fin_target)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    },
+                    "significantFigures": {
+                      "type": "all"
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "be2d22b4",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "201a8ec4",
+                  "fields": [
+                    {
+                      "name": "measure(v_directs_qoq_perc)",
+                      "expression": "MEASURE(`v_directs_qoq_perc`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "QoQ"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(v_directs_qoq_perc)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    },
+                    "significantFigures": {
+                      "type": "exact",
+                      "figures": 3
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 24,
+            "width": 2,
+            "height": 1
           }
         }
       ],
@@ -10581,7 +10919,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top Positive Forecast vs Target"
+                "title": "Top Positive Difference (Forecast - Target)"
               },
               "mark": {
                 "colors": [
@@ -10598,6 +10936,7 @@
                   "axis": {
                     "title": "Forecast gap vs target ($DBUs)"
                   },
+                  "displayName": "Gap (Forecast - Target)",
                   "scale": {
                     "type": "quantitative"
                   }
@@ -10668,7 +11007,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top Negative Forecast vs Target"
+                "title": "Top Negative Difference (Forecast - Target)"
               },
               "mark": {
                 "colors": [
@@ -10685,6 +11024,7 @@
                   "axis": {
                     "title": "Forecast gap vs target ($DBUs)"
                   },
+                  "displayName": "Gap (Forecast - Target)",
                   "scale": {
                     "type": "quantitative"
                   }
