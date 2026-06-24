@@ -242,13 +242,13 @@
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg, 0), dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
         "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg, 0), dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
         "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg_prev, 0), dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
         "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg_prev, 0), dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
         "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
@@ -281,13 +281,13 @@
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else f.submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg, 0), dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj\n",
         "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg, 0), dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj\n",
         "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg_prev, 0), dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj\n",
         "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg_prev, 0), dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj\n",
         "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
@@ -634,7 +634,8 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Individual Forecast'\n"
+        "where view_name = 'Individual Forecast'\n",
+        " "
       ],
       "parameters": [
         {
@@ -1083,13 +1084,13 @@
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg, 0), dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
         "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg, 0), dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
         "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg_prev, 0), dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
         "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg_prev, 0), dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
         "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
@@ -1122,13 +1123,13 @@
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else f.submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg, 0), dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj\n",
         "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg, 0), dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj\n",
         "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg_prev, 0), dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj\n",
         "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg_prev, 0), dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj\n",
         "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
@@ -1475,7 +1476,8 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Account Forecast'\n"
+        "where view_name = 'Account Forecast'\n",
+        " "
       ],
       "parameters": [
         {
@@ -1934,13 +1936,13 @@
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg, 0), dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj --for future quarters, use the latest t7d available.\n",
         "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg, 0), dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj --for future quarters, use the latest t28d available.\n",
         "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg_prev, 0), dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj --for future quarters, use the latest t7d_prev available.\n",
         "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg_prev, 0), dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj --for future quarters, use the latest t28d_prev available.\n",
         "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
@@ -1973,13 +1975,13 @@
         "    , coalesce(a.dbu_actuals, 0) as dbu_actuals_coalesced\n",
         "    , coalesce(case when d.is_quarter_closed then a.dbu_actuals else f.submitted_my_call end, 0) as dbu_actuals_or_forecast\n",
         "    , first_value(a.dbu_dollars_t7d_avg) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg, dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg, 0), dbu_dollars_t7d_avg_latest) as dbu_dollars_t7d_adj\n",
         "    , first_value(a.dbu_dollars_t28d_avg) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg, dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg, 0), dbu_dollars_t28d_avg_latest) as dbu_dollars_t28d_adj\n",
         "    , first_value(a.dbu_dollars_t7d_avg_prev) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t7d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t7d_avg_prev, dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t7d_avg_prev, 0), dbu_dollars_t7d_avg_prev_latest) as dbu_dollars_t7d_prev_adj\n",
         "    , first_value(a.dbu_dollars_t28d_avg_prev) over(partition by a.ae_email, a.account_name order by d.is_current_fiscal_quarter desc) AS dbu_dollars_t28d_avg_prev_latest\n",
-        "    , coalesce(a.dbu_dollars_t28d_avg_prev, dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj\n",
+        "    , coalesce(nullif(a.dbu_dollars_t28d_avg_prev, 0), dbu_dollars_t28d_avg_prev_latest) as dbu_dollars_t28d_prev_adj\n",
         "    , case when d.is_quarter_closed then 0 else dbu_actuals_coalesced end dbu_actuals_current_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t7d_adj * d.days_left_in_quarter) end as t7d_proj_left_in_quarter\n",
         "    , case when d.is_quarter_closed then 0 else (dbu_dollars_t28d_adj * d.days_left_in_quarter) end as t28d_proj_left_in_quarter\n",
@@ -2326,7 +2328,8 @@
         "\n",
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
-        "where view_name = 'Org Forecast'\n"
+        "where view_name = 'Org Forecast'\n",
+        " "
       ],
       "parameters": [
         {
@@ -2530,6 +2533,11 @@
           "displayName": "v_ae_qoq",
           "description": "",
           "expression": "try_divide(sum(qoq_delta_directs_forecast), sum(dbu_actuals_or_forecast_prev_quarter))"
+        },
+        {
+          "displayName": "change_direction",
+          "description": "Categorizes QoQ % change as Positive or Negative for conditional coloring",
+          "expression": "CASE WHEN my_call_qoq_perc >= 0 THEN 'Positive' ELSE 'Negative' END"
         }
       ]
     },
@@ -5057,7 +5065,7 @@
     },
     {
       "name": "3ae641d8",
-      "displayName": "Quarter View",
+      "displayName": "Individual View",
       "layout": [
         {
           "widget": {
@@ -5104,7 +5112,7 @@
             }
           },
           "position": {
-            "x": 7,
+            "x": 4,
             "y": 0,
             "width": 2,
             "height": 1
@@ -5159,8 +5167,8 @@
           },
           "position": {
             "x": 0,
-            "y": 16,
-            "width": 3,
+            "y": 11,
+            "width": 2,
             "height": 2
           }
         },
@@ -5230,9 +5238,9 @@
             }
           },
           "position": {
-            "x": 3,
-            "y": 16,
-            "width": 3,
+            "x": 2,
+            "y": 11,
+            "width": 2,
             "height": 2
           }
         },
@@ -5302,9 +5310,9 @@
             }
           },
           "position": {
-            "x": 6,
-            "y": 16,
-            "width": 3,
+            "x": 4,
+            "y": 11,
+            "width": 2,
             "height": 2
           }
         },
@@ -5374,9 +5382,9 @@
             }
           },
           "position": {
-            "x": 9,
-            "y": 16,
-            "width": 3,
+            "x": 6,
+            "y": 11,
+            "width": 2,
             "height": 2
           }
         },
@@ -5417,8 +5425,8 @@
           },
           "position": {
             "x": 0,
-            "y": 15,
-            "width": 3,
+            "y": 10,
+            "width": 2,
             "height": 1
           }
         },
@@ -5427,7 +5435,7 @@
             "name": "e53b017c",
             "queries": [
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_yellow_confidence_pct",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_yellow_confidence_pct",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -5442,25 +5450,26 @@
             ],
             "spec": {
               "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Yellow ",
+                "showDescription": true
+              },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
                     "parameterName": "yellow_confidence_pct",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_yellow_confidence_pct"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_yellow_confidence_pct"
                   }
                 ]
-              },
-              "frame": {
-                "showTitle": true,
-                "title": "Confidence %"
               }
             }
           },
           "position": {
-            "x": 3,
-            "y": 15,
-            "width": 3,
+            "x": 2,
+            "y": 10,
+            "width": 2,
             "height": 1
           }
         },
@@ -5500,9 +5509,9 @@
             }
           },
           "position": {
-            "x": 6,
-            "y": 15,
-            "width": 3,
+            "x": 4,
+            "y": 10,
+            "width": 2,
             "height": 1
           }
         },
@@ -5542,9 +5551,9 @@
             }
           },
           "position": {
-            "x": 9,
-            "y": 15,
-            "width": 3,
+            "x": 6,
+            "y": 10,
+            "width": 2,
             "height": 1
           }
         },
@@ -5553,7 +5562,7 @@
             "name": "dce6112f",
             "queries": [
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_best_case_qoq_organic_growth",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_best_case_qoq_organic_growth",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -5568,115 +5577,28 @@
             ],
             "spec": {
               "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "WC OG%",
+                "showDescription": false,
+                "description": "OG"
+              },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
                     "parameterName": "best_case_qoq_organic_growth",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_best_case_qoq_organic_growth"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_best_case_qoq_organic_growth"
                   }
                 ]
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "Best Case",
-                "showDescription": false,
-                "description": "OG"
               }
             }
           },
           "position": {
-            "x": 4,
-            "y": 9,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "a84193b2",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "best_case_text",
-                      "expression": "`best_case_text`"
-                    },
-                    {
-                      "name": "best_case_projection",
-                      "expression": "`best_case_projection`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "Best Case",
-                "showDescription": true,
-                "description": "Attainment | QoQ% | Gap",
-                "headerAlignment": "center"
-              },
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "best_case_projection",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "exact",
-                      "places": 3
-                    }
-                  }
-                },
-                "target": {
-                  "fieldName": "best_case_text",
-                  "style": {
-                    "color": {
-                      "themeColorType": "visualizationColors",
-                      "position": 3
-                    },
-                    "rules": [
-                      {
-                        "condition": {
-                          "operand": {
-                            "type": "data-value",
-                            "value": "-"
-                          },
-                          "operator": "contains"
-                        },
-                        "color": {
-                          "themeColorType": "visualizationColors",
-                          "position": 4
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            },
-            "specExtensions": {
-              "widgetBackgroundColor": {
-                "light": "#FFFFFF"
-              },
-              "widgetBorderColor": {
-                "light": "#FFFFFF"
-              }
-            }
-          },
-          "position": {
-            "x": 4,
+            "x": 7,
             "y": 6,
-            "width": 2,
-            "height": 3
+            "width": 1,
+            "height": 2
           }
         },
         {
@@ -5818,7 +5740,7 @@
             }
           },
           "position": {
-            "x": 5,
+            "x": 6,
             "y": 0,
             "width": 2,
             "height": 1
@@ -5899,7 +5821,7 @@
             "name": "1157c844",
             "queries": [
               {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_worst_case_qoq_organic_growth",
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_worst_case_qoq_organic_growth",
                 "query": {
                   "datasetName": "9008543e",
                   "parameters": [
@@ -5914,541 +5836,26 @@
             ],
             "spec": {
               "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "BC OG%"
+              },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
                     "parameterName": "worst_case_qoq_organic_growth",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_worst_case_qoq_organic_growth"
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11fc85281951d8aecbd5_worst_case_qoq_organic_growth"
                   }
                 ]
-              },
-              "frame": {
-                "showTitle": false,
-                "title": ""
               }
             }
           },
           "position": {
-            "x": 2,
-            "y": 9,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "190338d6",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "worst_case_text",
-                      "expression": "`worst_case_text`"
-                    },
-                    {
-                      "name": "worst_case_projection",
-                      "expression": "`worst_case_projection`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "Worst Case",
-                "showDescription": true,
-                "description": "Attainment | QoQ% | Gap",
-                "headerAlignment": "center"
-              },
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "worst_case_projection",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "exact",
-                      "places": 3
-                    }
-                  }
-                },
-                "target": {
-                  "fieldName": "worst_case_text",
-                  "style": {
-                    "color": {
-                      "themeColorType": "visualizationColors",
-                      "position": 3
-                    },
-                    "rules": [
-                      {
-                        "condition": {
-                          "operand": {
-                            "type": "data-value",
-                            "value": "-"
-                          },
-                          "operator": "contains"
-                        },
-                        "color": {
-                          "themeColorType": "visualizationColors",
-                          "position": 4
-                        }
-                      }
-                    ]
-                  }
-                }
-              }
-            },
-            "specExtensions": {
-              "widgetBackgroundColor": {
-                "light": "#FFFFFF"
-              },
-              "widgetBorderColor": {
-                "light": "#FFFFFF"
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 6,
-            "width": 2,
-            "height": 3
-          }
-        },
-        {
-          "widget": {
-            "name": "2bb3f762",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "quarterly_incremental_dbus",
-                      "expression": "`quarterly_incremental_dbus`"
-                    },
-                    {
-                      "name": "best_case_pipe_left_in_quarter",
-                      "expression": "`best_case_pipe_left_in_quarter`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "best_case_pipe_left_in_quarter",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 1
-                    }
-                  }
-                },
-                "target": {
-                  "fieldName": "quarterly_incremental_dbus",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 2
-                    }
-                  }
-                }
-              },
-              "style": {
-                "fontColor": {
-                  "light": "#000000"
-                }
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "CQ Total Incr Pipe in Plan",
-                "headerAlignment": "center",
-                "showDescription": false,
-                "description": "Total",
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 12,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "2ddb2f6c",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "quarterly_incremental_dbus",
-                      "expression": "`quarterly_incremental_dbus`"
-                    },
-                    {
-                      "name": "worst_case_pipe_left_in_quarter",
-                      "expression": "`worst_case_pipe_left_in_quarter`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "worst_case_pipe_left_in_quarter",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 1
-                    }
-                  }
-                },
-                "target": {
-                  "fieldName": "quarterly_incremental_dbus",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 2
-                    }
-                  }
-                }
-              },
-              "style": {
-                "fontColor": {
-                  "light": "#000000"
-                }
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "CQ Total Incr Pipe in Plan",
-                "headerAlignment": "center",
-                "showDescription": false,
-                "description": "Total",
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 12,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "81ed71fa",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "worst_case_proj_with_og_left_in_quarter",
-                      "expression": "`worst_case_proj_with_og_left_in_quarter`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "worst_case_proj_with_og_left_in_quarter",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 3
-                    }
-                  }
-                }
-              },
-              "style": {
-                "fontColor": {
-                  "light": "#000000"
-                }
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "T7D with OG Left in Quarter",
-                "headerAlignment": "center",
-                "showDescription": false,
-                "description": "",
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 11,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "08493e1b",
-            "multilineTextboxSpec": {
-              "lines": [
-                "#### Organic Growth [%]"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 9,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "cab759fa",
-            "multilineTextboxSpec": {
-              "lines": [
-                "#### QTD $DBU Actuals"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 10,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "30d5c017",
-            "multilineTextboxSpec": {
-              "lines": [
-                "#### Incremental Pipe in Plan vs Total"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 12,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "8f8ff202",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "dbu_actuals",
-                      "expression": "`dbu_actuals`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "dbu_actuals",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 3
-                    }
-                  }
-                }
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "CQ $DBU Actuals / Target",
-                "headerAlignment": "center",
-                "showDescription": false,
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 10,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "37e76597",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "dbu_actuals",
-                      "expression": "`dbu_actuals`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "dbu_actuals",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 3
-                    }
-                  }
-                }
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "CQ $DBU Actuals / Target",
-                "headerAlignment": "center",
-                "showDescription": false,
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 10,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "57c51a53",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "best_case_proj_with_og_left_in_quarter",
-                      "expression": "`best_case_proj_with_og_left_in_quarter`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "best_case_proj_with_og_left_in_quarter",
-                  "format": {
-                    "type": "number-currency",
-                    "currencyCode": "USD",
-                    "abbreviation": "compact",
-                    "decimalPlaces": {
-                      "type": "max",
-                      "places": 3
-                    }
-                  }
-                }
-              },
-              "style": {
-                "fontColor": {
-                  "light": "#000000"
-                }
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "T7D with OG Left in Quarter",
-                "headerAlignment": "center",
-                "showDescription": false,
-                "description": "",
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 11,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "94af9712",
-            "multilineTextboxSpec": {
-              "lines": [
-                "### Worst case versus \n",
-                "\n",
-                "### Best case"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 6,
-            "width": 2,
-            "height": 3
+            "x": 7,
+            "y": 8,
+            "width": 1,
+            "height": 2
           }
         },
         {
@@ -6468,27 +5875,6 @@
           "position": {
             "x": 0,
             "y": 5,
-            "width": 12,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "bd55b171",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## <span style=\"color:#E8ECF0\">Incremental Pipeline left in selected Quarter</span>"
-              ]
-            },
-            "specExtensions": {
-              "widgetBackgroundColor": {
-                "light": "#006B9C"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 14,
             "width": 12,
             "height": 1
           }
@@ -6590,7 +5976,7 @@
           "position": {
             "x": 0,
             "y": 0,
-            "width": 3,
+            "width": 4,
             "height": 1
           }
         },
@@ -6610,7 +5996,7 @@
           },
           "position": {
             "x": 0,
-            "y": 32,
+            "y": 27,
             "width": 12,
             "height": 1
           }
@@ -7345,7 +6731,7 @@
           },
           "position": {
             "x": 0,
-            "y": 45,
+            "y": 40,
             "width": 12,
             "height": 12
           }
@@ -7391,7 +6777,7 @@
           },
           "position": {
             "x": 6,
-            "y": 33,
+            "y": 28,
             "width": 2,
             "height": 1
           }
@@ -7437,7 +6823,7 @@
           },
           "position": {
             "x": 8,
-            "y": 33,
+            "y": 28,
             "width": 2,
             "height": 1
           }
@@ -7483,7 +6869,7 @@
           },
           "position": {
             "x": 0,
-            "y": 34,
+            "y": 29,
             "width": 2,
             "height": 1
           }
@@ -7529,7 +6915,7 @@
           },
           "position": {
             "x": 2,
-            "y": 34,
+            "y": 29,
             "width": 2,
             "height": 1
           }
@@ -7575,7 +6961,7 @@
           },
           "position": {
             "x": 10,
-            "y": 33,
+            "y": 28,
             "width": 2,
             "height": 1
           }
@@ -7621,150 +7007,7 @@
           },
           "position": {
             "x": 0,
-            "y": 33,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "20b79d7d",
-            "multilineTextboxSpec": {
-              "lines": [
-                "#### Manual Adjustments [$]"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 13,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "9fef7b36",
-            "queries": [
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_worst_case_adjustments",
-                "query": {
-                  "datasetName": "9008543e",
-                  "parameters": [
-                    {
-                      "name": "worst_case_adjustments",
-                      "keyword": "worst_case_adjustments"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "filter-single-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "parameterName": "worst_case_adjustments",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_worst_case_adjustments"
-                  }
-                ]
-              },
-              "frame": {
-                "showTitle": false,
-                "title": ""
-              }
-            }
-          },
-          "position": {
-            "x": 2,
-            "y": 13,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "58aa2da3",
-            "queries": [
-              {
-                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_best_case_adjustments",
-                "query": {
-                  "datasetName": "9008543e",
-                  "parameters": [
-                    {
-                      "name": "best_case_adjustments",
-                      "keyword": "best_case_adjustments"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "filter-single-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "parameterName": "best_case_adjustments",
-                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f08ee31e841f0888e0540d5e793502_best_case_adjustments"
-                  }
-                ]
-              },
-              "frame": {
-                "showTitle": false,
-                "title": "ADJ"
-              }
-            }
-          },
-          "position": {
-            "x": 4,
-            "y": 13,
-            "width": 2,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "ce8b73f9",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "9008543e",
-                  "fields": [
-                    {
-                      "name": "baseline_label",
-                      "expression": "`baseline_label`"
-                    }
-                  ],
-                  "disaggregated": true
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "widgetType": "counter",
-              "encodings": {
-                "value": {
-                  "fieldName": "baseline_label",
-                  "style": {
-                    "fontSize": 13,
-                    "color": "#11171C",
-                    "bold": true
-                  }
-                }
-              },
-              "frame": {
-                "contentAlignment": "left"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 11,
+            "y": 28,
             "width": 2,
             "height": 1
           }
@@ -7945,7 +7188,7 @@
           },
           "position": {
             "x": 0,
-            "y": 35,
+            "y": 30,
             "width": 4,
             "height": 5
           }
@@ -8057,7 +7300,7 @@
           },
           "position": {
             "x": 8,
-            "y": 35,
+            "y": 30,
             "width": 4,
             "height": 5
           }
@@ -8169,7 +7412,7 @@
           },
           "position": {
             "x": 4,
-            "y": 35,
+            "y": 30,
             "width": 4,
             "height": 5
           }
@@ -8200,10 +7443,10 @@
             }
           },
           "position": {
-            "x": 6,
+            "x": 8,
             "y": 6,
-            "width": 6,
-            "height": 8
+            "width": 4,
+            "height": 7
           }
         },
         {
@@ -8247,7 +7490,7 @@
           },
           "position": {
             "x": 2,
-            "y": 33,
+            "y": 28,
             "width": 2,
             "height": 1
           }
@@ -8293,7 +7536,7 @@
           },
           "position": {
             "x": 4,
-            "y": 33,
+            "y": 28,
             "width": 2,
             "height": 1
           }
@@ -8426,7 +7669,7 @@
             }
           },
           "position": {
-            "x": 3,
+            "x": 8,
             "y": 0,
             "width": 2,
             "height": 1
@@ -9101,7 +8344,7 @@
           },
           "position": {
             "x": 3,
-            "y": 40,
+            "y": 35,
             "width": 3,
             "height": 4
           }
@@ -9207,7 +8450,7 @@
           },
           "position": {
             "x": 6,
-            "y": 40,
+            "y": 35,
             "width": 3,
             "height": 4
           }
@@ -9313,7 +8556,7 @@
           },
           "position": {
             "x": 9,
-            "y": 40,
+            "y": 35,
             "width": 3,
             "height": 4
           }
@@ -9419,7 +8662,7 @@
           },
           "position": {
             "x": 0,
-            "y": 40,
+            "y": 35,
             "width": 3,
             "height": 4
           }
@@ -9467,7 +8710,7 @@
           },
           "position": {
             "x": 0,
-            "y": 44,
+            "y": 39,
             "width": 3,
             "height": 1
           }
@@ -9515,7 +8758,7 @@
           },
           "position": {
             "x": 3,
-            "y": 44,
+            "y": 39,
             "width": 3,
             "height": 1
           }
@@ -9563,7 +8806,7 @@
           },
           "position": {
             "x": 6,
-            "y": 44,
+            "y": 39,
             "width": 3,
             "height": 1
           }
@@ -9611,7 +8854,7 @@
           },
           "position": {
             "x": 9,
-            "y": 44,
+            "y": 39,
             "width": 3,
             "height": 1
           }
@@ -9657,7 +8900,7 @@
           },
           "position": {
             "x": 8,
-            "y": 34,
+            "y": 29,
             "width": 2,
             "height": 1
           }
@@ -9703,7 +8946,7 @@
           },
           "position": {
             "x": 6,
-            "y": 34,
+            "y": 29,
             "width": 2,
             "height": 1
           }
@@ -9749,7 +8992,7 @@
           },
           "position": {
             "x": 4,
-            "y": 34,
+            "y": 29,
             "width": 2,
             "height": 1
           }
@@ -10296,7 +9539,7 @@
           },
           "position": {
             "x": 0,
-            "y": 25,
+            "y": 20,
             "width": 12,
             "height": 7
           }
@@ -10342,7 +9585,7 @@
           },
           "position": {
             "x": 0,
-            "y": 19,
+            "y": 14,
             "width": 3,
             "height": 1
           }
@@ -10387,54 +9630,8 @@
             }
           },
           "position": {
-            "x": 9,
-            "y": 19,
-            "width": 3,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
-            "name": "ae2",
-            "queries": [
-              {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16b50617f15e98245a3e29ea508ab_ae_email",
-                "query": {
-                  "datasetName": "201a8ec4",
-                  "fields": [
-                    {
-                      "name": "ae_email",
-                      "expression": "`ae_email`"
-                    },
-                    {
-                      "name": "ae_email_associativity",
-                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 2,
-              "frame": {
-                "showTitle": true,
-                "title": "AE"
-              },
-              "widgetType": "filter-multi-select",
-              "encodings": {
-                "fields": [
-                  {
-                    "fieldName": "ae_email",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16b50617f15e98245a3e29ea508ab_ae_email"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
             "x": 6,
-            "y": 19,
+            "y": 14,
             "width": 3,
             "height": 1
           }
@@ -10455,7 +9652,7 @@
           },
           "position": {
             "x": 0,
-            "y": 18,
+            "y": 13,
             "width": 12,
             "height": 1
           }
@@ -10576,7 +9773,7 @@
           },
           "position": {
             "x": 2,
-            "y": 20,
+            "y": 15,
             "width": 5,
             "height": 5
           }
@@ -10697,7 +9894,7 @@
           },
           "position": {
             "x": 7,
-            "y": 20,
+            "y": 15,
             "width": 5,
             "height": 5
           }
@@ -10743,7 +9940,7 @@
           },
           "position": {
             "x": 3,
-            "y": 19,
+            "y": 14,
             "width": 3,
             "height": 1
           }
@@ -10813,7 +10010,7 @@
           },
           "position": {
             "x": 0,
-            "y": 22,
+            "y": 17,
             "width": 2,
             "height": 2
           }
@@ -10869,7 +10066,7 @@
           },
           "position": {
             "x": 0,
-            "y": 20,
+            "y": 15,
             "width": 2,
             "height": 2
           }
@@ -10922,9 +10119,284 @@
           },
           "position": {
             "x": 0,
-            "y": 24,
+            "y": 19,
             "width": 2,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "best-case",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9008543e",
+                  "fields": [
+                    {
+                      "name": "worst_case_projection",
+                      "expression": "`worst_case_projection`"
+                    },
+                    {
+                      "name": "sum(dbu_actuals)",
+                      "expression": "SUM(`dbu_actuals`)"
+                    },
+                    {
+                      "name": "sum(worst_case_proj_with_og_left_in_quarter)",
+                      "expression": "SUM(`worst_case_proj_with_og_left_in_quarter`)"
+                    },
+                    {
+                      "name": "sum(worst_case_pipe_left_in_quarter)",
+                      "expression": "SUM(`worst_case_pipe_left_in_quarter`)"
+                    }
+                  ],
+                  "cubeGroupingSets": {
+                    "sets": [
+                      {
+                        "fieldNames": [
+                          "worst_case_projection"
+                        ]
+                      },
+                      {}
+                    ]
+                  },
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`worst_case_projection`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Worst Case formula"
+              },
+              "widgetType": "pivot",
+              "encodings": {
+                "rows": [
+                  {
+                    "fieldName": "worst_case_projection",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "headerWidth": 100,
+                    "displayName": "Worst Case"
+                  }
+                ],
+                "cell": {
+                  "type": "multi-cell",
+                  "fields": [
+                    {
+                      "fieldName": "sum(dbu_actuals)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "compact",
+                        "decimalPlaces": {
+                          "type": "max",
+                          "places": 3
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "width": 150,
+                      "displayName": "QTD $DBU Actuals"
+                    },
+                    {
+                      "fieldName": "sum(worst_case_proj_with_og_left_in_quarter)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "compact",
+                        "decimalPlaces": {
+                          "type": "max",
+                          "places": 3
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "width": 220,
+                      "displayName": "Baseline (T7D Projection + OG)"
+                    },
+                    {
+                      "fieldName": "sum(worst_case_pipe_left_in_quarter)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-plain",
+                        "abbreviation": "compact",
+                        "decimalPlaces": {
+                          "type": "max",
+                          "places": 3
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "width": 220,
+                      "displayName": "Incremental Pipe (Green)"
+                    }
+                  ],
+                  "displayAs": "columns",
+                  "height": 30
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 7,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "best-case-formula",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9008543e",
+                  "fields": [
+                    {
+                      "name": "best_case_projection",
+                      "expression": "`best_case_projection`"
+                    },
+                    {
+                      "name": "sum(dbu_actuals)",
+                      "expression": "SUM(`dbu_actuals`)"
+                    },
+                    {
+                      "name": "sum(best_case_proj_with_og_left_in_quarter)",
+                      "expression": "SUM(`best_case_proj_with_og_left_in_quarter`)"
+                    },
+                    {
+                      "name": "sum(best_case_pipe_left_in_quarter)",
+                      "expression": "SUM(`best_case_pipe_left_in_quarter`)"
+                    }
+                  ],
+                  "cubeGroupingSets": {
+                    "sets": [
+                      {
+                        "fieldNames": [
+                          "best_case_projection"
+                        ]
+                      },
+                      {}
+                    ]
+                  },
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`best_case_projection`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Best Case formula"
+              },
+              "widgetType": "pivot",
+              "encodings": {
+                "rows": [
+                  {
+                    "fieldName": "best_case_projection",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "headerWidth": 100,
+                    "displayName": "Best Case"
+                  }
+                ],
+                "cell": {
+                  "type": "multi-cell",
+                  "fields": [
+                    {
+                      "fieldName": "sum(dbu_actuals)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "compact",
+                        "decimalPlaces": {
+                          "type": "max",
+                          "places": 3
+                        },
+                        "hideGroupSeparator": true
+                      },
+                      "width": 150,
+                      "displayName": "QTD $DBU Actuals"
+                    },
+                    {
+                      "fieldName": "sum(best_case_proj_with_og_left_in_quarter)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-currency",
+                        "currencyCode": "USD",
+                        "abbreviation": "compact",
+                        "decimalPlaces": {
+                          "type": "max",
+                          "places": 3
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "width": 220,
+                      "displayName": "Baseline (T7D Projection + OG)"
+                    },
+                    {
+                      "fieldName": "sum(best_case_pipe_left_in_quarter)",
+                      "cellType": "text",
+                      "format": {
+                        "type": "number-plain",
+                        "abbreviation": "compact",
+                        "decimalPlaces": {
+                          "type": "max",
+                          "places": 3
+                        },
+                        "hideGroupSeparator": false
+                      },
+                      "width": 220,
+                      "displayName": "Incremental Pipe (All)"
+                    }
+                  ],
+                  "displayAs": "columns"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 7,
+            "height": 2
           }
         }
       ],
@@ -10940,7 +10412,7 @@
             "name": "org_header",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">Org Forecast View</span>"
+                "## <span style=\"color:#E8ECF0\">Quarter View</span>"
               ]
             },
             "specExtensions": {
@@ -11012,8 +10484,8 @@
                   "datasetName": "aa05107e",
                   "fields": [
                     {
-                      "name": "sum(gap_my_call)",
-                      "expression": "SUM(`gap_my_call`)"
+                      "name": "gap_my_call",
+                      "expression": "`gap_my_call`"
                     },
                     {
                       "name": "user_name",
@@ -11028,7 +10500,7 @@
                       "expression": "`sales_level` IN ('AE')"
                     }
                   ],
-                  "disaggregated": false
+                  "disaggregated": true
                 }
               }
             ],
@@ -11043,13 +10515,49 @@
                   {
                     "themeColorType": "visualizationColors",
                     "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
                   }
                 ]
               },
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "sum(gap_my_call)",
+                  "fieldName": "gap_my_call",
                   "axis": {
                     "title": "Forecast gap vs target ($DBUs)"
                   },
@@ -11100,8 +10608,8 @@
                   "datasetName": "aa05107e",
                   "fields": [
                     {
-                      "name": "sum(gap_my_call)",
-                      "expression": "SUM(`gap_my_call`)"
+                      "name": "gap_my_call",
+                      "expression": "`gap_my_call`"
                     },
                     {
                       "name": "user_name",
@@ -11116,7 +10624,7 @@
                       "expression": "`sales_level` IN ('AE')"
                     }
                   ],
-                  "disaggregated": false
+                  "disaggregated": true
                 }
               }
             ],
@@ -11131,13 +10639,49 @@
                   {
                     "themeColorType": "visualizationColors",
                     "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
                   }
                 ]
               },
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "sum(gap_my_call)",
+                  "fieldName": "gap_my_call",
                   "axis": {
                     "title": "Forecast gap vs target ($DBUs)"
                   },
@@ -12171,9 +11715,9 @@
           },
           "position": {
             "x": 0,
-            "y": 11,
+            "y": 18,
             "width": 12,
-            "height": 10
+            "height": 8
           }
         },
         {
@@ -12233,6 +11777,94 @@
             "y": 1,
             "width": 4,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "normalized_dot_plot_v2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "aa05107e",
+                  "fields": [
+                    {
+                      "name": "user_name",
+                      "expression": "`user_name`"
+                    },
+                    {
+                      "name": "submitted_my_call",
+                      "expression": "`submitted_my_call`"
+                    },
+                    {
+                      "name": "current_ds_forecast",
+                      "expression": "`current_ds_forecast`"
+                    },
+                    {
+                      "name": "worst_case_projection",
+                      "expression": "`worst_case_projection`"
+                    },
+                    {
+                      "name": "best_case_projection",
+                      "expression": "`best_case_projection`"
+                    },
+                    {
+                      "name": "fin_target",
+                      "expression": "`fin_target`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`sales_level` IN ('AE')"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"gridOpacity\":0.3}},\"layer\":[{\"mark\":{\"type\":\"rule\",\"color\":\"#888\",\"strokeWidth\":1.5,\"strokeDash\":[4,4]},\"encoding\":{\"x\":{\"datum\":1}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#D0D0D0\",\"strokeWidth\":1,\"strokeDash\":[3,3]},\"encoding\":{\"y\":{\"field\":\"user_name\",\"type\":\"nominal\"}}},{\"params\":[{\"name\":\"metric_select\",\"select\":{\"type\":\"point\",\"fields\":[\"metric\"]},\"bind\":\"legend\"}],\"transform\":[{\"calculate\":\"datum.fin_target > 0 ? datum.submitted_my_call / datum.fin_target : null\",\"as\":\"norm_my_call\"},{\"calculate\":\"datum.fin_target > 0 ? datum.current_ds_forecast / datum.fin_target : null\",\"as\":\"norm_ds_forecast\"},{\"calculate\":\"datum.fin_target > 0 ? datum.worst_case_projection / datum.fin_target : null\",\"as\":\"norm_worst\"},{\"calculate\":\"datum.fin_target > 0 ? datum.best_case_projection / datum.fin_target : null\",\"as\":\"norm_best\"},{\"fold\":[\"norm_my_call\",\"norm_ds_forecast\",\"norm_worst\",\"norm_best\"],\"as\":[\"metric_key\",\"normalized_value\"]},{\"calculate\":\"datum.metric_key == 'norm_my_call' ? 'My Call' : datum.metric_key == 'norm_ds_forecast' ? 'DS Forecast' : datum.metric_key == 'norm_worst' ? 'Worst Case' : 'Best Case'\",\"as\":\"metric\"},{\"calculate\":\"datum.metric_key == 'norm_my_call' ? datum.submitted_my_call : datum.metric_key == 'norm_ds_forecast' ? datum.current_ds_forecast : datum.metric_key == 'norm_worst' ? datum.worst_case_projection : datum.best_case_projection\",\"as\":\"raw_value\"}],\"mark\":{\"type\":\"circle\",\"size\":140},\"encoding\":{\"x\":{\"field\":\"normalized_value\",\"type\":\"quantitative\",\"title\":\"Ratio to Target (1.0 = 100%)\",\"axis\":{\"format\":\".0%\"},\"scale\":{\"domainMin\":0.7}},\"y\":{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":null,\"axis\":{\"labelLimit\":150}},\"color\":{\"field\":\"metric\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"My Call\",\"DS Forecast\",\"Worst Case\",\"Best Case\"],\"range\":[\"#2196F3\",\"#9C27B0\",\"#FF5722\",\"#4CAF50\"]},\"legend\":{\"title\":\"Metric\",\"orient\":\"top\"}},\"opacity\":{\"condition\":{\"param\":\"metric_select\",\"value\":0.85},\"value\":0.1},\"tooltip\":[{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":\"User\"},{\"field\":\"metric\",\"type\":\"nominal\",\"title\":\"Metric\"},{\"field\":\"raw_value\",\"type\":\"quantitative\",\"title\":\"Value\",\"format\":\"$,.0f\"},{\"field\":\"normalized_value\",\"type\":\"quantitative\",\"title\":\"% of Target\",\"format\":\".1%\"},{\"field\":\"fin_target\",\"type\":\"quantitative\",\"title\":\"Target\",\"format\":\"$,.0f\"}]}}]}"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Forecast Metrics vs Target (Normalized)"
+              },
+              "version": 1,
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "user_name"
+                  },
+                  {
+                    "fieldName": "submitted_my_call"
+                  },
+                  {
+                    "fieldName": "current_ds_forecast"
+                  },
+                  {
+                    "fieldName": "worst_case_projection"
+                  },
+                  {
+                    "fieldName": "best_case_projection"
+                  },
+                  {
+                    "fieldName": "fin_target"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 12,
+            "height": 7
           }
         }
       ],
