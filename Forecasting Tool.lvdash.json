@@ -2588,8 +2588,10 @@
         "    , case when getdate() > fiscal_quarter_end_date then true else false end as is_quarter_closed\n",
         "    , sum(day(last_day_of_month)) as days_in_quarter\n",
         "    , case when getdate() >= fiscal_quarter_start_date and current_date() <= fiscal_quarter_end_date then true else false end as is_current_fiscal_quarter\n",
+        "    , case when current_date() >= make_date(fy - 1, 2, 1) and current_date() <= make_date(fy, 1, 31) then 1 else 0 end as is_current_fiscal_year\n",
         "    , (select max(usage_date) from main.gtm_gold.individual_consumption_daily)  as latest_usage_date\n",
         "    , greatest(0, least(days_in_quarter, datediff(fiscal_quarter_end_date, latest_usage_date))) as days_left_in_quarter\n",
+        "    , case when is_current_fiscal_quarter then q else 0 end as current_quarter_number\n",
         "  from dates\n",
         "  group by fq, fy, q\n",
         "),\n",
@@ -2622,6 +2624,50 @@
         "  GROUP BY b.usecase_id\n",
         "),\n",
         "\n",
+        "use_case_pipeline_changes_filtered as (\n",
+        "  select\n",
+        "    pop.usecase_id,\n",
+        "    pop.stage_number_latest,\n",
+        "    pop.stage_number_prior,\n",
+        "    pop.target_live_date_latest,\n",
+        "    pop.target_live_date_prior,\n",
+        "    pop.target_live_fiscal_year_quarter,\n",
+        "    pop.estimated_quarterly_dollar_dbus_latest,\n",
+        "    pop.estimated_quarterly_dollar_dbus_prior,\n",
+        "    case when pop.stage_number_prior is null then 1\n",
+        "           when pop.stage_number_latest > pop.stage_number_prior then 1\n",
+        "           when pop.stage_number_latest = pop.stage_number_prior then 0\n",
+        "           else -1 end as stage_advanced,\n",
+        "    case when pop.stage_number_prior is null then 'New in pipeline'\n",
+        "           when pop.stage_number_latest > pop.stage_number_prior then concat('Advanced from stage ', cast(pop.stage_number_prior as string))\n",
+        "           when pop.stage_number_latest = pop.stage_number_prior then 'No stage change'\n",
+        "           else concat('Regressed from stage ', cast(pop.stage_number_prior as string))\n",
+        "      end as stage_change_description,\n",
+        "    case when pop.target_live_date_prior is null then 1\n",
+        "           when pop.target_live_date_latest < pop.target_live_date_prior then 1\n",
+        "           when pop.target_live_date_latest = pop.target_live_date_prior then 0\n",
+        "           else -1 end as target_date_pulled_foreward,\n",
+        "    case when pop.target_live_date_prior is null then 'New target date'\n",
+        "           when pop.target_live_date_latest < pop.target_live_date_prior then concat('Pulled forward by ', cast(abs(datediff(pop.target_live_date_latest, pop.target_live_date_prior)) as string), ' days from ', cast(pop.target_live_date_prior as string))\n",
+        "           when pop.target_live_date_latest = pop.target_live_date_prior then 'No target date change'\n",
+        "           else concat('Pushed back by ', cast(datediff(pop.target_live_date_latest, pop.target_live_date_prior) as string), ' days from ', cast(pop.target_live_date_prior as string))\n",
+        "      end as target_date_change_description,\n",
+        "    datediff(pop.target_live_date_latest, pop.target_live_date_prior) as target_live_date_diff_days,\n",
+        "    case when pop.estimated_quarterly_dollar_dbus_prior is null then 1\n",
+        "           when pop.estimated_quarterly_dollar_dbus_latest > pop.estimated_quarterly_dollar_dbus_prior then 1\n",
+        "           when pop.estimated_quarterly_dollar_dbus_latest = pop.estimated_quarterly_dollar_dbus_prior then 0\n",
+        "           else -1 end as amount_increased,\n",
+        "    case when pop.estimated_quarterly_dollar_dbus_prior is null then 'New amount'\n",
+        "           when pop.estimated_quarterly_dollar_dbus_latest > pop.estimated_quarterly_dollar_dbus_prior then concat('Increased by ', chr(36), cast(cast(pop.estimated_quarterly_dollar_dbus_latest - pop.estimated_quarterly_dollar_dbus_prior as bigint) as string), ' per quarter')\n",
+        "           when pop.estimated_quarterly_dollar_dbus_latest = pop.estimated_quarterly_dollar_dbus_prior then 'No amount change'\n",
+        "           else concat('Decreased by ', chr(36), cast(cast(abs(pop.estimated_quarterly_dollar_dbus_latest - pop.estimated_quarterly_dollar_dbus_prior) as bigint) as string), ' per quarter')\n",
+        "      end as amount_change_description,\n",
+        "    pop.estimated_quarterly_dollar_dbus_latest - pop.estimated_quarterly_dollar_dbus_prior as change_amount\n",
+        "  from main.gtm_gold.use_case_pipeline_changes as pop\n",
+        "  where pop.period = :period\n",
+        "    and pop.flow_direction <> 'no change'\n",
+        "),\n",
+        "\n",
         "usecases_filtered as (\n",
         "  select d.usecase_id, d.usecase_name, d.estimated_monthly_dollar_dbus, d.target_onboarding_date, d.target_live_date\n",
         "    , nullif(trim(regexp_extract(d.demand_plan_next_steps, '(?s)\\\\[Risk Mitigation\\\\](.*?)(\\\\r?\\\\n\\\\s*\\\\r?\\\\n|$)', 1)), '') as mitigation_plan\n",
@@ -2639,6 +2685,14 @@
         "    , coalesce(blk.friction_count, 0) as friction_count\n",
         "    , blk.blocker_details\n",
         "    , coalesce(implementation_status, 'Unknown') as impl_status\n",
+        "    , coalesce(pop.stage_advanced, 0) as stage_advanced\n",
+        "    , coalesce(pop.stage_change_description, 'No stage change') as stage_change_description\n",
+        "    , coalesce(pop.target_date_pulled_foreward, 0) as target_date_pulled_foreward\n",
+        "    , coalesce(pop.target_date_change_description, 'No target date change') as target_date_change_description\n",
+        "    , pop.target_live_date_diff_days\n",
+        "    , coalesce(pop.amount_increased, 0) as amount_increased\n",
+        "    , coalesce(pop.amount_change_description, 'No amount change') as amount_change_description\n",
+        "    , coalesce(pop.change_amount, 0) as change_amount\n",
         "    , concat('<a href=\"', get(FILTER(d.usecase_documents, doc -> doc.document_type = 'Eval Doc'), 0).document_link, '\" target=\"_blank\">Eval Doc</a>') as eval_doc_link\n",
         "    , concat('<a href=\"', get(FILTER(d.usecase_documents, doc -> doc.document_type = 'Onboarding Doc'), 0).document_link, '\" target=\"_blank\">Onboarding Doc</a>') as onboarding_doc_link\n",
         "    , case\n",
@@ -2657,6 +2711,7 @@
         "        case when days_to_go_live between 0 and 30 and d.implementation_status = 'Red' then array('Go live < 30 days / Red') else array() end,\n",
         "        case when days_to_go_live between 0 and 30 and d.implementation_status = 'Yellow' then array('Go live < 30 days / Yellow') else array() end,\n",
         "        case when days_to_go_live between 0 and 30 then array('Go live < 30') else array() end,\n",
+        "        \n",
         "        case when days_to_onboarding between 0 and 30 and d.stage_number < 5 and d.implementation_status = 'Red' then array('Onboarding < 30 / Red') else array() end,\n",
         "        case when days_to_onboarding between 0 and 30 and d.stage_number < 5 and d.implementation_status = 'Yellow' then array('Onboarding < 30 / Yellow') else array() end,\n",
         "        case when days_to_onboarding between 0 and 30 and d.stage_number <= 3 then array('Onboarding < 30 / <=U3') else array() end,\n",
@@ -2679,18 +2734,20 @@
         "  from gtm_silver.use_case_detail as d\n",
         "  left outer join blockers as blk\n",
         "  on blk.usecase_id = d.usecase_id\n",
+        "  \n",
+        "  left join use_case_pipeline_changes_filtered as pop\n",
+        "   on pop.usecase_id = d.usecase_id\n",
+        "   and pop.estimated_quarterly_dollar_dbus_latest = d.estimated_quarterly_dollar_dbus\n",
+        "   and pop.stage_number_latest = d.stage_number\n",
+        "   and pop.target_live_fiscal_year_quarter = d.target_live_fiscal_year_quarter\n",
+        "\n",
         "  where d.Business_Unit = :business_unit\n",
-        "  and d.sales_subregion_level_1 = :region_level_1\n",
-        "  and d.sales_subregion_level_2 = :region_level_2\n",
-        "  and d.is_incremental = true --Excludes upgrades\n",
-        "  and d.stage_number <= 5 --Filter out 'Disqualified', 'Lost' and 'Live' UCOs.\n",
-        "  and coalesce(d.estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.\n",
-        "  and d.concatenated_emails like '%' || :ae_email || '%'\n",
-        "  --and d.usecase_id = 'aAv8Y000000CsLuSAK' \n",
-        "  /* test cases \n",
-        "  aAv8Y000000CsLuSAK (Feb25->Sep25), aAvVp000000Uc6IKAS (May25->Sep25), aAv8Y000000lD0ySAE (Jun25->Dec25)\n",
-        "  aAvVp000000W9JVKA0 (Apr25->May25), aAvVp000000d2YEKAY (Feb25->Jul25), aAvVp000000WAqfKAG (Jun25->Jan26)\n",
-        "  */\n",
+        "    and d.sales_subregion_level_1 = :region_level_1\n",
+        "    and d.sales_subregion_level_2 = :region_level_2\n",
+        "    and d.is_incremental = true --Excludes upgrades\n",
+        "    and d.stage_number <= 5 --Filter out 'Disqualified', 'Lost' and 'Live' UCOs.\n",
+        "    and coalesce(d.estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.\n",
+        "    and d.concatenated_emails like '%' || :ae_email || '%'\n",
         "),\n",
         "\n",
         "incremental_projections as (\n",
@@ -2858,6 +2915,7 @@
         "    , b.estimated_monthly_dollar_dbus, c.estimated_monthly_dollar_dbus_weighted, b.total_ramping_days\n",
         "    , c.estimated_quarterly_dollar_dbus, c.estimated_quarterly_dollar_dbus_weighted\n",
         "    , b.days_in_stage_bucket, b.usecase_url, b.eval_doc_link, b.onboarding_doc_link, b.impl_status as implementation_status, b.num_of_blockers, b.blocked_count, b.friction_count, b.blocker_details\n",
+        "    , b.stage_advanced, b.stage_change_description, b.target_date_pulled_foreward, b.target_date_change_description, b.target_live_date_diff_days, b.amount_increased, b.amount_change_description, b.change_amount\n",
         "    , b.manager_notes\n",
         "    , qp.FY26_Q1, qp.FY26_Q2, qp.FY26_Q3, qp.FY26_Q4, qp.FY27_Q1, qp.FY27_Q2, qp.FY27_Q3, qp.FY27_Q4\n",
         "    , mp.m_2025_02, mp.m_2025_03, mp.m_2025_04, mp.m_2025_05, mp.m_2025_06, mp.m_2025_07, mp.m_2025_08, mp.m_2025_09, mp.m_2025_10, mp.m_2025_11, mp.m_2025_12\n",
@@ -2874,7 +2932,10 @@
         "    on mp.usecase_id = c.usecase_id\n",
         ")\n",
         "\n",
-        "select * from uco_view\n"
+        "select * from uco_view\n",
+        "\n",
+        "\n",
+        "\n"
       ],
       "parameters": [
         {
@@ -2936,6 +2997,21 @@
               ]
             }
           }
+        },
+        {
+          "displayName": "period",
+          "keyword": "period",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "14_days"
+                }
+              ]
+            }
+          }
         }
       ],
       "columns": [
@@ -2978,6 +3054,36 @@
           "displayName": "keytechwin_monthly_dollar_dbus",
           "description": "",
           "expression": "SUM(CASE WHEN is_keytechwin THEN estimated_monthly_dollar_dbus ELSE 0 END)"
+        },
+        {
+          "displayName": "v_stage_advanced_count",
+          "description": "Number of UCOs where stage advanced vs prior period",
+          "expression": "SUM(CASE WHEN `stage_advanced` > 0 THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "v_stage_regressed_count",
+          "description": "Number of UCOs where stage regressed vs prior period",
+          "expression": "SUM(CASE WHEN `stage_advanced` < 0 THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "v_live_date_advanced_count",
+          "description": "Number of UCOs where target live date was pulled forward",
+          "expression": "SUM(CASE WHEN `target_date_pulled_foreward` > 0 THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "v_live_date_regressed_count",
+          "description": "Number of UCOs where target live date was pushed back",
+          "expression": "SUM(CASE WHEN `target_date_pulled_foreward` < 0 THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "v_amount_grew_count",
+          "description": "Number of UCOs where estimated quarterly amount increased",
+          "expression": "SUM(CASE WHEN `amount_increased` > 0 THEN 1 ELSE 0 END)"
+        },
+        {
+          "displayName": "v_amount_shrank_count",
+          "description": "Number of UCOs where estimated quarterly amount decreased",
+          "expression": "SUM(CASE WHEN `amount_increased` < 0 THEN 1 ELSE 0 END)"
         }
       ]
     },
@@ -5167,7 +5273,7 @@
           },
           "position": {
             "x": 0,
-            "y": 11,
+            "y": 14,
             "width": 2,
             "height": 2
           }
@@ -5239,7 +5345,7 @@
           },
           "position": {
             "x": 2,
-            "y": 11,
+            "y": 14,
             "width": 2,
             "height": 2
           }
@@ -5311,7 +5417,7 @@
           },
           "position": {
             "x": 4,
-            "y": 11,
+            "y": 14,
             "width": 2,
             "height": 2
           }
@@ -5383,7 +5489,7 @@
           },
           "position": {
             "x": 6,
-            "y": 11,
+            "y": 14,
             "width": 2,
             "height": 2
           }
@@ -5425,7 +5531,7 @@
           },
           "position": {
             "x": 0,
-            "y": 10,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -5468,7 +5574,7 @@
           },
           "position": {
             "x": 2,
-            "y": 10,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -5510,7 +5616,7 @@
           },
           "position": {
             "x": 4,
-            "y": 10,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -5552,7 +5658,7 @@
           },
           "position": {
             "x": 6,
-            "y": 10,
+            "y": 13,
             "width": 2,
             "height": 1
           }
@@ -5579,7 +5685,7 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "WC OG%",
+                "title": "BC OG%",
                 "showDescription": false,
                 "description": "OG"
               },
@@ -5596,7 +5702,7 @@
           },
           "position": {
             "x": 7,
-            "y": 6,
+            "y": 11,
             "width": 1,
             "height": 2
           }
@@ -5690,7 +5796,7 @@
           },
           "position": {
             "x": 10,
-            "y": 1,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -5811,7 +5917,7 @@
           },
           "position": {
             "x": 0,
-            "y": 1,
+            "y": 4,
             "width": 2,
             "height": 4
           }
@@ -5838,7 +5944,7 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "BC OG%"
+                "title": "WC OG%"
               },
               "widgetType": "filter-single-select",
               "encodings": {
@@ -5853,7 +5959,7 @@
           },
           "position": {
             "x": 7,
-            "y": 8,
+            "y": 9,
             "width": 1,
             "height": 2
           }
@@ -5874,7 +5980,7 @@
           },
           "position": {
             "x": 0,
-            "y": 5,
+            "y": 8,
             "width": 12,
             "height": 1
           }
@@ -5985,7 +6091,7 @@
             "name": "f858f03a",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">Impacting Use Cases</span>"
+                "## <span style=\"color:#E8ECF0\">Use Case Analysis</span>"
               ]
             },
             "specExtensions": {
@@ -5996,7 +6102,7 @@
           },
           "position": {
             "x": 0,
-            "y": 27,
+            "y": 30,
             "width": 12,
             "height": 1
           }
@@ -6139,12 +6245,36 @@
                       "expression": "`warning_rules`"
                     },
                     {
+                      "name": "amount_increased",
+                      "expression": "`amount_increased`"
+                    },
+                    {
+                      "name": "target_date_pulled_foreward",
+                      "expression": "`target_date_pulled_foreward`"
+                    },
+                    {
+                      "name": "stage_advanced",
+                      "expression": "`stage_advanced`"
+                    },
+                    {
                       "name": "`warning_rules`",
                       "expression": "`warning_rules`"
                     },
                     {
                       "name": "`hygiene_rules`",
                       "expression": "`hygiene_rules`"
+                    },
+                    {
+                      "name": "`amount_change_description`",
+                      "expression": "`amount_change_description`"
+                    },
+                    {
+                      "name": "`target_date_change_description`",
+                      "expression": "`target_date_change_description`"
+                    },
+                    {
+                      "name": "`stage_change_description`",
+                      "expression": "`stage_change_description`"
                     }
                   ],
                   "disaggregated": true
@@ -6253,8 +6383,41 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
+                        "tooltipTemplate": "{{ `amount_change_description` }}"
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">",
+                            "fieldName": "amount_increased"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<",
+                            "fieldName": "amount_increased"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 8
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -6371,8 +6534,41 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
+                        "tooltipTemplate": "{{ `target_date_change_description` }}"
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">",
+                            "fieldName": "target_date_pulled_foreward"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<",
+                            "fieldName": "target_date_pulled_foreward"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 8
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -6383,12 +6579,40 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
+                        "tooltipTemplate": "{{ `stage_change_description` }}"
                       }
                     },
                     "style": {
                       "type": "basic",
                       "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">",
+                            "fieldName": "stage_advanced"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<",
+                            "fieldName": "stage_advanced"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 8
+                          }
+                        },
                         {
                           "condition": {
                             "operand": {
@@ -6726,12 +6950,15 @@
                     "displayName": "Warning Rules"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 40,
+            "y": 44,
             "width": 12,
             "height": 12
           }
@@ -6777,7 +7004,7 @@
           },
           "position": {
             "x": 6,
-            "y": 28,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -6823,7 +7050,7 @@
           },
           "position": {
             "x": 8,
-            "y": 28,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -6869,7 +7096,7 @@
           },
           "position": {
             "x": 0,
-            "y": 29,
+            "y": 43,
             "width": 2,
             "height": 1
           }
@@ -6915,7 +7142,7 @@
           },
           "position": {
             "x": 2,
-            "y": 29,
+            "y": 43,
             "width": 2,
             "height": 1
           }
@@ -6961,7 +7188,7 @@
           },
           "position": {
             "x": 10,
-            "y": 28,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -7007,7 +7234,7 @@
           },
           "position": {
             "x": 0,
-            "y": 28,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -7088,7 +7315,7 @@
           },
           "position": {
             "x": 8,
-            "y": 1,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -7187,122 +7414,10 @@
             }
           },
           "position": {
-            "x": 0,
-            "y": 30,
+            "x": 4,
+            "y": 31,
             "width": 4,
-            "height": 5
-          }
-        },
-        {
-          "widget": {
-            "name": "abfdeede",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "datasetName": "d284f3b9",
-                  "fields": [
-                    {
-                      "name": "implementation_status",
-                      "expression": "`implementation_status`"
-                    },
-                    {
-                      "name": "countdistinct(usecase_id)",
-                      "expression": "COUNT(DISTINCT `usecase_id`)"
-                    },
-                    {
-                      "name": "monthly(target_live_date)",
-                      "expression": "DATE_TRUNC(\"MONTH\", `target_live_date`)"
-                    },
-                    {
-                      "name": "sum(estimated_monthly_dollar_dbus_weighted)",
-                      "expression": "SUM(`estimated_monthly_dollar_dbus_weighted`)"
-                    }
-                  ],
-                  "disaggregated": false
-                }
-              }
-            ],
-            "spec": {
-              "version": 3,
-              "frame": {
-                "showTitle": true,
-                "title": "Monthly Weighted $DBUs by Status and Live date "
-              },
-              "widgetType": "bar",
-              "encodings": {
-                "x": {
-                  "fieldName": "monthly(target_live_date)",
-                  "displayName": "Live Date",
-                  "scale": {
-                    "type": "temporal"
-                  }
-                },
-                "y": {
-                  "fieldName": "sum(estimated_monthly_dollar_dbus_weighted)",
-                  "displayName": "Monthly $DBUs",
-                  "scale": {
-                    "type": "quantitative"
-                  }
-                },
-                "color": {
-                  "fieldName": "implementation_status",
-                  "legend": {
-                    "hide": true
-                  },
-                  "displayName": "Health",
-                  "scale": {
-                    "type": "categorical",
-                    "mappings": [
-                      {
-                        "value": "Green",
-                        "color": {
-                          "themeColorType": "visualizationColors",
-                          "position": 3
-                        }
-                      },
-                      {
-                        "value": "Red",
-                        "color": {
-                          "themeColorType": "visualizationColors",
-                          "position": 4
-                        }
-                      },
-                      {
-                        "value": "Unknown",
-                        "color": {
-                          "themeColorType": "visualizationColors",
-                          "position": 9
-                        }
-                      },
-                      {
-                        "value": "Yellow",
-                        "color": {
-                          "themeColorType": "visualizationColors",
-                          "position": 2
-                        }
-                      }
-                    ]
-                  }
-                },
-                "label": {
-                  "show": false,
-                  "showTotal": true
-                },
-                "extra": [
-                  {
-                    "fieldName": "countdistinct(usecase_id)",
-                    "displayName": "# Use Case"
-                  }
-                ]
-              }
-            }
-          },
-          "position": {
-            "x": 8,
-            "y": 30,
-            "width": 4,
-            "height": 5
+            "height": 4
           }
         },
         {
@@ -7411,10 +7526,10 @@
             }
           },
           "position": {
-            "x": 4,
-            "y": 30,
+            "x": 8,
+            "y": 31,
             "width": 4,
-            "height": 5
+            "height": 4
           }
         },
         {
@@ -7444,7 +7559,7 @@
           },
           "position": {
             "x": 8,
-            "y": 6,
+            "y": 9,
             "width": 4,
             "height": 7
           }
@@ -7490,7 +7605,7 @@
           },
           "position": {
             "x": 2,
-            "y": 28,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -7536,7 +7651,7 @@
           },
           "position": {
             "x": 4,
-            "y": 28,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -7620,7 +7735,7 @@
           },
           "position": {
             "x": 2,
-            "y": 1,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -7749,7 +7864,7 @@
           },
           "position": {
             "x": 6,
-            "y": 1,
+            "y": 6,
             "width": 2,
             "height": 2
           }
@@ -7814,7 +7929,7 @@
           },
           "position": {
             "x": 8,
-            "y": 3,
+            "y": 6,
             "width": 2,
             "height": 2
           }
@@ -7894,7 +8009,7 @@
           },
           "position": {
             "x": 10,
-            "y": 3,
+            "y": 6,
             "width": 2,
             "height": 2
           }
@@ -7976,7 +8091,7 @@
           },
           "position": {
             "x": 6,
-            "y": 3,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -8070,7 +8185,7 @@
           },
           "position": {
             "x": 4,
-            "y": 1,
+            "y": 4,
             "width": 2,
             "height": 2
           }
@@ -8154,7 +8269,7 @@
           },
           "position": {
             "x": 4,
-            "y": 3,
+            "y": 6,
             "width": 2,
             "height": 2
           }
@@ -8238,7 +8353,7 @@
           },
           "position": {
             "x": 2,
-            "y": 3,
+            "y": 6,
             "width": 2,
             "height": 2
           }
@@ -8344,7 +8459,7 @@
           },
           "position": {
             "x": 3,
-            "y": 35,
+            "y": 36,
             "width": 3,
             "height": 4
           }
@@ -8450,7 +8565,7 @@
           },
           "position": {
             "x": 6,
-            "y": 35,
+            "y": 36,
             "width": 3,
             "height": 4
           }
@@ -8556,7 +8671,7 @@
           },
           "position": {
             "x": 9,
-            "y": 35,
+            "y": 36,
             "width": 3,
             "height": 4
           }
@@ -8662,7 +8777,7 @@
           },
           "position": {
             "x": 0,
-            "y": 35,
+            "y": 36,
             "width": 3,
             "height": 4
           }
@@ -8710,7 +8825,7 @@
           },
           "position": {
             "x": 0,
-            "y": 39,
+            "y": 40,
             "width": 3,
             "height": 1
           }
@@ -8758,7 +8873,7 @@
           },
           "position": {
             "x": 3,
-            "y": 39,
+            "y": 40,
             "width": 3,
             "height": 1
           }
@@ -8806,7 +8921,7 @@
           },
           "position": {
             "x": 6,
-            "y": 39,
+            "y": 40,
             "width": 3,
             "height": 1
           }
@@ -8854,7 +8969,7 @@
           },
           "position": {
             "x": 9,
-            "y": 39,
+            "y": 40,
             "width": 3,
             "height": 1
           }
@@ -8899,8 +9014,8 @@
             }
           },
           "position": {
-            "x": 8,
-            "y": 29,
+            "x": 6,
+            "y": 43,
             "width": 2,
             "height": 1
           }
@@ -8910,7 +9025,7 @@
             "name": "hygiene",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_hygiene_issues",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_has_hygiene_issues",
                 "query": {
                   "datasetName": "d284f3b9",
                   "fields": [
@@ -8931,22 +9046,22 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Hygienize?"
+                "title": "Hygiene?"
               },
               "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
                     "fieldName": "has_hygiene_issues",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_hygiene_issues"
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_has_hygiene_issues"
                   }
                 ]
               }
             }
           },
           "position": {
-            "x": 6,
-            "y": 29,
+            "x": 8,
+            "y": 43,
             "width": 2,
             "height": 1
           }
@@ -8992,7 +9107,7 @@
           },
           "position": {
             "x": 4,
-            "y": 29,
+            "y": 43,
             "width": 2,
             "height": 1
           }
@@ -9539,7 +9654,7 @@
           },
           "position": {
             "x": 0,
-            "y": 20,
+            "y": 23,
             "width": 12,
             "height": 7
           }
@@ -9585,7 +9700,7 @@
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 17,
             "width": 3,
             "height": 1
           }
@@ -9631,7 +9746,7 @@
           },
           "position": {
             "x": 6,
-            "y": 14,
+            "y": 17,
             "width": 3,
             "height": 1
           }
@@ -9652,7 +9767,7 @@
           },
           "position": {
             "x": 0,
-            "y": 13,
+            "y": 16,
             "width": 12,
             "height": 1
           }
@@ -9773,7 +9888,7 @@
           },
           "position": {
             "x": 2,
-            "y": 15,
+            "y": 18,
             "width": 5,
             "height": 5
           }
@@ -9894,7 +10009,7 @@
           },
           "position": {
             "x": 7,
-            "y": 15,
+            "y": 18,
             "width": 5,
             "height": 5
           }
@@ -9925,7 +10040,7 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "BU L3 (Account)"
+                "title": "BU Level 3 "
               },
               "widgetType": "filter-single-select",
               "encodings": {
@@ -9940,7 +10055,7 @@
           },
           "position": {
             "x": 3,
-            "y": 14,
+            "y": 17,
             "width": 3,
             "height": 1
           }
@@ -10010,7 +10125,7 @@
           },
           "position": {
             "x": 0,
-            "y": 17,
+            "y": 20,
             "width": 2,
             "height": 2
           }
@@ -10066,7 +10181,7 @@
           },
           "position": {
             "x": 0,
-            "y": 15,
+            "y": 18,
             "width": 2,
             "height": 2
           }
@@ -10119,7 +10234,7 @@
           },
           "position": {
             "x": 0,
-            "y": 19,
+            "y": 22,
             "width": 2,
             "height": 1
           }
@@ -10257,7 +10372,7 @@
           },
           "position": {
             "x": 0,
-            "y": 6,
+            "y": 9,
             "width": 7,
             "height": 2
           }
@@ -10394,9 +10509,543 @@
           },
           "position": {
             "x": 0,
-            "y": 8,
+            "y": 11,
             "width": 7,
             "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "individual_dot_plot",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "9008543e",
+                  "fields": [
+                    {
+                      "name": "user_name",
+                      "expression": "`user_name`"
+                    },
+                    {
+                      "name": "submitted_my_call",
+                      "expression": "`submitted_my_call`"
+                    },
+                    {
+                      "name": "current_ds_forecast",
+                      "expression": "`current_ds_forecast`"
+                    },
+                    {
+                      "name": "worst_case_projection",
+                      "expression": "`worst_case_projection`"
+                    },
+                    {
+                      "name": "best_case_projection",
+                      "expression": "`best_case_projection`"
+                    },
+                    {
+                      "name": "submitted_weighted_projection",
+                      "expression": "`submitted_weighted_projection`"
+                    },
+                    {
+                      "name": "t7d_flat_projection",
+                      "expression": "`t7d_flat_projection`"
+                    },
+                    {
+                      "name": "t28d_flat_projection",
+                      "expression": "`t28d_flat_projection`"
+                    },
+                    {
+                      "name": "submitted_direct_field_consumption_forecast",
+                      "expression": "`submitted_direct_field_consumption_forecast`"
+                    },
+                    {
+                      "name": "fin_target",
+                      "expression": "`fin_target`"
+                    },
+                    {
+                      "name": "sales_level",
+                      "expression": "`sales_level`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`view_name` IN ('Individual Forecast')"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"gridOpacity\":0.3}},\"layer\":[{\"mark\":{\"type\":\"rule\",\"color\":\"#333333\",\"strokeWidth\":2.5,\"strokeDash\":[6,3]},\"encoding\":{\"x\":{\"field\":\"fin_target\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#D0D0D0\",\"strokeWidth\":1,\"strokeDash\":[3,3]},\"encoding\":{\"y\":{\"field\":\"user_name\",\"type\":\"nominal\"}}},{\"params\":[{\"name\":\"metric_select\",\"select\":{\"type\":\"point\",\"fields\":[\"metric\"]},\"bind\":\"legend\"}],\"transform\":[{\"fold\":[\"submitted_my_call\",\"current_ds_forecast\",\"worst_case_projection\",\"best_case_projection\",\"submitted_weighted_projection\",\"t7d_flat_projection\",\"t28d_flat_projection\",\"submitted_direct_field_consumption_forecast\"],\"as\":[\"metric_key\",\"value\"]},{\"calculate\":\"datum.metric_key == 'submitted_my_call' ? 'My Call' : datum.metric_key == 'current_ds_forecast' ? 'DS Forecast' : datum.metric_key == 'worst_case_projection' ? 'Worst Case' : datum.metric_key == 'best_case_projection' ? 'Best Case' : datum.metric_key == 'submitted_weighted_projection' ? 'Weighted Proj' : datum.metric_key == 't7d_flat_projection' ? 'T7D Flat' : datum.metric_key == 't28d_flat_projection' ? 'T28D Flat' : 'Directs'\",\"as\":\"metric\"},{\"filter\":\"!(datum.metric == 'Directs' && datum.sales_level == 'AE')\"}],\"mark\":{\"type\":\"circle\",\"size\":200},\"encoding\":{\"x\":{\"field\":\"value\",\"type\":\"quantitative\",\"title\":\"Forecast Value ($)\",\"axis\":{\"format\":\"$,.0f\"},\"scale\":{\"zero\":false}},\"y\":{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":null,\"axis\":{\"labelLimit\":200}},\"color\":{\"field\":\"metric\",\"type\":\"nominal\",\"sort\":[\"My Call\",\"DS Forecast\",\"Worst Case\",\"Best Case\",\"Weighted Proj\",\"T7D Flat\",\"T28D Flat\",\"Directs\"],\"scale\":{\"range\":[\"#2196F3\",\"#9C27B0\",\"#E03E3E\",\"#4CAF50\",\"#FF9800\",\"#C8A465\",\"#795548\",\"#0D47A1\"]},\"legend\":{\"title\":\"Metric\",\"orient\":\"top\"}},\"opacity\":{\"condition\":{\"param\":\"metric_select\",\"value\":0.85},\"value\":0.1},\"tooltip\":[{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":\"User\"},{\"field\":\"metric\",\"type\":\"nominal\",\"title\":\"Metric\"},{\"field\":\"value\",\"type\":\"quantitative\",\"title\":\"Value\",\"format\":\"$,.0f\"}]}}]}"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Forecast Metrics vs Target"
+              },
+              "version": 1,
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "user_name"
+                  },
+                  {
+                    "fieldName": "submitted_my_call"
+                  },
+                  {
+                    "fieldName": "current_ds_forecast"
+                  },
+                  {
+                    "fieldName": "worst_case_projection"
+                  },
+                  {
+                    "fieldName": "best_case_projection"
+                  },
+                  {
+                    "fieldName": "submitted_weighted_projection"
+                  },
+                  {
+                    "fieldName": "t7d_flat_projection"
+                  },
+                  {
+                    "fieldName": "t28d_flat_projection"
+                  },
+                  {
+                    "fieldName": "submitted_direct_field_consumption_forecast"
+                  },
+                  {
+                    "fieldName": "fin_target"
+                  },
+                  {
+                    "fieldName": "sales_level"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "13eb655c",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block\">Q1</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E7E7"
+              },
+              "widgetBorderColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 35,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "04dbee59",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block\">Q2</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E7E7"
+              },
+              "widgetBorderColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 35,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "53453746",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block\">Q3</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E7E7"
+              },
+              "widgetBorderColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 35,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "5c9bbe38",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block\">Q4</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E7E7"
+              },
+              "widgetBorderColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 35,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "changes_header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Pipeline Changes (vs. Prior Period)"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 56,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "stage_advanced_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(v_stage_regressed_count)",
+                      "expression": "MEASURE(`v_stage_regressed_count`)"
+                    },
+                    {
+                      "name": "measure(v_stage_advanced_count)",
+                      "expression": "MEASURE(`v_stage_advanced_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Stage Advanced (UCO#)",
+                "headerAlignment": "center",
+                "showDescription": true,
+                "description": "Regressed"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(v_stage_advanced_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  },
+                  "style": {
+                    "color": {
+                      "themeColorType": "visualizationColors",
+                      "position": 3
+                    }
+                  },
+                  "displayName": "Advanced"
+                },
+                "target": {
+                  "fieldName": "measure(v_stage_regressed_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  },
+                  "style": {
+                    "color": "#F9071D"
+                  },
+                  "displayName": "Regressed"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 31,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "live_date_advanced_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(v_live_date_regressed_count)",
+                      "expression": "MEASURE(`v_live_date_regressed_count`)"
+                    },
+                    {
+                      "name": "measure(v_live_date_advanced_count)",
+                      "expression": "MEASURE(`v_live_date_advanced_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Live Date Advanced (UCO#)",
+                "headerAlignment": "center",
+                "showDescription": true,
+                "description": "Regressed"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(v_live_date_advanced_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  },
+                  "style": {
+                    "color": {
+                      "themeColorType": "visualizationColors",
+                      "position": 3
+                    }
+                  },
+                  "displayName": "Pulled Forward"
+                },
+                "target": {
+                  "fieldName": "measure(v_live_date_regressed_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  },
+                  "style": {
+                    "color": "#F9071D"
+                  },
+                  "displayName": "Pushed Back"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 33,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "amount_grew_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "measure(v_amount_shrank_count)",
+                      "expression": "MEASURE(`v_amount_shrank_count`)"
+                    },
+                    {
+                      "name": "measure(v_amount_grew_count)",
+                      "expression": "MEASURE(`v_amount_grew_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Amount Increased (UCO#)",
+                "headerAlignment": "center",
+                "showDescription": true,
+                "description": "Decreased"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(v_amount_grew_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  },
+                  "style": {
+                    "color": {
+                      "themeColorType": "visualizationColors",
+                      "position": 3
+                    }
+                  },
+                  "displayName": "Increased"
+                },
+                "target": {
+                  "fieldName": "measure(v_amount_shrank_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  },
+                  "style": {
+                    "color": "#F9071D"
+                  },
+                  "displayName": "Decreased"
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 33,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "e176c5ec",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "sum(estimated_monthly_dollar_dbus)",
+                      "expression": "SUM(`estimated_monthly_dollar_dbus`)"
+                    },
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Total UCO#",
+                "headerAlignment": "center",
+                "showDescription": true,
+                "description": "Estimate $DBU Monthly"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none"
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(estimated_monthly_dollar_dbus)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 31,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "0ce0ff54",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color:#E8ECF0\">Use Case Details</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 41,
+            "width": 12,
+            "height": 1
           }
         }
       ],
@@ -11288,6 +11937,10 @@
                       "expression": "`dbu_actuals_or_forecast_prev_quarter`"
                     },
                     {
+                      "name": "submitted_direct_field_consumption_forecast",
+                      "expression": "`submitted_direct_field_consumption_forecast`"
+                    },
+                    {
                       "name": "submitted_my_call",
                       "expression": "`submitted_my_call`"
                     },
@@ -11415,6 +12068,9 @@
                     },
                     "columnWidth": 100,
                     "displayName": "Q-1"
+                  },
+                  {
+                    "fieldName": "submitted_direct_field_consumption_forecast"
                   },
                   {
                     "fieldName": "submitted_my_call",
@@ -11743,19 +12399,19 @@
               }
             ],
             "spec": {
-              "version": 2,
+              "disallowAll": true,
               "frame": {
                 "showTitle": true,
                 "title": "FQ"
               },
-              "disallowAll": true,
+              "version": 2,
               "selection": {
                 "defaultSelection": {
                   "values": {
                     "dataType": "STRING",
                     "values": [
                       {
-                        "value": "FY27-Q1"
+                        "value": "FY27-Q2"
                       }
                     ]
                   }
@@ -11825,7 +12481,7 @@
             "spec": {
               "jsonSpec": {
                 "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"gridOpacity\":0.3}},\"layer\":[{\"mark\":{\"type\":\"rule\",\"color\":\"#888\",\"strokeWidth\":1.5,\"strokeDash\":[4,4]},\"encoding\":{\"x\":{\"datum\":1}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#D0D0D0\",\"strokeWidth\":1,\"strokeDash\":[3,3]},\"encoding\":{\"y\":{\"field\":\"user_name\",\"type\":\"nominal\"}}},{\"params\":[{\"name\":\"metric_select\",\"select\":{\"type\":\"point\",\"fields\":[\"metric\"]},\"bind\":\"legend\"}],\"transform\":[{\"calculate\":\"datum.fin_target > 0 ? datum.submitted_my_call / datum.fin_target : null\",\"as\":\"norm_my_call\"},{\"calculate\":\"datum.fin_target > 0 ? datum.current_ds_forecast / datum.fin_target : null\",\"as\":\"norm_ds_forecast\"},{\"calculate\":\"datum.fin_target > 0 ? datum.worst_case_projection / datum.fin_target : null\",\"as\":\"norm_worst\"},{\"calculate\":\"datum.fin_target > 0 ? datum.best_case_projection / datum.fin_target : null\",\"as\":\"norm_best\"},{\"fold\":[\"norm_my_call\",\"norm_ds_forecast\",\"norm_worst\",\"norm_best\"],\"as\":[\"metric_key\",\"normalized_value\"]},{\"calculate\":\"datum.metric_key == 'norm_my_call' ? 'My Call' : datum.metric_key == 'norm_ds_forecast' ? 'DS Forecast' : datum.metric_key == 'norm_worst' ? 'Worst Case' : 'Best Case'\",\"as\":\"metric\"},{\"calculate\":\"datum.metric_key == 'norm_my_call' ? datum.submitted_my_call : datum.metric_key == 'norm_ds_forecast' ? datum.current_ds_forecast : datum.metric_key == 'norm_worst' ? datum.worst_case_projection : datum.best_case_projection\",\"as\":\"raw_value\"}],\"mark\":{\"type\":\"circle\",\"size\":140},\"encoding\":{\"x\":{\"field\":\"normalized_value\",\"type\":\"quantitative\",\"title\":\"Ratio to Target (1.0 = 100%)\",\"axis\":{\"format\":\".0%\"},\"scale\":{\"domainMin\":0.7}},\"y\":{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":null,\"axis\":{\"labelLimit\":150}},\"color\":{\"field\":\"metric\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"My Call\",\"DS Forecast\",\"Worst Case\",\"Best Case\"],\"range\":[\"#2196F3\",\"#9C27B0\",\"#FF5722\",\"#4CAF50\"]},\"legend\":{\"title\":\"Metric\",\"orient\":\"top\"}},\"opacity\":{\"condition\":{\"param\":\"metric_select\",\"value\":0.85},\"value\":0.1},\"tooltip\":[{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":\"User\"},{\"field\":\"metric\",\"type\":\"nominal\",\"title\":\"Metric\"},{\"field\":\"raw_value\",\"type\":\"quantitative\",\"title\":\"Value\",\"format\":\"$,.0f\"},{\"field\":\"normalized_value\",\"type\":\"quantitative\",\"title\":\"% of Target\",\"format\":\".1%\"},{\"field\":\"fin_target\",\"type\":\"quantitative\",\"title\":\"Target\",\"format\":\"$,.0f\"}]}}]}"
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"gridOpacity\":0.3}},\"layer\":[{\"mark\":{\"type\":\"rule\",\"color\":\"#333333\",\"strokeWidth\":2.5,\"strokeDash\":[6,3]},\"encoding\":{\"x\":{\"datum\":1}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#D0D0D0\",\"strokeWidth\":1,\"strokeDash\":[3,3]},\"encoding\":{\"y\":{\"field\":\"user_name\",\"type\":\"nominal\"}}},{\"params\":[{\"name\":\"metric_select\",\"select\":{\"type\":\"point\",\"fields\":[\"metric\"]},\"bind\":\"legend\"}],\"transform\":[{\"calculate\":\"datum.fin_target > 0 ? datum.submitted_my_call / datum.fin_target : null\",\"as\":\"norm_my_call\"},{\"calculate\":\"datum.fin_target > 0 ? datum.current_ds_forecast / datum.fin_target : null\",\"as\":\"norm_ds_forecast\"},{\"calculate\":\"datum.fin_target > 0 ? datum.worst_case_projection / datum.fin_target : null\",\"as\":\"norm_worst\"},{\"calculate\":\"datum.fin_target > 0 ? datum.best_case_projection / datum.fin_target : null\",\"as\":\"norm_best\"},{\"fold\":[\"norm_my_call\",\"norm_ds_forecast\",\"norm_worst\",\"norm_best\"],\"as\":[\"metric_key\",\"normalized_value\"]},{\"calculate\":\"datum.metric_key == 'norm_my_call' ? 'My Call' : datum.metric_key == 'norm_ds_forecast' ? 'DS Forecast' : datum.metric_key == 'norm_worst' ? 'Worst Case' : 'Best Case'\",\"as\":\"metric\"},{\"calculate\":\"datum.metric_key == 'norm_my_call' ? datum.submitted_my_call : datum.metric_key == 'norm_ds_forecast' ? datum.current_ds_forecast : datum.metric_key == 'norm_worst' ? datum.worst_case_projection : datum.best_case_projection\",\"as\":\"raw_value\"}],\"mark\":{\"type\":\"circle\",\"size\":140},\"encoding\":{\"x\":{\"field\":\"normalized_value\",\"type\":\"quantitative\",\"title\":\"Ratio to Target (1.0 = 100%)\",\"axis\":{\"format\":\".0%\"},\"scale\":{\"domainMin\":0.7}},\"y\":{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":null,\"axis\":{\"labelLimit\":150}},\"color\":{\"field\":\"metric\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"My Call\",\"DS Forecast\",\"Worst Case\",\"Best Case\"],\"range\":[\"#2196F3\",\"#9C27B0\",\"#E03E3E\",\"#4CAF50\"]},\"legend\":{\"title\":\"Metric\",\"orient\":\"top\"}},\"opacity\":{\"condition\":{\"param\":\"metric_select\",\"value\":0.85},\"value\":0.1},\"tooltip\":[{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":\"User\"},{\"field\":\"metric\",\"type\":\"nominal\",\"title\":\"Metric\"},{\"field\":\"raw_value\",\"type\":\"quantitative\",\"title\":\"Value\",\"format\":\"$,.0f\"},{\"field\":\"normalized_value\",\"type\":\"quantitative\",\"title\":\"% of Target\",\"format\":\".1%\"}]}}]}"
               },
               "frame": {
                 "showTitle": true,
@@ -12814,14 +13470,14 @@
                     "fieldName": "sum(lakebase_dbu_dollars_ytd)",
                     "columnWidth": 100,
                     "format": {
-                      "hideGroupSeparator": true,
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "currencyCode": "USD",
-                      "type": "number-currency",
-                      "abbreviation": "none"
+                      "hideGroupSeparator": true
                     },
                     "displayName": "YTD"
                   },
@@ -12939,14 +13595,14 @@
                     "fieldName": "sum(dwh_dbu_dollars_t7d_avg)",
                     "columnWidth": 80,
                     "format": {
-                      "hideGroupSeparator": true,
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "currencyCode": "USD",
-                      "type": "number-currency",
-                      "abbreviation": "none"
+                      "hideGroupSeparator": false
                     },
                     "displayName": "T7D"
                   },
@@ -12954,11 +13610,11 @@
                     "fieldName": "measure(lakebase_dbu_dollars_t7d_wow)",
                     "format": {
                       "type": "number-percent",
-                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "max",
                         "places": 2
-                      }
+                      },
+                      "hideGroupSeparator": false
                     },
                     "columnWidth": 100,
                     "displayName": "T7D WoW",
@@ -12985,14 +13641,14 @@
                     "fieldName": "sum(dwh_dbu_dollars_ytd)",
                     "columnWidth": 100,
                     "format": {
-                      "hideGroupSeparator": true,
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "currencyCode": "USD",
-                      "type": "number-currency",
-                      "abbreviation": "none"
+                      "hideGroupSeparator": false
                     },
                     "displayName": "YTD"
                   },
@@ -13413,14 +14069,14 @@
                   {
                     "fieldName": "sum(migration_pipeline)",
                     "format": {
-                      "hideGroupSeparator": true,
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
                         "places": 3
                       },
-                      "currencyCode": "USD",
-                      "type": "number-currency",
-                      "abbreviation": "none"
+                      "hideGroupSeparator": false
                     },
                     "headerTooltip": "Total $DBUs in pipeline from migrations",
                     "columnWidth": 170,
@@ -13757,11 +14413,11 @@
               }
             ],
             "spec": {
+              "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 21"
+                "title": "Incremental Pipeline allocation by SA"
               },
-              "version": 3,
               "widgetType": "pivot",
               "encodings": {
                 "rows": [
