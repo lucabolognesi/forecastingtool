@@ -67,24 +67,15 @@
         "  and concatenated_emails like '%' || :ae_email || '%'\n",
         "),\n",
         "\n",
-        "latest_accounts AS (\n",
-        "  SELECT id, name\n",
-        "  FROM main.sfdc_bronze.account\n",
-        "  WHERE isdeleted = false\n",
-        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY SystemModstamp DESC) = 1\n",
-        "),\n",
-        "\n",
         "account_region as (\n",
         "  SELECT  \n",
         "    m.account_id,\n",
-        "    a.name AS account_name,\n",
         "    m.territory_name,\n",
         "    m.parent_name3 AS business_unit,\n",
         "    m.parent_name2 AS subregion_level_1,\n",
         "    m.parent_name1 AS subregion_level_2,\n",
         "    m.parent_name0 AS subregion_level_3\n",
-        "  FROM main.gtm_silver.account_territory_map m\n",
-        "  JOIN latest_accounts a ON m.account_id = a.id\n",
+        "  FROM main.gtm_silver.account_territory_map m --this preserves the original SFDC hierarchy names, useful to check HOLD accounts when at are assigned at intermin to another region level 3.\n",
         "  WHERE m.parent_name3 = :business_unit\n",
         "  AND m.parent_name2 = :region_level_1\n",
         "  AND m.parent_name1 = :region_level_2\n",
@@ -600,8 +591,10 @@
         "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
         "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
         "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
-        "  , coalesce(try_divide(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
-        "  , coalesce(try_divide(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
+        "  , coalesce(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, 0) as t7d_change_dollar_dbu\n",
+        "  , coalesce(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, 0) as t28d_change_dollar_dbu\n",
+        "  , coalesce(try_divide(t7d_change_dollar_dbu, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
+        "  , coalesce(try_divide(t28d_change_dollar_dbu, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
         "\n",
         "  --labels\n",
         "  , format_number(try_divide(u.submitted_my_call, u.fin_target), '#.#%') || \n",
@@ -635,6 +628,9 @@
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
         "where view_name = 'Individual Forecast'\n",
+        "\n",
+        "\n",
+        "\n",
         " "
       ],
       "parameters": [
@@ -909,24 +905,15 @@
         "  and concatenated_emails like '%' || :ae_email || '%'\n",
         "),\n",
         "\n",
-        "latest_accounts AS (\n",
-        "  SELECT id, name\n",
-        "  FROM main.sfdc_bronze.account\n",
-        "  WHERE isdeleted = false\n",
-        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY SystemModstamp DESC) = 1\n",
-        "),\n",
-        "\n",
         "account_region as (\n",
         "  SELECT  \n",
         "    m.account_id,\n",
-        "    a.name AS account_name,\n",
         "    m.territory_name,\n",
         "    m.parent_name3 AS business_unit,\n",
         "    m.parent_name2 AS subregion_level_1,\n",
         "    m.parent_name1 AS subregion_level_2,\n",
         "    m.parent_name0 AS subregion_level_3\n",
-        "  FROM main.gtm_silver.account_territory_map m\n",
-        "  JOIN latest_accounts a ON m.account_id = a.id\n",
+        "  FROM main.gtm_silver.account_territory_map m --this preserves the original SFDC hierarchy names, useful to check HOLD accounts when at are assigned at intermin to another region level 3.\n",
         "  WHERE m.parent_name3 = :business_unit\n",
         "  AND m.parent_name2 = :region_level_1\n",
         "  AND m.parent_name1 = :region_level_2\n",
@@ -1442,8 +1429,10 @@
         "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
         "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
         "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
-        "  , coalesce(try_divide(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
-        "  , coalesce(try_divide(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
+        "  , coalesce(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, 0) as t7d_change_dollar_dbu\n",
+        "  , coalesce(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, 0) as t28d_change_dollar_dbu\n",
+        "  , coalesce(try_divide(t7d_change_dollar_dbu, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
+        "  , coalesce(try_divide(t28d_change_dollar_dbu, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
         "\n",
         "  --labels\n",
         "  , format_number(try_divide(u.submitted_my_call, u.fin_target), '#.#%') || \n",
@@ -1477,6 +1466,9 @@
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
         "where view_name = 'Account Forecast'\n",
+        "\n",
+        "\n",
+        "\n",
         " "
       ],
       "parameters": [
@@ -1761,24 +1753,15 @@
         "  and concatenated_emails like '%' || :ae_email || '%'\n",
         "),\n",
         "\n",
-        "latest_accounts AS (\n",
-        "  SELECT id, name\n",
-        "  FROM main.sfdc_bronze.account\n",
-        "  WHERE isdeleted = false\n",
-        "  QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY SystemModstamp DESC) = 1\n",
-        "),\n",
-        "\n",
         "account_region as (\n",
         "  SELECT  \n",
         "    m.account_id,\n",
-        "    a.name AS account_name,\n",
         "    m.territory_name,\n",
         "    m.parent_name3 AS business_unit,\n",
         "    m.parent_name2 AS subregion_level_1,\n",
         "    m.parent_name1 AS subregion_level_2,\n",
         "    m.parent_name0 AS subregion_level_3\n",
-        "  FROM main.gtm_silver.account_territory_map m\n",
-        "  JOIN latest_accounts a ON m.account_id = a.id\n",
+        "  FROM main.gtm_silver.account_territory_map m --this preserves the original SFDC hierarchy names, useful to check HOLD accounts when at are assigned at intermin to another region level 3.\n",
         "  WHERE m.parent_name3 = :business_unit\n",
         "  AND m.parent_name2 = :region_level_1\n",
         "  AND m.parent_name1 = :region_level_2\n",
@@ -2294,8 +2277,10 @@
         "  , coalesce(try_divide(qoq_delta_target, dbu_actuals_or_forecast_prev_quarter), 0) as my_call_qoq_perc\n",
         "  , coalesce(try_divide(u.submitted_direct_field_consumption_forecast, u.fin_target), 0) as directs_att\n",
         "  , coalesce(try_divide(qoq_delta_directs_forecast, dbu_actuals_or_forecast_prev_quarter), 0) as directs_qoq_perc\n",
-        "  , coalesce(try_divide(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
-        "  , coalesce(try_divide(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
+        "  , coalesce(u.dbu_dollars_t7d_adj - u.dbu_dollars_t7d_prev_adj, 0) as t7d_change_dollar_dbu\n",
+        "  , coalesce(u.dbu_dollars_t28d_adj - u.dbu_dollars_t28d_prev_adj, 0) as t28d_change_dollar_dbu\n",
+        "  , coalesce(try_divide(t7d_change_dollar_dbu, u.dbu_dollars_t7d_prev_adj), 0) as t7d_change_perc\n",
+        "  , coalesce(try_divide(t28d_change_dollar_dbu, u.dbu_dollars_t28d_prev_adj), 0) as t28d_change_perc\n",
         "\n",
         "  --labels\n",
         "  , format_number(try_divide(u.submitted_my_call, u.fin_target), '#.#%') || \n",
@@ -2329,6 +2314,9 @@
         "/* Forecast waterfall for current user only */\n",
         "select * from quarterly_summary \n",
         "where view_name = 'Org Forecast'\n",
+        "\n",
+        "\n",
+        "\n",
         " "
       ],
       "parameters": [
@@ -2624,7 +2612,7 @@
         "  GROUP BY b.usecase_id\n",
         "),\n",
         "\n",
-        "use_case_pipeline_changes_filtered as (\n",
+        " use_case_pipeline_changes_filtered as (\n",
         "  select\n",
         "    pop.usecase_id,\n",
         "    pop.stage_number_latest,\n",
@@ -2647,7 +2635,7 @@
         "           when pop.target_live_date_latest < pop.target_live_date_prior then 1\n",
         "           when pop.target_live_date_latest = pop.target_live_date_prior then 0\n",
         "           else -1 end as target_date_pulled_foreward,\n",
-        "    case when pop.target_live_date_prior is null then 'New target date'\n",
+        "    case when pop.target_live_date_prior is null then 'New in pipeline'\n",
         "           when pop.target_live_date_latest < pop.target_live_date_prior then concat('Pulled forward by ', cast(abs(datediff(pop.target_live_date_latest, pop.target_live_date_prior)) as string), ' days from ', cast(pop.target_live_date_prior as string))\n",
         "           when pop.target_live_date_latest = pop.target_live_date_prior then 'No target date change'\n",
         "           else concat('Pushed back by ', cast(datediff(pop.target_live_date_latest, pop.target_live_date_prior) as string), ' days from ', cast(pop.target_live_date_prior as string))\n",
@@ -2657,15 +2645,27 @@
         "           when pop.estimated_quarterly_dollar_dbus_latest > pop.estimated_quarterly_dollar_dbus_prior then 1\n",
         "           when pop.estimated_quarterly_dollar_dbus_latest = pop.estimated_quarterly_dollar_dbus_prior then 0\n",
         "           else -1 end as amount_increased,\n",
-        "    case when pop.estimated_quarterly_dollar_dbus_prior is null then 'New amount'\n",
+        "    case when pop.estimated_quarterly_dollar_dbus_prior is null then 'New in pipeline'\n",
         "           when pop.estimated_quarterly_dollar_dbus_latest > pop.estimated_quarterly_dollar_dbus_prior then concat('Increased by ', chr(36), cast(cast(pop.estimated_quarterly_dollar_dbus_latest - pop.estimated_quarterly_dollar_dbus_prior as bigint) as string), ' per quarter')\n",
         "           when pop.estimated_quarterly_dollar_dbus_latest = pop.estimated_quarterly_dollar_dbus_prior then 'No amount change'\n",
         "           else concat('Decreased by ', chr(36), cast(cast(abs(pop.estimated_quarterly_dollar_dbus_latest - pop.estimated_quarterly_dollar_dbus_prior) as bigint) as string), ' per quarter')\n",
         "      end as amount_change_description,\n",
         "    pop.estimated_quarterly_dollar_dbus_latest - pop.estimated_quarterly_dollar_dbus_prior as change_amount\n",
+        "   , case \n",
+        "      when amount_increased < 0 or target_date_pulled_foreward < 0 or stage_advanced < 0 then 'Negative change' \n",
+        "      when amount_increased > 0 or target_date_pulled_foreward > 0 or stage_advanced > 0 then 'Positive change'      \n",
+        "   else 'No change' end change_type_label\n",
         "  from main.gtm_gold.use_case_pipeline_changes as pop\n",
+        "  inner join gtm_silver.use_case_detail as d\n",
+        "    on pop.usecase_id = d.usecase_id\n",
+        "    and pop.estimated_quarterly_dollar_dbus_latest = d.estimated_quarterly_dollar_dbus\n",
+        "    and pop.stage_number_latest = d.stage_number\n",
+        "    and pop.target_live_fiscal_year_quarter = d.target_live_fiscal_year_quarter  \n",
         "  where pop.period = :period\n",
-        "    and pop.flow_direction <> 'no change'\n",
+        "    and pop.change_type <> 'no change'\n",
+        "    and d.Business_Unit = :business_unit\n",
+        "    and d.sales_subregion_level_1 = :region_level_1\n",
+        "    and d.sales_subregion_level_2 = :region_level_2\n",
         "),\n",
         "\n",
         "usecases_filtered as (\n",
@@ -2693,6 +2693,7 @@
         "    , coalesce(pop.amount_increased, 0) as amount_increased\n",
         "    , coalesce(pop.amount_change_description, 'No amount change') as amount_change_description\n",
         "    , coalesce(pop.change_amount, 0) as change_amount\n",
+        "    , coalesce(pop.change_type_label, 'No change') as change_type_label\n",
         "    , concat('<a href=\"', get(FILTER(d.usecase_documents, doc -> doc.document_type = 'Eval Doc'), 0).document_link, '\" target=\"_blank\">Eval Doc</a>') as eval_doc_link\n",
         "    , concat('<a href=\"', get(FILTER(d.usecase_documents, doc -> doc.document_type = 'Onboarding Doc'), 0).document_link, '\" target=\"_blank\">Onboarding Doc</a>') as onboarding_doc_link\n",
         "    , case\n",
@@ -2915,7 +2916,7 @@
         "    , b.estimated_monthly_dollar_dbus, c.estimated_monthly_dollar_dbus_weighted, b.total_ramping_days\n",
         "    , c.estimated_quarterly_dollar_dbus, c.estimated_quarterly_dollar_dbus_weighted\n",
         "    , b.days_in_stage_bucket, b.usecase_url, b.eval_doc_link, b.onboarding_doc_link, b.impl_status as implementation_status, b.num_of_blockers, b.blocked_count, b.friction_count, b.blocker_details\n",
-        "    , b.stage_advanced, b.stage_change_description, b.target_date_pulled_foreward, b.target_date_change_description, b.target_live_date_diff_days, b.amount_increased, b.amount_change_description, b.change_amount\n",
+        "    , b.stage_advanced, b.stage_change_description, b.target_date_pulled_foreward, b.target_date_change_description, b.target_live_date_diff_days, b.amount_increased, b.amount_change_description, b.change_amount, b.change_type_label\n",
         "    , b.manager_notes\n",
         "    , qp.FY26_Q1, qp.FY26_Q2, qp.FY26_Q3, qp.FY26_Q4, qp.FY27_Q1, qp.FY27_Q2, qp.FY27_Q3, qp.FY27_Q4\n",
         "    , mp.m_2025_02, mp.m_2025_03, mp.m_2025_04, mp.m_2025_05, mp.m_2025_06, mp.m_2025_07, mp.m_2025_08, mp.m_2025_09, mp.m_2025_10, mp.m_2025_11, mp.m_2025_12\n",
@@ -2938,6 +2939,36 @@
         "\n"
       ],
       "parameters": [
+        {
+          "displayName": "ae_email",
+          "keyword": "ae_email",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "michele.guglielmo@databricks.com"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "displayName": "period",
+          "keyword": "period",
+          "dataType": "STRING",
+          "defaultSelection": {
+            "values": {
+              "dataType": "STRING",
+              "values": [
+                {
+                  "value": "14_days"
+                }
+              ]
+            }
+          }
+        },
         {
           "displayName": "business_unit",
           "keyword": "business_unit",
@@ -2978,36 +3009,6 @@
               "values": [
                 {
                   "value": "Italy"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "ae_email",
-          "keyword": "ae_email",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "michele.guglielmo@databricks.com"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "displayName": "period",
-          "keyword": "period",
-          "dataType": "STRING",
-          "defaultSelection": {
-            "values": {
-              "dataType": "STRING",
-              "values": [
-                {
-                  "value": "14_days"
                 }
               ]
             }
@@ -6283,15 +6284,15 @@
             ],
             "spec": {
               "displayRowNumbers": true,
+              "version": 2,
+              "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
                 "title": "Quarterly incremental consumption by use case",
                 "showDescription": true,
-                "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs.\n(*) We are assuming that the onboarding and live dates occur on day 15 of the month"
+                "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month"
               },
-              "version": 2,
-              "rowsPerPage": 25,
-              "freezeUpToColumnNumber": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -9182,24 +9183,32 @@
                       "expression": "`t28d_flat_projection`"
                     },
                     {
-                      "name": "dbu_dollars_t7d_adj",
-                      "expression": "`dbu_dollars_t7d_adj`"
-                    },
-                    {
                       "name": "target_t7d",
                       "expression": "`target_t7d`"
                     },
                     {
-                      "name": "dbu_dollars_t28d_adj",
-                      "expression": "`dbu_dollars_t28d_adj`"
+                      "name": "dbu_dollars_t7d_adj",
+                      "expression": "`dbu_dollars_t7d_adj`"
                     },
                     {
                       "name": "t7d_change_perc",
                       "expression": "`t7d_change_perc`"
                     },
                     {
+                      "name": "t7d_change_dollar_dbu",
+                      "expression": "`t7d_change_dollar_dbu`"
+                    },
+                    {
+                      "name": "dbu_dollars_t28d_adj",
+                      "expression": "`dbu_dollars_t28d_adj`"
+                    },
+                    {
                       "name": "t28d_change_perc",
                       "expression": "`t28d_change_perc`"
+                    },
+                    {
+                      "name": "t28d_change_dollar_dbu",
+                      "expression": "`t28d_change_dollar_dbu`"
                     }
                   ],
                   "filters": [
@@ -9264,7 +9273,7 @@
                   },
                   {
                     "fieldName": "dbu_actuals",
-                    "columnWidth": 80,
+                    "columnWidth": 100,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
@@ -9488,6 +9497,20 @@
                     "displayName": "T28D Flat Proj"
                   },
                   {
+                    "fieldName": "target_t7d",
+                    "columnWidth": 110,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "Target T7D"
+                  },
+                  {
                     "fieldName": "dbu_dollars_t7d_adj",
                     "format": {
                       "type": "number-currency",
@@ -9516,58 +9539,6 @@
                             },
                             "operator": ">=",
                             "fieldName": "t7d_change_perc"
-                          },
-                          "foregroundColor": {
-                            "themeColorType": "visualizationColors",
-                            "position": 3
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "fieldName": "target_t7d",
-                    "columnWidth": 110,
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 3
-                      }
-                    },
-                    "displayName": "Target T7D"
-                  },
-                  {
-                    "fieldName": "dbu_dollars_t28d_adj",
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 3
-                      }
-                    },
-                    "headerTooltip": "Green means positive trend vs previous period",
-                    "columnWidth": 100,
-                    "displayName": "T28D",
-                    "style": {
-                      "type": "basic",
-                      "foregroundColor": {
-                        "themeColorType": "visualizationColors",
-                        "position": 4
-                      },
-                      "rules": [
-                        {
-                          "condition": {
-                            "operand": {
-                              "type": "data-value",
-                              "value": "0"
-                            },
-                            "operator": ">=",
-                            "fieldName": "t28d_change_perc"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -9612,6 +9583,80 @@
                     }
                   },
                   {
+                    "fieldName": "t7d_change_dollar_dbu",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "columnWidth": 90,
+                    "displayName": "T7D Δ",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "dbu_dollars_t28d_adj",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "headerTooltip": "Green means positive trend vs previous period",
+                    "columnWidth": 100,
+                    "displayName": "T28D",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 4
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">=",
+                            "fieldName": "t28d_change_perc"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
                     "fieldName": "t28d_change_perc",
                     "format": {
                       "type": "number-percent",
@@ -9622,6 +9667,42 @@
                     },
                     "columnWidth": 140,
                     "displayName": "T28D Change %",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "t28d_change_dollar_dbu",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "columnWidth": 90,
+                    "displayName": "T28D Δ",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
@@ -9924,7 +10005,7 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Top Negative Differende (Forecast - Target)"
+                "title": "Top Negative Difference (Forecast - Target)"
               },
               "mark": {
                 "colors": [
@@ -10735,22 +10816,6 @@
         },
         {
           "widget": {
-            "name": "changes_header",
-            "multilineTextboxSpec": {
-              "lines": [
-                "## Pipeline Changes (vs. Prior Period)"
-              ]
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 56,
-            "width": 12,
-            "height": 1
-          }
-        },
-        {
-          "widget": {
             "name": "stage_advanced_counter",
             "queries": [
               {
@@ -10775,10 +10840,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Stage Advanced (UCO#)",
+                "title": "Stage Progression (UCO#)",
                 "headerAlignment": "center",
                 "showDescription": true,
-                "description": "Regressed"
+                "description": "Regression"
               },
               "widgetType": "counter",
               "encodings": {
@@ -10846,10 +10911,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Live Date Advanced (UCO#)",
+                "title": "Live Date Acceleration (UCO#)",
                 "headerAlignment": "center",
                 "showDescription": true,
-                "description": "Regressed"
+                "description": "Slippage"
               },
               "widgetType": "counter",
               "encodings": {
@@ -11045,6 +11110,52 @@
             "x": 0,
             "y": 41,
             "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "change-flow",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_change_type_label",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "change_type_label",
+                      "expression": "`change_type_label`"
+                    },
+                    {
+                      "name": "change_type_label_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Inflow/Outflow?"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "change_type_label",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_change_type_label"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 10,
+            "y": 43,
+            "width": 2,
             "height": 1
           }
         }
@@ -11937,10 +12048,6 @@
                       "expression": "`dbu_actuals_or_forecast_prev_quarter`"
                     },
                     {
-                      "name": "submitted_direct_field_consumption_forecast",
-                      "expression": "`submitted_direct_field_consumption_forecast`"
-                    },
-                    {
                       "name": "submitted_my_call",
                       "expression": "`submitted_my_call`"
                     },
@@ -11981,24 +12088,32 @@
                       "expression": "`t28d_flat_projection`"
                     },
                     {
-                      "name": "dbu_dollars_t7d_adj",
-                      "expression": "`dbu_dollars_t7d_adj`"
-                    },
-                    {
                       "name": "target_t7d",
                       "expression": "`target_t7d`"
                     },
                     {
-                      "name": "dbu_dollars_t28d_adj",
-                      "expression": "`dbu_dollars_t28d_adj`"
+                      "name": "dbu_dollars_t7d_adj",
+                      "expression": "`dbu_dollars_t7d_adj`"
                     },
                     {
                       "name": "t7d_change_perc",
                       "expression": "`t7d_change_perc`"
                     },
                     {
+                      "name": "t7d_change_dollar_dbu",
+                      "expression": "`t7d_change_dollar_dbu`"
+                    },
+                    {
+                      "name": "dbu_dollars_t28d_adj",
+                      "expression": "`dbu_dollars_t28d_adj`"
+                    },
+                    {
                       "name": "t28d_change_perc",
                       "expression": "`t28d_change_perc`"
+                    },
+                    {
+                      "name": "t28d_change_dollar_dbu",
+                      "expression": "`t28d_change_dollar_dbu`"
                     }
                   ],
                   "filters": [
@@ -12011,13 +12126,13 @@
               }
             ],
             "spec": {
+              "version": 2,
+              "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
                 "title": "Org Forecast Summary (AE Level)"
               },
-              "version": 2,
-              "rowsPerPage": 25,
-              "freezeUpToColumnNumber": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -12043,6 +12158,7 @@
                   },
                   {
                     "fieldName": "dbu_actuals",
+                    "columnWidth": 100,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
@@ -12052,11 +12168,11 @@
                         "places": 3
                       }
                     },
-                    "columnWidth": 100,
                     "displayName": "QTD"
                   },
                   {
                     "fieldName": "dbu_actuals_or_forecast_prev_quarter",
+                    "columnWidth": 100,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
@@ -12066,11 +12182,7 @@
                         "places": 3
                       }
                     },
-                    "columnWidth": 100,
                     "displayName": "Q-1"
-                  },
-                  {
-                    "fieldName": "submitted_direct_field_consumption_forecast"
                   },
                   {
                     "fieldName": "submitted_my_call",
@@ -12088,6 +12200,7 @@
                   },
                   {
                     "fieldName": "gap_my_call",
+                    "columnWidth": 130,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
@@ -12097,7 +12210,6 @@
                         "places": 3
                       }
                     },
-                    "columnWidth": 130,
                     "displayName": "Gap to Target",
                     "style": {
                       "type": "basic",
@@ -12124,6 +12236,7 @@
                   },
                   {
                     "fieldName": "my_call_att",
+                    "columnWidth": 80,
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
@@ -12131,7 +12244,6 @@
                         "places": 2
                       }
                     },
-                    "columnWidth": 80,
                     "displayName": "Att%",
                     "style": {
                       "type": "basic",
@@ -12253,20 +12365,6 @@
                     "displayName": "T28D Flat Proj"
                   },
                   {
-                    "fieldName": "dbu_dollars_t7d_adj",
-                    "columnWidth": 80,
-                    "format": {
-                      "type": "number-currency",
-                      "currencyCode": "USD",
-                      "abbreviation": "compact",
-                      "decimalPlaces": {
-                        "type": "max",
-                        "places": 3
-                      }
-                    },
-                    "displayName": "T7D"
-                  },
-                  {
                     "fieldName": "target_t7d",
                     "columnWidth": 130,
                     "format": {
@@ -12281,8 +12379,8 @@
                     "displayName": "Target T7D"
                   },
                   {
-                    "fieldName": "dbu_dollars_t28d_adj",
-                    "columnWidth": 85,
+                    "fieldName": "dbu_dollars_t7d_adj",
+                    "columnWidth": 80,
                     "format": {
                       "type": "number-currency",
                       "currencyCode": "USD",
@@ -12292,10 +12390,11 @@
                         "places": 3
                       }
                     },
-                    "displayName": "T28D"
+                    "displayName": "T7D"
                   },
                   {
                     "fieldName": "t7d_change_perc",
+                    "columnWidth": 130,
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
@@ -12303,7 +12402,6 @@
                         "places": 2
                       }
                     },
-                    "columnWidth": 130,
                     "displayName": "T7D Change %",
                     "style": {
                       "type": "basic",
@@ -12329,7 +12427,58 @@
                     }
                   },
                   {
+                    "fieldName": "t7d_change_dollar_dbu",
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "Δ T7D",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "dbu_dollars_t28d_adj",
+                    "columnWidth": 85,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "T28D"
+                  },
+                  {
                     "fieldName": "t28d_change_perc",
+                    "columnWidth": 140,
                     "format": {
                       "type": "number-percent",
                       "decimalPlaces": {
@@ -12337,8 +12486,43 @@
                         "places": 2
                       }
                     },
-                    "columnWidth": 140,
                     "displayName": "T28D Change %",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "t28d_change_dollar_dbu",
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "Δ T28D",
                     "style": {
                       "type": "basic",
                       "foregroundColor": {
