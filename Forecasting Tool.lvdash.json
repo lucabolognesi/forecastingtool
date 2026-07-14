@@ -2707,6 +2707,7 @@
         "    , date_diff(DAY, current_date(), last_day(d.target_onboarding_date)) as days_to_onboarding\n",
         "\n",
         "    --Collect all warnings\n",
+        "    /*\n",
         "    , flatten(array(                \n",
         "        case when days_to_go_live between 0 and 30 and d.stage_number < 5 then array('Go live < 30 / Not U5') else array() end,\n",
         "        case when days_to_go_live between 0 and 30 and d.implementation_status = 'Red' then array('Go live < 30 days / Red') else array() end,\n",
@@ -2718,6 +2719,23 @@
         "        case when days_to_onboarding between 0 and 30 and d.stage_number <= 3 then array('Onboarding < 30 / <=U3') else array() end,\n",
         "        case when days_to_onboarding between 0 and 30 and d.stage_number = 4 then array('Onboarding < 30 / U4') else array() end\n",
         "      )) as warning_rules\n",
+        "  */\n",
+        "\n",
+        "   , case \n",
+        "        when days_to_go_live between 0 and 30 and d.stage_number < 5 then 'Go live < 30 / Not U5'\n",
+        "        when days_to_go_live between 0 and 30 and d.implementation_status = 'Red' then 'Go live < 30 days / Red'\n",
+        "        when days_to_go_live between 0 and 30 and d.implementation_status = 'Yellow' then 'Go live < 30 days / Yellow'\n",
+        "        --when days_to_go_live between 0 and 30 then 'Go live < 30'        \n",
+        "        else \"Ok\"\n",
+        "      end as go_live_slippage_details\n",
+        "    \n",
+        "    , case\n",
+        "        when days_to_onboarding between 0 and 30 and d.stage_number < 5 and d.implementation_status = 'Red' then 'Onboarding < 30 / Red'\n",
+        "        when days_to_onboarding between 0 and 30 and d.stage_number < 5 and d.implementation_status = 'Yellow' then 'Onboarding < 30 / Yellow'\n",
+        "        when days_to_onboarding between 0 and 30 and d.stage_number <= 3 then 'Onboarding < 30 / <=U3'\n",
+        "        --when days_to_onboarding between 0 and 30 and d.stage_number = 4 then 'Onboarding < 30 / U4'\n",
+        "        else \"Ok\"\n",
+        "      end as onboarding_slippage_details\n",
         "\n",
         "    -- Collect all Hygiene checks\n",
         "    , flatten(array(\n",
@@ -2727,10 +2745,26 @@
         "        case when days_to_go_live between 0 and 30 and d.implementation_status = 'Red' then array('Go live < 30 days / Red') else array() end,\n",
         "        case when eval_doc_link is null and d.estimated_monthly_dollar_dbus >= 10000 and d.stage_number between 2 and 4 then array('Eval doc required') else array() end,\n",
         "        case when onboarding_doc_link is null and d.estimated_monthly_dollar_dbus >= 10000 and d.stage_number between 4 and 4 then array('Onboarding doc required') else array() end\n",
-        "      )) as hygiene_rules,\n",
+        "      )) as hygiene_rules\n",
         "      \n",
-        "  case when array_size(warning_rules) = 0 then false else true end as has_warnings,\n",
-        "  case when array_size(hygiene_rules) = 0 then false else true end as has_hygiene_issues\n",
+        "    --, \"\" as warning_rules --TO REMOVE.\n",
+        "    --, false as has_warnings --TO REMOVE\n",
+        "    , case when array_size(hygiene_rules) = 0 then false else true end as has_hygiene_issues\n",
+        "    , case when onboarding_slippage_details == \"Ok\" then false else true end as has_onboarding_slippage_risk\n",
+        "    , case when go_live_slippage_details == \"Ok\" then false else true end as has_go_live_slippage_risk\n",
+        "\n",
+        "   , case \n",
+        "      when onboarding_slippage_details <> \"Ok\" then 'Slippage risk with onboarding date'\n",
+        "      when go_live_slippage_details <> \"Ok\" then 'Slippage risk with live date'\n",
+        "      else 'No Risk'\n",
+        "    end as slippage_risk\n",
+        "\n",
+        "  , case when stage_advanced > 0 then 1 else 0 end as stage_advanced_count\n",
+        "  , case when stage_advanced < 0 then 1 else 0 end as stage_regressed_count\n",
+        "  , case when target_date_pulled_foreward > 0 then 1 else 0 end as live_date_advanced_count\n",
+        "  , case when target_date_pulled_foreward < 0 then 1 else 0 end as live_date_regressed_count\n",
+        "  , case when amount_increased > 0 then 1 else 0 end as amount_grew_count\n",
+        "  , case when amount_increased < 0 then 1 else 0 end as amount_shrank_count\n",
         "    \n",
         "  from gtm_silver.use_case_detail as d\n",
         "  left outer join blockers as blk\n",
@@ -2749,6 +2783,19 @@
         "    and d.stage_number <= 5 --Filter out 'Disqualified', 'Lost' and 'Live' UCOs.\n",
         "    and coalesce(d.estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.\n",
         "    and d.concatenated_emails like '%' || :ae_email || '%'\n",
+        "),\n",
+        "\n",
+        "asq_summary AS (\n",
+        "  SELECT\n",
+        "    auc.usecase_id,\n",
+        "    array_join(collect_list(\n",
+        "      '<a href=\"https://databricks.lightning.force.com/lightning/r/ApprovalRequest__c/' || ar.approval_request_id || '/view\">' || ar.approval_request_name || '</a>: ' || ar.approval_request_type || ' - ' || ar.owner_user_name || ' (' || ar.status || ')'\n",
+        "    ), '. ') AS ASQ_Summary_HTML\n",
+        "  FROM main.gtm_silver.approval_request_detail ar\n",
+        "  INNER JOIN main.gtm_silver.approved_use_case_lookup auc\n",
+        "    ON ar.approval_request_id = auc.approval_request_id\n",
+        "  WHERE auc.usecase_id IN (SELECT usecase_id FROM usecases_filtered)\n",
+        "  GROUP BY auc.usecase_id\n",
         "),\n",
         "\n",
         "incremental_projections as (\n",
@@ -2922,7 +2969,14 @@
         "    , mp.m_2025_02, mp.m_2025_03, mp.m_2025_04, mp.m_2025_05, mp.m_2025_06, mp.m_2025_07, mp.m_2025_08, mp.m_2025_09, mp.m_2025_10, mp.m_2025_11, mp.m_2025_12\n",
         "    , mp.m_2026_01, mp.m_2026_02, mp.m_2026_03, mp.m_2026_04, mp.m_2026_05, mp.m_2026_06, mp.m_2026_07, mp.m_2026_08, mp.m_2026_09, mp.m_2026_10, mp.m_2026_11, mp.m_2026_12, mp.m_2027_01\n",
         "    , b.days_to_go_live, b.days_to_onboarding\n",
-        "    , b.warning_rules, b.has_warnings, b.hygiene_rules, b.has_hygiene_issues\n",
+        "    , b.hygiene_rules, b.has_hygiene_issues, b.slippage_risk, b.has_onboarding_slippage_risk, b.has_go_live_slippage_risk, b.onboarding_slippage_details, b.go_live_slippage_details\n",
+        "    , b.stage_advanced_count\n",
+        "    , b.stage_regressed_count\n",
+        "    , b.live_date_advanced_count\n",
+        "    , b.live_date_regressed_count\n",
+        "    , b.amount_grew_count\n",
+        "    , b.amount_shrank_count\n",
+        "    , asq.ASQ_Summary_HTML\n",
         "\n",
         "    from gtm_silver.use_case_detail as c\n",
         "    inner join usecases_filtered as b\n",
@@ -2931,6 +2985,8 @@
         "    on qp.usecase_id = c.usecase_id\n",
         "    inner join monthly_projection_pivoted as mp\n",
         "    on mp.usecase_id = c.usecase_id\n",
+        "    left join asq_summary as asq\n",
+        "    on asq.usecase_id = c.usecase_id\n",
         ")\n",
         "\n",
         "select * from uco_view\n",
@@ -3022,11 +3078,6 @@
           "expression": "CASE WHEN `has_hygiene_issues` THEN '<img src=\"https://img.icons8.com/material-outlined/24/broom.png\" width=\"18\" height=\"18\"/>' ELSE '' END"
         },
         {
-          "displayName": "warning_icon",
-          "description": "Returns 18x18 warning icon HTML when use case has warnings, empty otherwise",
-          "expression": "CASE WHEN `has_warnings` THEN '<img src=\"https://www.vhv.rs/dpng/d/467-4673212_attention-warning-outline-transparent-background-warning-icon-png.png\" width=\"18\" height=\"18\"/>' ELSE '' END\n\n\n\n"
-        },
-        {
           "displayName": "keytechwin_icon",
           "description": "",
           "expression": "CASE WHEN `is_keytechwin` THEN '<img src=\"https://www.freeiconspng.com/thumbs/key-icon/black-key-symbol-icon-6.png\" width=\"18\" height=\"18\"/>' ELSE '' END\n\n"
@@ -3055,36 +3106,6 @@
           "displayName": "keytechwin_monthly_dollar_dbus",
           "description": "",
           "expression": "SUM(CASE WHEN is_keytechwin THEN estimated_monthly_dollar_dbus ELSE 0 END)"
-        },
-        {
-          "displayName": "v_stage_advanced_count",
-          "description": "Number of UCOs where stage advanced vs prior period",
-          "expression": "SUM(CASE WHEN `stage_advanced` > 0 THEN 1 ELSE 0 END)"
-        },
-        {
-          "displayName": "v_stage_regressed_count",
-          "description": "Number of UCOs where stage regressed vs prior period",
-          "expression": "SUM(CASE WHEN `stage_advanced` < 0 THEN 1 ELSE 0 END)"
-        },
-        {
-          "displayName": "v_live_date_advanced_count",
-          "description": "Number of UCOs where target live date was pulled forward",
-          "expression": "SUM(CASE WHEN `target_date_pulled_foreward` > 0 THEN 1 ELSE 0 END)"
-        },
-        {
-          "displayName": "v_live_date_regressed_count",
-          "description": "Number of UCOs where target live date was pushed back",
-          "expression": "SUM(CASE WHEN `target_date_pulled_foreward` < 0 THEN 1 ELSE 0 END)"
-        },
-        {
-          "displayName": "v_amount_grew_count",
-          "description": "Number of UCOs where estimated quarterly amount increased",
-          "expression": "SUM(CASE WHEN `amount_increased` > 0 THEN 1 ELSE 0 END)"
-        },
-        {
-          "displayName": "v_amount_shrank_count",
-          "description": "Number of UCOs where estimated quarterly amount decreased",
-          "expression": "SUM(CASE WHEN `amount_increased` < 0 THEN 1 ELSE 0 END)"
         }
       ]
     },
@@ -6126,10 +6147,6 @@
                       "expression": "`usecase_url`"
                     },
                     {
-                      "name": "warning_icon",
-                      "expression": "`warning_icon`"
-                    },
-                    {
                       "name": "hygiene_icon",
                       "expression": "`hygiene_icon`"
                     },
@@ -6210,8 +6227,8 @@
                       "expression": "`demand_plan_next_steps`"
                     },
                     {
-                      "name": "manager_notes",
-                      "expression": "`manager_notes`"
+                      "name": "ASQ_Summary_HTML",
+                      "expression": "`ASQ_Summary_HTML`"
                     },
                     {
                       "name": "eval_doc_link",
@@ -6226,6 +6243,10 @@
                       "expression": "`dsa`"
                     },
                     {
+                      "name": "manager_notes",
+                      "expression": "`manager_notes`"
+                    },
+                    {
                       "name": "implementation_partner_name",
                       "expression": "`implementation_partner_name`"
                     },
@@ -6234,16 +6255,8 @@
                       "expression": "`migration_source_platform_adj`"
                     },
                     {
-                      "name": "use_case_product_enriched",
-                      "expression": "`use_case_product_enriched`"
-                    },
-                    {
-                      "name": "hygiene_rules",
-                      "expression": "`hygiene_rules`"
-                    },
-                    {
-                      "name": "warning_rules",
-                      "expression": "`warning_rules`"
+                      "name": "has_onboarding_slippage_risk",
+                      "expression": "TRY_CAST(`has_onboarding_slippage_risk` AS INT)"
                     },
                     {
                       "name": "amount_increased",
@@ -6254,12 +6267,12 @@
                       "expression": "`target_date_pulled_foreward`"
                     },
                     {
-                      "name": "stage_advanced",
-                      "expression": "`stage_advanced`"
+                      "name": "has_go_live_slippage_risk",
+                      "expression": "`has_go_live_slippage_risk`"
                     },
                     {
-                      "name": "`warning_rules`",
-                      "expression": "`warning_rules`"
+                      "name": "stage_advanced",
+                      "expression": "`stage_advanced`"
                     },
                     {
                       "name": "`hygiene_rules`",
@@ -6268,6 +6281,10 @@
                     {
                       "name": "`amount_change_description`",
                       "expression": "`amount_change_description`"
+                    },
+                    {
+                      "name": "`onboarding_slippage_details`",
+                      "expression": "`onboarding_slippage_details`"
                     },
                     {
                       "name": "`target_date_change_description`",
@@ -6325,21 +6342,6 @@
                     }
                   },
                   {
-                    "fieldName": "warning_icon",
-                    "columnWidth": 48,
-                    "displayName": " W",
-                    "actions": {
-                      "hover": {
-                        "type": "tooltip",
-                        "tooltipTemplate": "{{ `warning_rules` }}"
-                      }
-                    },
-                    "style": {
-                      "type": "html",
-                      "highlightLinks": false
-                    }
-                  },
-                  {
                     "fieldName": "hygiene_icon",
                     "columnWidth": 48,
                     "displayName": " H",
@@ -6375,11 +6377,11 @@
                   },
                   {
                     "fieldName": "estimated_quarterly_dollar_dbus",
+                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
-                    "useForSearch": false,
                     "displayName": "Qtr $DBUs",
                     "actions": {
                       "hover": {
@@ -6423,11 +6425,11 @@
                   },
                   {
                     "fieldName": "estimated_quarterly_dollar_dbus_weighted",
+                    "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
-                    "useForSearch": false,
                     "displayName": "Qtr $DBUs (Weighted)",
                     "actions": {
                       "hover": {
@@ -6438,17 +6440,17 @@
                   },
                   {
                     "fieldName": "FY27_Q1",
+                    "useForSearch": false,
+                    "columnWidth": 130,
                     "format": {
                       "type": "number-plain",
                       "abbreviation": "none",
+                      "hideGroupSeparator": true,
                       "decimalPlaces": {
                         "type": "exact",
                         "places": 2
-                      },
-                      "hideGroupSeparator": true
+                      }
                     },
-                    "useForSearch": false,
-                    "columnWidth": 130,
                     "displayName": "FY27 Q1 (Incr)",
                     "actions": {
                       "hover": {
@@ -6459,12 +6461,12 @@
                   },
                   {
                     "fieldName": "FY27_Q2",
+                    "useForSearch": false,
+                    "columnWidth": 130,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
-                    "useForSearch": false,
-                    "columnWidth": 130,
                     "displayName": "FY27 Q2 (Incr)",
                     "actions": {
                       "hover": {
@@ -6475,12 +6477,12 @@
                   },
                   {
                     "fieldName": "FY27_Q3",
+                    "useForSearch": false,
+                    "columnWidth": 130,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
-                    "useForSearch": false,
-                    "columnWidth": 130,
                     "displayName": "FY27 Q3 (Incr)",
                     "actions": {
                       "hover": {
@@ -6491,12 +6493,12 @@
                   },
                   {
                     "fieldName": "FY27_Q4",
+                    "useForSearch": false,
+                    "columnWidth": 130,
                     "format": {
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
-                    "useForSearch": false,
-                    "columnWidth": 130,
                     "displayName": "FY27 Q4 (Incr)",
                     "actions": {
                       "hover": {
@@ -6507,30 +6509,50 @@
                   },
                   {
                     "fieldName": "target_onboarding_date",
+                    "useForSearch": false,
+                    "columnWidth": 110,
+                    "contentAlignment": "right",
                     "format": {
                       "type": "moment.js",
                       "format": "MMM YYYY"
                     },
-                    "useForSearch": false,
-                    "columnWidth": 110,
-                    "contentAlignment": "right",
                     "displayName": "Onboarding",
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
+                        "tooltipTemplate": "{{ `onboarding_slippage_details` }}"
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "1"
+                            },
+                            "operator": "=",
+                            "fieldName": "has_onboarding_slippage_risk"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
                     }
                   },
                   {
                     "fieldName": "target_live_date",
-                    "format": {
-                      "type": "moment.js",
-                      "format": "MMM YYYY"
-                    },
                     "useForSearch": false,
                     "columnWidth": 100,
                     "contentAlignment": "right",
+                    "format": {
+                      "type": "date",
+                      "date": "year-week",
+                      "leadingZeros": true
+                    },
                     "displayName": "Live",
                     "actions": {
                       "hover": {
@@ -6567,6 +6589,20 @@
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
                             "position": 8
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "true"
+                            },
+                            "operator": "=",
+                            "fieldName": "has_go_live_slippage_risk"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
                           }
                         }
                       ]
@@ -6684,12 +6720,12 @@
                   },
                   {
                     "fieldName": "days_in_stage",
+                    "useForSearch": false,
+                    "columnWidth": 130,
                     "format": {
                       "type": "numeral.js",
                       "format": "0"
                     },
-                    "useForSearch": false,
-                    "columnWidth": 130,
                     "displayName": "Days In Stage",
                     "actions": {
                       "hover": {
@@ -6874,30 +6910,17 @@
                   {
                     "fieldName": "demand_plan_next_steps",
                     "useForSearch": true,
-                    "columnWidth": 500,
-                    "displayName": "Next Steps",
-                    "actions": {
-                      "hover": {
-                        "type": "tooltip",
-                        "tooltipTemplate": "{{ @ }}"
-                      }
-                    },
-                    "style": {
-                      "type": "basic",
-                      "rules": [
-                        {
-                          "condition": {
-                            "operator": "="
-                          },
-                          "backgroundColor": "#00A972"
-                        }
-                      ]
-                    }
+                    "columnWidth": 300,
+                    "displayName": "Demand Plan Next Steps"
                   },
                   {
-                    "fieldName": "manager_notes",
+                    "fieldName": "ASQ_Summary_HTML",
                     "columnWidth": 300,
-                    "displayName": "Acceleration Plan"
+                    "displayName": "ASQ Summary",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
                   },
                   {
                     "fieldName": "eval_doc_link",
@@ -6910,8 +6933,8 @@
                   },
                   {
                     "fieldName": "onboarding_doc_link",
-                    "columnWidth": 100,
-                    "displayName": "Onboard Doc",
+                    "columnWidth": 130,
+                    "displayName": "Onboarding Doc",
                     "style": {
                       "type": "html",
                       "highlightLinks": false
@@ -6923,9 +6946,14 @@
                     "displayName": "DSA"
                   },
                   {
+                    "fieldName": "manager_notes",
+                    "columnWidth": 300,
+                    "displayName": "Manager Notes"
+                  },
+                  {
                     "fieldName": "implementation_partner_name",
-                    "columnWidth": 200,
-                    "displayName": "Partner"
+                    "columnWidth": 150,
+                    "displayName": "Impl Partner"
                   },
                   {
                     "fieldName": "migration_source_platform_adj",
@@ -6933,22 +6961,7 @@
                     "displayName": "Migration Source"
                   },
                   {
-                    "fieldName": "use_case_product_enriched",
-                    "useForSearch": true,
-                    "columnWidth": 300,
-                    "displayName": "Products"
-                  },
-                  {
-                    "fieldName": "hygiene_rules",
-                    "useForSearch": true,
-                    "columnWidth": 150,
-                    "displayName": "Hygiene Rules"
-                  },
-                  {
-                    "fieldName": "warning_rules",
-                    "useForSearch": true,
-                    "columnWidth": 150,
-                    "displayName": "Warning Rules"
+                    "fieldName": "has_onboarding_slippage_risk"
                   }
                 ]
               },
@@ -8980,16 +8993,16 @@
             "name": "warnings",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_warnings",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_slippage_risk",
                 "query": {
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "has_warnings",
-                      "expression": "`has_warnings`"
+                      "name": "slippage_risk",
+                      "expression": "`slippage_risk`"
                     },
                     {
-                      "name": "has_warnings_associativity",
+                      "name": "slippage_risk_associativity",
                       "expression": "COUNT_IF(`associative_filter_predicate_group`)"
                     }
                   ],
@@ -9001,14 +9014,14 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Warnings?"
+                "title": "Slippage Risk?"
               },
-              "widgetType": "filter-single-select",
+              "widgetType": "filter-multi-select",
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "has_warnings",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15046cfe01972865bbd9a788ecea9_has_warnings"
+                    "fieldName": "slippage_risk",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_slippage_risk"
                   }
                 ]
               }
@@ -9026,16 +9039,16 @@
             "name": "hygiene",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_has_hygiene_issues",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_hygiene_rules",
                 "query": {
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "has_hygiene_issues",
-                      "expression": "`has_hygiene_issues`"
+                      "name": "hygiene_rules",
+                      "expression": "`hygiene_rules`"
                     },
                     {
-                      "name": "has_hygiene_issues_associativity",
+                      "name": "hygiene_rules_associativity",
                       "expression": "COUNT_IF(`associative_filter_predicate_group`)"
                     }
                   ],
@@ -9047,14 +9060,14 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Hygiene?"
+                "title": "Hygiene Issues?"
               },
-              "widgetType": "filter-single-select",
+              "widgetType": "filter-multi-select",
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "has_hygiene_issues",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_has_hygiene_issues"
+                    "fieldName": "hygiene_rules",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f15783f51c11cf90c285f445e8fadf_hygiene_rules"
                   }
                 ]
               }
@@ -10824,12 +10837,12 @@
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "measure(v_stage_regressed_count)",
-                      "expression": "MEASURE(`v_stage_regressed_count`)"
+                      "name": "sum(stage_regressed_count)",
+                      "expression": "SUM(`stage_regressed_count`)"
                     },
                     {
-                      "name": "measure(v_stage_advanced_count)",
-                      "expression": "MEASURE(`v_stage_advanced_count`)"
+                      "name": "sum(stage_advanced_count)",
+                      "expression": "SUM(`stage_advanced_count`)"
                     }
                   ],
                   "disaggregated": false
@@ -10848,7 +10861,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "measure(v_stage_advanced_count)",
+                  "fieldName": "sum(stage_advanced_count)",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "none"
@@ -10862,7 +10875,7 @@
                   "displayName": "Advanced"
                 },
                 "target": {
-                  "fieldName": "measure(v_stage_regressed_count)",
+                  "fieldName": "sum(stage_regressed_count)",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "none"
@@ -10895,12 +10908,12 @@
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "measure(v_live_date_regressed_count)",
-                      "expression": "MEASURE(`v_live_date_regressed_count`)"
+                      "name": "sum(live_date_regressed_count)",
+                      "expression": "SUM(`live_date_regressed_count`)"
                     },
                     {
-                      "name": "measure(v_live_date_advanced_count)",
-                      "expression": "MEASURE(`v_live_date_advanced_count`)"
+                      "name": "sum(live_date_advanced_count)",
+                      "expression": "SUM(`live_date_advanced_count`)"
                     }
                   ],
                   "disaggregated": false
@@ -10919,7 +10932,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "measure(v_live_date_advanced_count)",
+                  "fieldName": "sum(live_date_advanced_count)",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "none"
@@ -10933,7 +10946,7 @@
                   "displayName": "Pulled Forward"
                 },
                 "target": {
-                  "fieldName": "measure(v_live_date_regressed_count)",
+                  "fieldName": "sum(live_date_regressed_count)",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "none"
@@ -10966,12 +10979,12 @@
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "measure(v_amount_shrank_count)",
-                      "expression": "MEASURE(`v_amount_shrank_count`)"
+                      "name": "sum(amount_shrank_count)",
+                      "expression": "SUM(`amount_shrank_count`)"
                     },
                     {
-                      "name": "measure(v_amount_grew_count)",
-                      "expression": "MEASURE(`v_amount_grew_count`)"
+                      "name": "sum(amount_grew_count)",
+                      "expression": "SUM(`amount_grew_count`)"
                     }
                   ],
                   "disaggregated": false
@@ -10990,7 +11003,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "measure(v_amount_grew_count)",
+                  "fieldName": "sum(amount_grew_count)",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "none"
@@ -11004,7 +11017,7 @@
                   "displayName": "Increased"
                 },
                 "target": {
-                  "fieldName": "measure(v_amount_shrank_count)",
+                  "fieldName": "sum(amount_shrank_count)",
                   "format": {
                     "type": "number-plain",
                     "abbreviation": "none"
