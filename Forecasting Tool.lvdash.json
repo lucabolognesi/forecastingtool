@@ -126,21 +126,49 @@
         "    AND ih.Region_Level_2 = :region_level_2\n",
         "),\n",
         "\n",
+        "ds_forecast_account as (\n",
+        "  -- Rolls up forecast_ds across all accounts under each AE/manager's org, matching how the\n",
+        "  -- 'actuals' CTE rolls up dbu_actuals via concatenated_emails (direct account_executive_user_id\n",
+        "  -- matching only covers individual AEs and returns 0 for managers who own no accounts directly).\n",
+        "  select \n",
+        "    ae.user_id,\n",
+        "    d.account_id,\n",
+        "    d.fiscal_quarter_end_date,\n",
+        "    d.month_end_date as fiscal_month_end_date,\n",
+        "    sum(d.forecast_ds) as current_ds_forecast\n",
+        "  from ae_list ae\n",
+        "  inner join main.gtm_silver.forecast_consumption_ds_account d\n",
+        "    on d.concatenated_emails like '%' || ae.ae_email || '%'\n",
+        "  where d.date_grain = 'Fiscal Quarter'\n",
+        "  and d.business_unit = :business_unit\n",
+        "  and d.region_level_1 = :region_level_1\n",
+        "  and d.region_level_2 = :region_level_2\n",
+        "  and d.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_ds_account)\n",
+        "  group by all\n",
+        "),\n",
+        "\n",
+        "ds_forecast_ae as (\n",
+        "  select user_id,  \n",
+        "  fiscal_quarter_end_date,\n",
+        "  sum(current_ds_forecast) as current_ds_forecast\n",
+        "  from ds_forecast_account\n",
+        "  group by all\n",
+        "),\n",
+        "\n",
         "sales_forecast as (\n",
         "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
         "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
-        "  , coalesce(f_prev.submitted_my_call, 0) as prev_submitted_my_call\n",
+        "  , 0 as prev_submitted_my_call\n",
         "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
         "  , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
-        "  , coalesce(f.current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(dsf.current_ds_forecast, 0) as current_ds_forecast\n",
         "  , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
-        "  left join gtm_silver.forecast_consumption_mcp_individual as f_prev\n",
-        "    on f_prev.Email = f.Email\n",
-        "    and f_prev.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
-        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual))\n",
+        "  left join ds_forecast_ae dsf\n",
+        "    on dsf.user_id = ae.user_id\n",
+        "    and dsf.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
@@ -153,10 +181,10 @@
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
-        "  , coalesce(sum(f_prev.submitted_ae_forecast), 0) as prev_submitted_my_call\n",
+        "  , 0 as prev_submitted_my_call\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
         "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
-        "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
+        "  , coalesce(max(dsc.current_ds_forecast), 0) as current_ds_forecast --using max because forecast_consumption_mcp_account is at month level whilst ds_forecast_account ac quarter level - this is to avoid duplication.\n",
         "  , coalesce(sum(f.submitted_weighted_projection), 0) as submitted_weighted_projection\n",
         "  from gtm_silver.forecast_consumption_mcp_account as f\n",
         "  inner join ae_list ae on f.account_executive_user_id = ae.user_id\n",
@@ -166,12 +194,10 @@
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
         "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
-        "  left join gtm_silver.forecast_consumption_mcp_account as f_prev\n",
-        "    on f_prev.account_id = f.account_id\n",
-        "    and f_prev.account_executive_user_id = f.account_executive_user_id\n",
-        "    and f_prev.forecast_fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
-        "    and f_prev.forecast_month_start_date = f.forecast_month_start_date\n",
-        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account))\n",
+        "  left join ds_forecast_account dsc\n",
+        "    on dsc.account_id = f.account_id\n",
+        "    and dsc.user_id = ae.user_id\n",
+        "    and dsc.fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
@@ -964,21 +990,49 @@
         "    AND ih.Region_Level_2 = :region_level_2\n",
         "),\n",
         "\n",
+        "ds_forecast_account as (\n",
+        "  -- Rolls up forecast_ds across all accounts under each AE/manager's org, matching how the\n",
+        "  -- 'actuals' CTE rolls up dbu_actuals via concatenated_emails (direct account_executive_user_id\n",
+        "  -- matching only covers individual AEs and returns 0 for managers who own no accounts directly).\n",
+        "  select \n",
+        "    ae.user_id,\n",
+        "    d.account_id,\n",
+        "    d.fiscal_quarter_end_date,\n",
+        "    d.month_end_date as fiscal_month_end_date,\n",
+        "    sum(d.forecast_ds) as current_ds_forecast\n",
+        "  from ae_list ae\n",
+        "  inner join main.gtm_silver.forecast_consumption_ds_account d\n",
+        "    on d.concatenated_emails like '%' || ae.ae_email || '%'\n",
+        "  where d.date_grain = 'Fiscal Quarter'\n",
+        "  and d.business_unit = :business_unit\n",
+        "  and d.region_level_1 = :region_level_1\n",
+        "  and d.region_level_2 = :region_level_2\n",
+        "  and d.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_ds_account)\n",
+        "  group by all\n",
+        "),\n",
+        "\n",
+        "ds_forecast_ae as (\n",
+        "  select user_id,  \n",
+        "  fiscal_quarter_end_date,\n",
+        "  sum(current_ds_forecast) as current_ds_forecast\n",
+        "  from ds_forecast_account\n",
+        "  group by all\n",
+        "),\n",
+        "\n",
         "sales_forecast as (\n",
         "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
         "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
-        "  , coalesce(f_prev.submitted_my_call, 0) as prev_submitted_my_call\n",
+        "  , 0 as prev_submitted_my_call\n",
         "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
         "  , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
-        "  , coalesce(f.current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(dsf.current_ds_forecast, 0) as current_ds_forecast\n",
         "  , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
-        "  left join gtm_silver.forecast_consumption_mcp_individual as f_prev\n",
-        "    on f_prev.Email = f.Email\n",
-        "    and f_prev.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
-        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual))\n",
+        "  left join ds_forecast_ae dsf\n",
+        "    on dsf.user_id = ae.user_id\n",
+        "    and dsf.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
@@ -991,10 +1045,10 @@
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
-        "  , coalesce(sum(f_prev.submitted_ae_forecast), 0) as prev_submitted_my_call\n",
+        "  , 0 as prev_submitted_my_call\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
         "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
-        "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
+        "  , coalesce(max(dsc.current_ds_forecast), 0) as current_ds_forecast --using max because forecast_consumption_mcp_account is at month level whilst ds_forecast_account ac quarter level - this is to avoid duplication.\n",
         "  , coalesce(sum(f.submitted_weighted_projection), 0) as submitted_weighted_projection\n",
         "  from gtm_silver.forecast_consumption_mcp_account as f\n",
         "  inner join ae_list ae on f.account_executive_user_id = ae.user_id\n",
@@ -1004,12 +1058,10 @@
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
         "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
-        "  left join gtm_silver.forecast_consumption_mcp_account as f_prev\n",
-        "    on f_prev.account_id = f.account_id\n",
-        "    and f_prev.account_executive_user_id = f.account_executive_user_id\n",
-        "    and f_prev.forecast_fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
-        "    and f_prev.forecast_month_start_date = f.forecast_month_start_date\n",
-        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account))\n",
+        "  left join ds_forecast_account dsc\n",
+        "    on dsc.account_id = f.account_id\n",
+        "    and dsc.user_id = ae.user_id\n",
+        "    and dsc.fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
@@ -1812,21 +1864,49 @@
         "    AND ih.Region_Level_2 = :region_level_2\n",
         "),\n",
         "\n",
+        "ds_forecast_account as (\n",
+        "  -- Rolls up forecast_ds across all accounts under each AE/manager's org, matching how the\n",
+        "  -- 'actuals' CTE rolls up dbu_actuals via concatenated_emails (direct account_executive_user_id\n",
+        "  -- matching only covers individual AEs and returns 0 for managers who own no accounts directly).\n",
+        "  select \n",
+        "    ae.user_id,\n",
+        "    d.account_id,\n",
+        "    d.fiscal_quarter_end_date,\n",
+        "    d.month_end_date as fiscal_month_end_date,\n",
+        "    sum(d.forecast_ds) as current_ds_forecast\n",
+        "  from ae_list ae\n",
+        "  inner join main.gtm_silver.forecast_consumption_ds_account d\n",
+        "    on d.concatenated_emails like '%' || ae.ae_email || '%'\n",
+        "  where d.date_grain = 'Fiscal Quarter'\n",
+        "  and d.business_unit = :business_unit\n",
+        "  and d.region_level_1 = :region_level_1\n",
+        "  and d.region_level_2 = :region_level_2\n",
+        "  and d.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_ds_account)\n",
+        "  group by all\n",
+        "),\n",
+        "\n",
+        "ds_forecast_ae as (\n",
+        "  select user_id,  \n",
+        "  fiscal_quarter_end_date,\n",
+        "  sum(current_ds_forecast) as current_ds_forecast\n",
+        "  from ds_forecast_account\n",
+        "  group by all\n",
+        "),\n",
+        "\n",
         "sales_forecast as (\n",
         "  select ae.ae_email, f.forecast_owner_id as user_id, f.fiscal_quarter_end_date\n",
         "  , coalesce(f.submitted_my_call, 0) as submitted_my_call\n",
-        "  , coalesce(f_prev.submitted_my_call, 0) as prev_submitted_my_call\n",
+        "  , 0 as prev_submitted_my_call\n",
         "  , coalesce(f.submitted_my_call_w_closed_month_actuals, 0) as submitted_my_call_w_closed_month_actuals\n",
         "  , coalesce(f.submitted_direct_field_consumption_forecast, 0) as submitted_direct_field_consumption_forecast\n",
-        "  , coalesce(f.current_ds_forecast_all_accounts, 0) as current_ds_forecast\n",
+        "  , coalesce(dsf.current_ds_forecast, 0) as current_ds_forecast\n",
         "  , coalesce(f.submitted_weighted_projection, 0) as submitted_weighted_projection\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  from gtm_silver.forecast_consumption_mcp_individual as f\n",
         "  inner join ae_list ae on f.Email = ae.ae_email\n",
-        "  left join gtm_silver.forecast_consumption_mcp_individual as f_prev\n",
-        "    on f_prev.Email = f.Email\n",
-        "    and f_prev.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
-        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_individual))\n",
+        "  left join ds_forecast_ae dsf\n",
+        "    on dsf.user_id = ae.user_id\n",
+        "    and dsf.fiscal_quarter_end_date = f.fiscal_quarter_end_date\n",
         "  where f.Business_Unit = :business_unit\n",
         "  and f.Region_Level_1 = :region_level_1\n",
         "  and f.Region_Level_2 = :region_level_2\n",
@@ -1839,10 +1919,10 @@
         "  f.forecast_fiscal_quarter_end_date as fiscal_quarter_end_date\n",
         "  , ae.bu_plus_2_lead, ae.bu_plus_3_lead, ae.sales_level, ae.user_name\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_my_call\n",
-        "  , coalesce(sum(f_prev.submitted_ae_forecast), 0) as prev_submitted_my_call\n",
+        "  , 0 as prev_submitted_my_call\n",
         "  , coalesce(sum(f.submitted_ae_forecast), 0) as submitted_direct_field_consumption_forecast\n",
         "  , coalesce(sum(f.submitted_ae_forecast_w_closed_month_actuals), 0) as submitted_my_call_w_closed_month_actuals\n",
-        "  , coalesce(sum(f.current_ds_forecast), 0) as current_ds_forecast\n",
+        "  , coalesce(max(dsc.current_ds_forecast), 0) as current_ds_forecast --using max because forecast_consumption_mcp_account is at month level whilst ds_forecast_account ac quarter level - this is to avoid duplication.\n",
         "  , coalesce(sum(f.submitted_weighted_projection), 0) as submitted_weighted_projection\n",
         "  from gtm_silver.forecast_consumption_mcp_account as f\n",
         "  inner join ae_list ae on f.account_executive_user_id = ae.user_id\n",
@@ -1852,12 +1932,10 @@
         "  inner join main.gtm_silver.individual_hierarchy_salesforce as i\n",
         "    on f.account_executive_user_id = i.user_id\n",
         "    and i.snapshot_date = (select max(snapshot_date) from main.gtm_silver.individual_hierarchy_salesforce)  \n",
-        "  left join gtm_silver.forecast_consumption_mcp_account as f_prev\n",
-        "    on f_prev.account_id = f.account_id\n",
-        "    and f_prev.account_executive_user_id = f.account_executive_user_id\n",
-        "    and f_prev.forecast_fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
-        "    and f_prev.forecast_month_start_date = f.forecast_month_start_date\n",
-        "    and f_prev.snapshot_date = (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account where snapshot_date < (select max(snapshot_date) from main.gtm_silver.forecast_consumption_mcp_account))\n",
+        "  left join ds_forecast_account dsc\n",
+        "    on dsc.account_id = f.account_id\n",
+        "    and dsc.user_id = ae.user_id\n",
+        "    and dsc.fiscal_quarter_end_date = f.forecast_fiscal_quarter_end_date\n",
         "  where i.Business_Unit = :business_unit\n",
         "  and i.Region_Level_1 = :region_level_1\n",
         "  and i.Region_Level_2 = :region_level_2\n",
@@ -3136,6 +3214,18 @@
         "--, ROUND(TRY_DIVIDE(SUM(a.lakebase_dbu_dollars_t7d_avg), SUM(a.dbu_dollars_t7d_avg)) * 100, 4) AS lakebase_penetration_pct\n",
         "--, ROUND(TRY_DIVIDE(SUM(a.lakebase_dbu_dollars_t28d_avg), SUM(a.dbu_dollars_t28d_avg)) * 100, 4) AS lakebase_penetration_t28d_pct\n",
         "\n",
+        "/* AI Gateway */\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_ytd), 2) AS ai_gateway_dbu_dollars_ytd\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_t7d_avg), 2) AS ai_gateway_dbu_dollars_t7d_avg\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_t7d_avg_prev), 2) AS ai_gateway_dbu_dollars_t7d_prev\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_t28d_avg), 2) AS ai_gateway_dbu_dollars_t28d_avg\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_t28d_avg_prev), 2) AS ai_gateway_dbu_dollars_t28d_avg_prev\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_t28d_sum), 2) AS ai_gateway_dbu_dollars_t28d_sum\n",
+        ", ROUND(SUM(a.ai_gateway_dbu_dollars_t28d_sum_prev), 2) AS ai_gateway_dbu_dollars_t28d_sum_prev\n",
+        ", CASE when(ai_gateway_dbu_dollars_t28d_sum > 5000 and ai_gateway_dbu_dollars_t28d_sum_prev > 5000) then true else false end as ai_gateway_activated\n",
+        "--, ROUND(TRY_DIVIDE(SUM(a.ai_gateway_dbu_dollars_t7d_avg), SUM(a.dbu_dollars_t7d_avg)) * 100, 4) AS ai_gateway_penetration_pct\n",
+        "--, ROUND(TRY_DIVIDE(SUM(a.ai_gateway_dbu_dollars_t28d_avg), SUM(a.dbu_dollars_t28d_avg)) * 100, 4) AS ai_gateway_penetration_t28d_pct\n",
+        "\n",
         "/* DWH */\n",
         ", ROUND(SUM(a.dwh_dbu_dollars_ytd), 2) AS dwh_dbu_dollars_ytd\n",
         ", ROUND(SUM(dwh_dbu_dollars_t7d_avg), 2) AS dwh_dbu_dollars_t7d_avg\n",
@@ -3254,6 +3344,18 @@
           "displayName": "dwh_dbu_dollars_t7d_wow",
           "description": "",
           "expression": "TRY_DIVIDE(SUM(dwh_dbu_dollars_t7d_avg) - SUM(dwh_dbu_dollars_t7d_avg_prev), SUM(dwh_dbu_dollars_t7d_avg_prev))\n"
+        },
+        {
+          "displayName": "ai_gateway_penetration_t7d_pct",
+          "expression": "TRY_DIVIDE(SUM(ai_gateway_dbu_dollars_t7d_avg), SUM(dbu_dollars_t7d_avg))"
+        },
+        {
+          "displayName": "ai_gateway_penetration_t28d_pct",
+          "expression": "TRY_DIVIDE(SUM(ai_gateway_dbu_dollars_t28d_avg), SUM(dbu_dollars_t28d_avg))"
+        },
+        {
+          "displayName": "ai_gateway_dbu_dollars_t7d_wow",
+          "expression": "TRY_DIVIDE(SUM(ai_gateway_dbu_dollars_t7d_avg) - SUM(ai_gateway_dbu_dollars_t7d_prev), SUM(ai_gateway_dbu_dollars_t7d_prev))"
         }
       ]
     },
@@ -6255,12 +6357,16 @@
                       "expression": "`migration_source_platform_adj`"
                     },
                     {
-                      "name": "has_onboarding_slippage_risk",
-                      "expression": "TRY_CAST(`has_onboarding_slippage_risk` AS INT)"
+                      "name": "use_case_product_enriched",
+                      "expression": "`use_case_product_enriched`"
                     },
                     {
                       "name": "amount_increased",
                       "expression": "`amount_increased`"
+                    },
+                    {
+                      "name": "has_onboarding_slippage_risk",
+                      "expression": "`has_onboarding_slippage_risk`"
                     },
                     {
                       "name": "target_date_pulled_foreward",
@@ -6961,7 +7067,9 @@
                     "displayName": "Migration Source"
                   },
                   {
-                    "fieldName": "has_onboarding_slippage_risk"
+                    "fieldName": "use_case_product_enriched",
+                    "columnWidth": 200,
+                    "displayName": "Products"
                   }
                 ]
               },
@@ -12754,7 +12862,7 @@
             "name": "641a0364",
             "multilineTextboxSpec": {
               "lines": [
-                "### Lakebase $DBU >= 1% EMEA revenue / Activations in DB700 accounts: cross $5K MRR for 2 months"
+                "### LAKEBASE $DBU >= 1% EMEA revenue / Activations in DB700 accounts: cross $5K MRR for 2 months"
               ]
             },
             "specExtensions": {
@@ -12786,7 +12894,7 @@
           },
           "position": {
             "x": 0,
-            "y": 30,
+            "y": 37,
             "width": 12,
             "height": 1
           }
@@ -12807,7 +12915,7 @@
           },
           "position": {
             "x": 0,
-            "y": 39,
+            "y": 46,
             "width": 12,
             "height": 1
           }
@@ -12828,7 +12936,7 @@
           },
           "position": {
             "x": 0,
-            "y": 46,
+            "y": 53,
             "width": 12,
             "height": 1
           }
@@ -13162,7 +13270,7 @@
             "name": "cb7256fa",
             "multilineTextboxSpec": {
               "lines": [
-                "### Activations in DB700 accounts; 2x Genie MAUs"
+                "### 2x GENIE MAUs; Activations in DB700 accounts"
               ]
             },
             "specExtensions": {
@@ -13173,7 +13281,7 @@
           },
           "position": {
             "x": 0,
-            "y": 9,
+            "y": 16,
             "width": 12,
             "height": 1
           }
@@ -13240,7 +13348,7 @@
           },
           "position": {
             "x": 0,
-            "y": 17,
+            "y": 24,
             "width": 2,
             "height": 2
           }
@@ -13354,7 +13462,7 @@
           },
           "position": {
             "x": 2,
-            "y": 17,
+            "y": 24,
             "width": 6,
             "height": 6
           }
@@ -13428,7 +13536,7 @@
           },
           "position": {
             "x": 0,
-            "y": 19,
+            "y": 26,
             "width": 2,
             "height": 2
           }
@@ -13502,7 +13610,7 @@
           },
           "position": {
             "x": 0,
-            "y": 21,
+            "y": 28,
             "width": 2,
             "height": 2
           }
@@ -13523,7 +13631,7 @@
           },
           "position": {
             "x": 0,
-            "y": 23,
+            "y": 30,
             "width": 12,
             "height": 1
           }
@@ -13580,11 +13688,11 @@
               }
             ],
             "spec": {
+              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 11"
+                "title": "Lakebase Account Stats"
               },
-              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -13775,11 +13883,11 @@
               }
             ],
             "spec": {
+              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 12"
+                "title": "DWH Account Stats"
               },
-              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -13871,7 +13979,7 @@
           },
           "position": {
             "x": 8,
-            "y": 17,
+            "y": 24,
             "width": 4,
             "height": 6
           }
@@ -14076,7 +14184,7 @@
           },
           "position": {
             "x": 2,
-            "y": 24,
+            "y": 31,
             "width": 6,
             "height": 6
           }
@@ -14131,7 +14239,7 @@
           },
           "position": {
             "x": 0,
-            "y": 24,
+            "y": 31,
             "width": 2,
             "height": 2
           }
@@ -14214,7 +14322,7 @@
           },
           "position": {
             "x": 0,
-            "y": 26,
+            "y": 33,
             "width": 2,
             "height": 4
           }
@@ -14250,11 +14358,11 @@
               }
             ],
             "spec": {
+              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 17"
+                "title": "Migration Stats"
               },
-              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -14307,7 +14415,7 @@
           },
           "position": {
             "x": 8,
-            "y": 24,
+            "y": 31,
             "width": 4,
             "height": 6
           }
@@ -14448,7 +14556,7 @@
           },
           "position": {
             "x": 2,
-            "y": 31,
+            "y": 38,
             "width": 4,
             "height": 7
           }
@@ -14494,7 +14602,7 @@
           },
           "position": {
             "x": 0,
-            "y": 33,
+            "y": 40,
             "width": 2,
             "height": 2
           }
@@ -14554,7 +14662,7 @@
           },
           "position": {
             "x": 0,
-            "y": 31,
+            "y": 38,
             "width": 2,
             "height": 2
           }
@@ -14744,7 +14852,7 @@
           },
           "position": {
             "x": 2,
-            "y": 40,
+            "y": 47,
             "width": 5,
             "height": 6
           }
@@ -14790,7 +14898,7 @@
           },
           "position": {
             "x": 0,
-            "y": 40,
+            "y": 47,
             "width": 2,
             "height": 1
           }
@@ -14836,7 +14944,7 @@
           },
           "position": {
             "x": 0,
-            "y": 41,
+            "y": 48,
             "width": 2,
             "height": 1
           }
@@ -14891,7 +14999,7 @@
           },
           "position": {
             "x": 0,
-            "y": 51,
+            "y": 59,
             "width": 2,
             "height": 2
           }
@@ -14946,7 +15054,7 @@
           },
           "position": {
             "x": 0,
-            "y": 47,
+            "y": 54,
             "width": 2,
             "height": 2
           }
@@ -15002,7 +15110,7 @@
           },
           "position": {
             "x": 0,
-            "y": 49,
+            "y": 56,
             "width": 2,
             "height": 2
           }
@@ -15058,7 +15166,7 @@
           },
           "position": {
             "x": 0,
-            "y": 53,
+            "y": 61,
             "width": 2,
             "height": 2
           }
@@ -15137,7 +15245,7 @@
           },
           "position": {
             "x": 2,
-            "y": 47,
+            "y": 54,
             "width": 6,
             "height": 5
           }
@@ -15223,7 +15331,7 @@
           },
           "position": {
             "x": 2,
-            "y": 52,
+            "y": 59,
             "width": 6,
             "height": 5
           }
@@ -15259,11 +15367,11 @@
               }
             ],
             "spec": {
+              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 28"
+                "title": "Tech Won UCO - Analysis"
               },
-              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -15313,7 +15421,7 @@
           },
           "position": {
             "x": 8,
-            "y": 47,
+            "y": 54,
             "width": 4,
             "height": 5
           }
@@ -15349,11 +15457,11 @@
               }
             ],
             "spec": {
+              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 29"
+                "title": "Live UCO - Analysis"
               },
-              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -15403,7 +15511,7 @@
           },
           "position": {
             "x": 8,
-            "y": 52,
+            "y": 59,
             "width": 4,
             "height": 5
           }
@@ -15424,7 +15532,7 @@
           },
           "position": {
             "x": 0,
-            "y": 38,
+            "y": 45,
             "width": 12,
             "height": 1
           }
@@ -15445,7 +15553,7 @@
           },
           "position": {
             "x": 0,
-            "y": 57,
+            "y": 64,
             "width": 12,
             "height": 1
           }
@@ -15485,11 +15593,11 @@
               }
             ],
             "spec": {
+              "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 30"
+                "title": "Partner Stats"
               },
-              "version": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -15527,7 +15635,7 @@
           },
           "position": {
             "x": 8,
-            "y": 59,
+            "y": 65,
             "width": 4,
             "height": 7
           }
@@ -15610,7 +15718,7 @@
           },
           "position": {
             "x": 2,
-            "y": 59,
+            "y": 65,
             "width": 6,
             "height": 7
           }
@@ -15631,7 +15739,7 @@
           },
           "position": {
             "x": 0,
-            "y": 58,
+            "y": 72,
             "width": 12,
             "height": 1
           }
@@ -15677,7 +15785,7 @@
           },
           "position": {
             "x": 0,
-            "y": 59,
+            "y": 66,
             "width": 2,
             "height": 2
           }
@@ -15741,7 +15849,7 @@
           },
           "position": {
             "x": 0,
-            "y": 61,
+            "y": 68,
             "width": 2,
             "height": 2
           }
@@ -15955,7 +16063,7 @@
           },
           "position": {
             "x": 0,
-            "y": 16,
+            "y": 23,
             "width": 12,
             "height": 1
           }
@@ -16024,7 +16132,7 @@
           },
           "position": {
             "x": 2,
-            "y": 10,
+            "y": 17,
             "width": 6,
             "height": 6
           }
@@ -16098,7 +16206,7 @@
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 17,
             "width": 2,
             "height": 2
           }
@@ -16150,14 +16258,14 @@
           },
           "position": {
             "x": 0,
-            "y": 10,
+            "y": 19,
             "width": 2,
             "height": 2
           }
         },
         {
           "widget": {
-            "name": "b90ff476",
+            "name": "ai-gateway-account-table",
             "queries": [
               {
                 "name": "main_query",
@@ -16196,6 +16304,10 @@
             ],
             "spec": {
               "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Genie Account Stats"
+              },
               "widgetType": "table",
               "encodings": {
                 "columns": [
@@ -16245,12 +16357,15 @@
                     "displayName": "Genie T28D $DBUs"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
           "position": {
             "x": 8,
-            "y": 10,
+            "y": 17,
             "width": 4,
             "height": 6
           }
@@ -16318,7 +16433,7 @@
           },
           "position": {
             "x": 0,
-            "y": 12,
+            "y": 21,
             "width": 2,
             "height": 2
           }
@@ -16375,7 +16490,7 @@
           },
           "position": {
             "x": 0,
-            "y": 42,
+            "y": 49,
             "width": 2,
             "height": 2
           }
@@ -16420,8 +16535,8 @@
             }
           },
           "position": {
-            "x": 0,
-            "y": 67,
+            "x": 4,
+            "y": 74,
             "width": 2,
             "height": 1
           }
@@ -16466,8 +16581,8 @@
             }
           },
           "position": {
-            "x": 2,
-            "y": 67,
+            "x": 6,
+            "y": 74,
             "width": 2,
             "height": 1
           }
@@ -16512,8 +16627,8 @@
             }
           },
           "position": {
-            "x": 4,
-            "y": 67,
+            "x": 8,
+            "y": 74,
             "width": 2,
             "height": 1
           }
@@ -16558,8 +16673,8 @@
             }
           },
           "position": {
-            "x": 6,
-            "y": 67,
+            "x": 10,
+            "y": 74,
             "width": 2,
             "height": 1
           }
@@ -16619,7 +16734,7 @@
           },
           "position": {
             "x": 0,
-            "y": 68,
+            "y": 74,
             "width": 2,
             "height": 2
           }
@@ -16679,7 +16794,7 @@
           },
           "position": {
             "x": 2,
-            "y": 68,
+            "y": 74,
             "width": 2,
             "height": 2
           }
@@ -16770,9 +16885,9 @@
           },
           "position": {
             "x": 0,
-            "y": 70,
+            "y": 76,
             "width": 4,
-            "height": 6
+            "height": 7
           }
         },
         {
@@ -16910,7 +17025,7 @@
           },
           "position": {
             "x": 4,
-            "y": 68,
+            "y": 75,
             "width": 8,
             "height": 8
           }
@@ -17028,7 +17143,7 @@
           },
           "position": {
             "x": 0,
-            "y": 76,
+            "y": 83,
             "width": 12,
             "height": 9
           }
@@ -17049,9 +17164,573 @@
           },
           "position": {
             "x": 0,
-            "y": 66,
+            "y": 73,
             "width": 12,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ai-gw-title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "### AI GATEWAY $DBU >= 1% EMEA revenue / Activations in DB700 accounts: cross $5K MRR for 2 months"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#E7E4E4"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ai-gw-pen",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "measure(ai_gateway_penetration_t28d_pct)",
+                      "expression": "MEASURE(`ai_gateway_penetration_t28d_pct`)"
+                    },
+                    {
+                      "name": "measure(ai_gateway_penetration_t7d_pct)",
+                      "expression": "MEASURE(`ai_gateway_penetration_t7d_pct`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "AI Gateway T7D Penetration",
+                "showDescription": true,
+                "description": "T28 Penetration"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(ai_gateway_penetration_t7d_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "measure(ai_gateway_penetration_t28d_pct)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 3
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ai-gw-trends",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t7d_avg`)"
+                    },
+                    {
+                      "name": "measure(ai_gateway_penetration_t7d_pct)",
+                      "expression": "MEASURE(`ai_gateway_penetration_t7d_pct`)"
+                    },
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "AI Gateway T7D DBU Trends"
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_date",
+                  "displayName": "Date",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "AI Gateway T7D $DBUs",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "deployable_account_name",
+                  "displayName": "Account",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "y-reversed"
+                    }
+                  }
+                },
+                "label": {
+                  "show": false
+                },
+                "extra": [
+                  {
+                    "fieldName": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "AI Gateway T7D"
+                  },
+                  {
+                    "fieldName": "measure(ai_gateway_penetration_t7d_pct)",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "AI Gateway Penetration %"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 10,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ai-gw-t7d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t7d_prev)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t7d_prev`)"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t7d_avg`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current AI Gateway T7D",
+                "showDescription": true,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(ai_gateway_dbu_dollars_t7d_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ai-gw-t28d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t28d_avg_prev)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t28d_avg_prev`)"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t28d_avg)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t28d_avg`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Current AI Gateway T28D",
+                "showDescription": true,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(ai_gateway_dbu_dollars_t28d_avg)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "target": {
+                  "fieldName": "sum(ai_gateway_dbu_dollars_t28d_avg_prev)",
+                  "change": {
+                    "type": "percent"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "ai-gw-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "0464c74f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "ai_gateway_activated",
+                      "expression": "`ai_gateway_activated`"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t7d_avg`)"
+                    },
+                    {
+                      "name": "measure(ai_gateway_dbu_dollars_t7d_wow)",
+                      "expression": "MEASURE(`ai_gateway_dbu_dollars_t7d_wow`)"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_ytd)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_ytd`)"
+                    },
+                    {
+                      "name": "measure(ai_gateway_penetration_t7d_pct)",
+                      "expression": "MEASURE(`ai_gateway_penetration_t7d_pct`)"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t28d_sum)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t28d_sum`)"
+                    },
+                    {
+                      "name": "sum(ai_gateway_dbu_dollars_t28d_sum_prev)",
+                      "expression": "SUM(`ai_gateway_dbu_dollars_t28d_sum_prev`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`latest_snapshot` ILIKE '%Y%'"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "AI Gateway Account Stats"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 150,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "ai_gateway_activated",
+                    "headerTooltip": "AI Gateway crossed $5k for 2 consecutive months (T28D)",
+                    "columnWidth": 130,
+                    "displayName": "Activated?",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "true"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "sum(ai_gateway_dbu_dollars_t7d_avg)",
+                    "columnWidth": 80,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "T7D"
+                  },
+                  {
+                    "fieldName": "measure(ai_gateway_dbu_dollars_t7d_wow)",
+                    "columnWidth": 100,
+                    "format": {
+                      "type": "number-percent",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "T7D WoW",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "sum(ai_gateway_dbu_dollars_ytd)",
+                    "columnWidth": 100,
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "YTD"
+                  },
+                  {
+                    "fieldName": "measure(ai_gateway_penetration_t7d_pct)",
+                    "columnWidth": 80,
+                    "format": {
+                      "type": "number-percent",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "Pen %"
+                  },
+                  {
+                    "fieldName": "sum(ai_gateway_dbu_dollars_t28d_sum)",
+                    "columnWidth": 140,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "T28D Sum Curr"
+                  },
+                  {
+                    "fieldName": "sum(ai_gateway_dbu_dollars_t28d_sum_prev)",
+                    "columnWidth": 140,
+                    "format": {
+                      "hideGroupSeparator": true,
+                      "currencyCode": "USD",
+                      "type": "number-currency",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      }
+                    },
+                    "displayName": "T28D Sum Prev"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 10,
+            "width": 4,
+            "height": 6
           }
         }
       ],
