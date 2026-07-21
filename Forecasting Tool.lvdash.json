@@ -3417,61 +3417,60 @@
         "  select\n",
         "    deployable_account_name,\n",
         "    fiscal_year_quarter_fmt as fiscal_year_quarter,\n",
-        "    split(fiscal_year_quarter_fmt, '-')[0] as fiscal_year,\n",
-        "    split(fiscal_year_quarter_fmt, '-')[1] as fiscal_quarter,\n",
+        "    concat(concat('20', substr(fiscal_year_quarter_fmt, 3, 2)), ' ', split(fiscal_year_quarter_fmt, '-')[1]) as fiscal_quarter,\n",
         "    -- AI\n",
-        "    sum(case when product = 'AI' then coalesce(weighted_projection, 0) else 0 end) as ai_wp_cq,\n",
+        "    sum(case when product = 'AI' then coalesce(weighted_projection, 0) else 0 end) as ai_wp,\n",
         "    sum(case when product = 'AI' then coalesce(use_case_pipe_count, 0) else 0 end) as ai_uc_count,\n",
         "    -- AI/BI\n",
-        "    sum(case when product = 'AI/BI' then coalesce(weighted_projection, 0) else 0 end) as ai_bi_wp_cq,\n",
+        "    sum(case when product = 'AI/BI' then coalesce(weighted_projection, 0) else 0 end) as ai_bi_wp,\n",
         "    sum(case when product = 'AI/BI' then coalesce(use_case_pipe_count, 0) else 0 end) as ai_bi_uc_count,\n",
         "    -- DWH\n",
-        "    sum(case when product = 'DWH' then coalesce(weighted_projection, 0) else 0 end) as dwh_wp_cq,\n",
+        "    sum(case when product = 'DWH' then coalesce(weighted_projection, 0) else 0 end) as dwh_wp,\n",
         "    sum(case when product = 'DWH' then coalesce(use_case_pipe_count, 0) else 0 end) as dwh_uc_count,\n",
         "    -- FMAPI Partner\n",
-        "    sum(case when product = 'FMAPI Partner' then coalesce(weighted_projection, 0) else 0 end) as fmapi_partner_wp_cq,\n",
+        "    sum(case when product = 'FMAPI Partner' then coalesce(weighted_projection, 0) else 0 end) as fmapi_partner_wp,\n",
         "    sum(case when product = 'FMAPI Partner' then coalesce(use_case_pipe_count, 0) else 0 end) as fmapi_partner_uc_count,\n",
         "    -- Lakebase\n",
-        "    sum(case when product = 'Lakebase' then coalesce(weighted_projection, 0) else 0 end) as lakebase_wp_cq,\n",
+        "    sum(case when product = 'Lakebase' then coalesce(weighted_projection, 0) else 0 end) as lakebase_wp,\n",
         "    sum(case when product = 'Lakebase' then coalesce(use_case_pipe_count, 0) else 0 end) as lakebase_uc_count\n",
         "    /*\n",
         "    -- Agent Bricks\n",
-        "    sum(case when product = 'Agent Bricks'          then coalesce(weighted_projection_cq,       0) else 0 end) as agent_bricks_wp_cq,\n",
+        "    sum(case when product = 'Agent Bricks'          then coalesce(weighted_projection_cq,       0) else 0 end) as agent_bricks_wp,\n",
         "    sum(case when product = 'Agent Bricks'          then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as agent_bricks_wp_cq_plus1,\n",
         "    sum(case when product = 'Agent Bricks'          then coalesce(use_case_pipe_count,           0) else 0 end) as agent_bricks_uc_count,\n",
         "    sum(case when product = 'Agent Bricks'          then coalesce(actuals_cq_minus1,             0) else 0 end) as agent_bricks_actuals_prev_q,\n",
         "    -- AI Excl FMAPI Partner\n",
-        "    sum(case when product = 'AI Excl FMAPI Partner' then coalesce(weighted_projection_cq,       0) else 0 end) as ai_excl_fmapi_wp_cq,\n",
+        "    sum(case when product = 'AI Excl FMAPI Partner' then coalesce(weighted_projection_cq,       0) else 0 end) as ai_excl_fmapi_wp,\n",
         "    sum(case when product = 'AI Excl FMAPI Partner' then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as ai_excl_fmapi_wp_cq_plus1,\n",
         "    sum(case when product = 'AI Excl FMAPI Partner' then coalesce(use_case_pipe_count,           0) else 0 end) as ai_excl_fmapi_uc_count,\n",
         "    sum(case when product = 'AI Excl FMAPI Partner' then coalesce(actuals_cq_minus1,             0) else 0 end) as ai_excl_fmapi_actuals_prev_q,\n",
         "    -- AI Platform\n",
-        "    sum(case when product = 'AI Platform'           then coalesce(weighted_projection_cq,       0) else 0 end) as ai_platform_wp_cq,\n",
+        "    sum(case when product = 'AI Platform'           then coalesce(weighted_projection_cq,       0) else 0 end) as ai_platform_wp,\n",
         "    sum(case when product = 'AI Platform'           then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as ai_platform_wp_cq_plus1,\n",
         "    sum(case when product = 'AI Platform'           then coalesce(use_case_pipe_count,           0) else 0 end) as ai_platform_uc_count,\n",
         "    sum(case when product = 'AI Platform'           then coalesce(actuals_cq_minus1,             0) else 0 end) as ai_platform_actuals_prev_q,\n",
         "    -- Lakeflow\n",
-        "    sum(case when product = 'Lakeflow'              then coalesce(weighted_projection_cq,       0) else 0 end) as lakeflow_wp_cq,\n",
+        "    sum(case when product = 'Lakeflow'              then coalesce(weighted_projection_cq,       0) else 0 end) as lakeflow_wp,\n",
         "    sum(case when product = 'Lakeflow'              then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as lakeflow_wp_cq_plus1,\n",
         "    sum(case when product = 'Lakeflow'              then coalesce(use_case_pipe_count,           0) else 0 end) as lakeflow_uc_count,\n",
         "    sum(case when product = 'Lakeflow'              then coalesce(actuals_cq_minus1,             0) else 0 end) as lakeflow_actuals_prev_q,\n",
         "    -- Lakeflow Connect\n",
-        "    sum(case when product = 'Lakeflow Connect'      then coalesce(weighted_projection_cq,       0) else 0 end) as lakeflow_connect_wp_cq,\n",
+        "    sum(case when product = 'Lakeflow Connect'      then coalesce(weighted_projection_cq,       0) else 0 end) as lakeflow_connect_wp,\n",
         "    sum(case when product = 'Lakeflow Connect'      then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as lakeflow_connect_wp_cq_plus1,\n",
         "    sum(case when product = 'Lakeflow Connect'      then coalesce(use_case_pipe_count,           0) else 0 end) as lakeflow_connect_uc_count,\n",
         "    sum(case when product = 'Lakeflow Connect'      then coalesce(actuals_cq_minus1,             0) else 0 end) as lakeflow_connect_actuals_prev_q,\n",
         "    -- Lakeflow Pipeline\n",
-        "    sum(case when product = 'Lakeflow Pipeline'     then coalesce(weighted_projection_cq,       0) else 0 end) as lakeflow_pipeline_wp_cq,\n",
+        "    sum(case when product = 'Lakeflow Pipeline'     then coalesce(weighted_projection_cq,       0) else 0 end) as lakeflow_pipeline_wp,\n",
         "    sum(case when product = 'Lakeflow Pipeline'     then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as lakeflow_pipeline_wp_cq_plus1,\n",
         "    sum(case when product = 'Lakeflow Pipeline'     then coalesce(use_case_pipe_count,           0) else 0 end) as lakeflow_pipeline_uc_count,\n",
         "    sum(case when product = 'Lakeflow Pipeline'     then coalesce(actuals_cq_minus1,             0) else 0 end) as lakeflow_pipeline_actuals_prev_q,\n",
         "    -- SAP\n",
-        "    sum(case when product = 'SAP'                   then coalesce(weighted_projection_cq,       0) else 0 end) as sap_wp_cq,\n",
+        "    sum(case when product = 'SAP'                   then coalesce(weighted_projection_cq,       0) else 0 end) as sap_wp,\n",
         "    sum(case when product = 'SAP'                   then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as sap_wp_cq_plus1,\n",
         "    sum(case when product = 'SAP'                   then coalesce(use_case_pipe_count,           0) else 0 end) as sap_uc_count,\n",
         "    sum(case when product = 'SAP'                   then coalesce(actuals_cq_minus1,             0) else 0 end) as sap_actuals_prev_q,\n",
         "    -- Unity Catalog\n",
-        "    sum(case when product = 'Unity Catalog'         then coalesce(weighted_projection_cq,       0) else 0 end) as unity_catalog_wp_cq,\n",
+        "    sum(case when product = 'Unity Catalog'         then coalesce(weighted_projection_cq,       0) else 0 end) as unity_catalog_wp,\n",
         "    sum(case when product = 'Unity Catalog'         then coalesce(weighted_projection_cq_plus1,  0) else 0 end) as unity_catalog_wp_cq_plus1,\n",
         "    sum(case when product = 'Unity Catalog'         then coalesce(use_case_pipe_count,           0) else 0 end) as unity_catalog_uc_count,\n",
         "    sum(case when product = 'Unity Catalog'         then coalesce(actuals_cq_minus1,             0) else 0 end) as unity_catalog_actuals_prev_q\n",
@@ -3482,27 +3481,30 @@
         "\n",
         "select\n",
         "  c.deployable_account_name,\n",
-        "  p.fiscal_year,\n",
         "  p.fiscal_quarter,\n",
         "  /* Product projections — current fiscal quarter */\n",
         "  -- AI\n",
-        "  p.ai_wp_cq,\n",
+        "  p.ai_wp,\n",
         "  p.ai_uc_count,\n",
         "  -- AI/BI\n",
-        "  p.ai_bi_wp_cq,\n",
+        "  p.ai_bi_wp,\n",
         "  p.ai_bi_uc_count,\n",
         "  -- DWH\n",
-        "  p.dwh_wp_cq,\n",
+        "  p.dwh_wp,\n",
         "  p.dwh_uc_count,\n",
         "  -- FMAPI Partner\n",
-        "  p.fmapi_partner_wp_cq,\n",
+        "  p.fmapi_partner_wp,\n",
         "  p.fmapi_partner_uc_count,\n",
         "  -- Lakebase\n",
-        "  p.lakebase_wp_cq,\n",
-        "  p.lakebase_uc_count\n",
+        "  p.lakebase_wp,\n",
+        "  p.lakebase_uc_count,\n",
+        "  /* Current fiscal year flag */\n",
+        "  cast(split(p.fiscal_quarter, ' ')[0] as int) = (\n",
+        "    case when month(current_date()) = 1 then year(current_date()) else year(current_date()) + 1 end\n",
+        "  ) as is_current_fiscal\n",
         "from consumption_latest c\n",
         "left join pivoted p on c.deployable_account_name = p.deployable_account_name\n",
-        "order by c.deployable_account_name asc, p.fiscal_year asc, p.fiscal_quarter asc\n"
+        "order by c.deployable_account_name asc, p.fiscal_quarter asc\n"
       ],
       "parameters": [
         {
@@ -4231,6 +4233,28 @@
       ]
     },
     {
+      "name": "3d88f3de",
+      "displayName": "Quarters",
+      "queryLines": [
+        "select fiscal_quarter\n",
+        "from (\n",
+        "    values \n",
+        "        ('FY26-Q1'),\n",
+        "        ('FY26-Q2'),\n",
+        "        ('FY26-Q3'),\n",
+        "        ('FY26-Q4'),\n",
+        "        ('FY27-Q1'),\n",
+        "        ('FY27-Q2'),\n",
+        "        ('FY27-Q3'),\n",
+        "        ('FY27-Q4'),\n",
+        "        ('FY28-Q1'),\n",
+        "        ('FY28-Q2'),\n",
+        "        ('FY28-Q3'),\n",
+        "        ('FY28-Q4')\n",
+        ") as t(fiscal_quarter)"
+      ]
+    },
+    {
       "name": "9e0aa983",
       "displayName": "Blockers",
       "queryLines": [
@@ -4286,37 +4310,6 @@
             }
           }
         }
-      ]
-    },
-    {
-      "name": "62d6a177",
-      "displayName": "List - BU",
-      "queryLines": [
-        "SELECT DISTINCT Business_Unit AS business_unit\n",
-        "FROM main.gtm_silver.individual_hierarchy_salesforce\n",
-        "WHERE Business_Unit IS NOT NULL"
-      ]
-    },
-    {
-      "name": "3d88f3de",
-      "displayName": "Quarters",
-      "queryLines": [
-        "select fiscal_quarter\n",
-        "from (\n",
-        "    values \n",
-        "        ('FY26-Q1'),\n",
-        "        ('FY26-Q2'),\n",
-        "        ('FY26-Q3'),\n",
-        "        ('FY26-Q4'),\n",
-        "        ('FY27-Q1'),\n",
-        "        ('FY27-Q2'),\n",
-        "        ('FY27-Q3'),\n",
-        "        ('FY27-Q4'),\n",
-        "        ('FY28-Q1'),\n",
-        "        ('FY28-Q2'),\n",
-        "        ('FY28-Q3'),\n",
-        "        ('FY28-Q4')\n",
-        ") as t(fiscal_quarter)"
       ]
     },
     {
@@ -4419,6 +4412,15 @@
             }
           }
         }
+      ]
+    },
+    {
+      "name": "62d6a177",
+      "displayName": "List - BU",
+      "queryLines": [
+        "SELECT DISTINCT Business_Unit AS business_unit\n",
+        "FROM main.gtm_silver.individual_hierarchy_salesforce\n",
+        "WHERE Business_Unit IS NOT NULL"
       ]
     },
     {
@@ -7351,6 +7353,7 @@
                   {
                     "fieldName": "use_case_product_enriched",
                     "columnWidth": 200,
+                    "useForSearch": true,
                     "displayName": "Products"
                   }
                 ],
@@ -19089,7 +19092,7 @@
           },
           "position": {
             "x": 0,
-            "y": 37,
+            "y": 47,
             "width": 12,
             "height": 1
           }
@@ -19110,7 +19113,7 @@
           },
           "position": {
             "x": 0,
-            "y": 46,
+            "y": 56,
             "width": 12,
             "height": 1
           }
@@ -19131,7 +19134,7 @@
           },
           "position": {
             "x": 0,
-            "y": 53,
+            "y": 63,
             "width": 12,
             "height": 1
           }
@@ -19167,9 +19170,9 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar",
                 "showDescription": true,
-                "description": "T28 Penetration"
+                "description": "T28 Penetration",
+                "title": "Lakebase T7D Penetration"
               },
               "widgetType": "counter",
               "encodings": {
@@ -19482,7 +19485,7 @@
           },
           "position": {
             "x": 0,
-            "y": 16,
+            "y": 26,
             "width": 12,
             "height": 1
           }
@@ -19552,7 +19555,7 @@
           },
           "position": {
             "x": 0,
-            "y": 24,
+            "y": 34,
             "width": 2,
             "height": 2
           }
@@ -19669,7 +19672,7 @@
           },
           "position": {
             "x": 2,
-            "y": 24,
+            "y": 34,
             "width": 6,
             "height": 6
           }
@@ -19743,7 +19746,7 @@
           },
           "position": {
             "x": 0,
-            "y": 26,
+            "y": 36,
             "width": 2,
             "height": 2
           }
@@ -19817,7 +19820,7 @@
           },
           "position": {
             "x": 0,
-            "y": 28,
+            "y": 38,
             "width": 2,
             "height": 2
           }
@@ -19838,7 +19841,7 @@
           },
           "position": {
             "x": 0,
-            "y": 30,
+            "y": 40,
             "width": 12,
             "height": 1
           }
@@ -19904,7 +19907,7 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Bar 11"
+                "title": "Lakebase Account Stats"
               },
               "widgetType": "table",
               "encodings": {
@@ -20218,7 +20221,7 @@
           },
           "position": {
             "x": 8,
-            "y": 24,
+            "y": 34,
             "width": 4,
             "height": 6
           }
@@ -20311,6 +20314,23 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f181cf0836167f8e0e5e5f52d171f6_deployable_account_name",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "deployable_account_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -20341,6 +20361,10 @@
                   {
                     "fieldName": "deployable_account_name",
                     "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f16017c1a817c490301990fb0981e7_deployable_account_name"
+                  },
+                  {
+                    "fieldName": "deployable_account_name",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f181cf0836167f8e0e5e5f52d171f6_deployable_account_name"
                   }
                 ]
               }
@@ -20423,7 +20447,7 @@
           },
           "position": {
             "x": 2,
-            "y": 31,
+            "y": 41,
             "width": 6,
             "height": 6
           }
@@ -20478,7 +20502,7 @@
           },
           "position": {
             "x": 0,
-            "y": 31,
+            "y": 41,
             "width": 2,
             "height": 2
           }
@@ -20561,7 +20585,7 @@
           },
           "position": {
             "x": 0,
-            "y": 33,
+            "y": 43,
             "width": 2,
             "height": 4
           }
@@ -20668,7 +20692,7 @@
           },
           "position": {
             "x": 8,
-            "y": 31,
+            "y": 41,
             "width": 4,
             "height": 6
           }
@@ -20809,7 +20833,7 @@
           },
           "position": {
             "x": 2,
-            "y": 38,
+            "y": 48,
             "width": 4,
             "height": 7
           }
@@ -20855,7 +20879,7 @@
           },
           "position": {
             "x": 0,
-            "y": 40,
+            "y": 50,
             "width": 2,
             "height": 2
           }
@@ -20915,7 +20939,7 @@
           },
           "position": {
             "x": 0,
-            "y": 38,
+            "y": 48,
             "width": 2,
             "height": 2
           }
@@ -21105,7 +21129,7 @@
           },
           "position": {
             "x": 2,
-            "y": 47,
+            "y": 57,
             "width": 5,
             "height": 6
           }
@@ -21151,7 +21175,7 @@
           },
           "position": {
             "x": 0,
-            "y": 47,
+            "y": 57,
             "width": 2,
             "height": 1
           }
@@ -21197,7 +21221,7 @@
           },
           "position": {
             "x": 0,
-            "y": 48,
+            "y": 58,
             "width": 2,
             "height": 1
           }
@@ -21252,7 +21276,7 @@
           },
           "position": {
             "x": 0,
-            "y": 59,
+            "y": 68,
             "width": 2,
             "height": 2
           }
@@ -21307,7 +21331,7 @@
           },
           "position": {
             "x": 0,
-            "y": 54,
+            "y": 64,
             "width": 2,
             "height": 2
           }
@@ -21363,7 +21387,7 @@
           },
           "position": {
             "x": 0,
-            "y": 56,
+            "y": 66,
             "width": 2,
             "height": 2
           }
@@ -21419,7 +21443,7 @@
           },
           "position": {
             "x": 0,
-            "y": 61,
+            "y": 70,
             "width": 2,
             "height": 2
           }
@@ -21498,7 +21522,7 @@
           },
           "position": {
             "x": 2,
-            "y": 54,
+            "y": 64,
             "width": 6,
             "height": 5
           }
@@ -21584,7 +21608,7 @@
           },
           "position": {
             "x": 2,
-            "y": 59,
+            "y": 69,
             "width": 6,
             "height": 5
           }
@@ -21688,7 +21712,7 @@
           },
           "position": {
             "x": 8,
-            "y": 54,
+            "y": 64,
             "width": 4,
             "height": 5
           }
@@ -21792,7 +21816,7 @@
           },
           "position": {
             "x": 8,
-            "y": 59,
+            "y": 69,
             "width": 4,
             "height": 5
           }
@@ -21813,7 +21837,7 @@
           },
           "position": {
             "x": 0,
-            "y": 45,
+            "y": 55,
             "width": 12,
             "height": 1
           }
@@ -21834,7 +21858,7 @@
           },
           "position": {
             "x": 0,
-            "y": 64,
+            "y": 74,
             "width": 12,
             "height": 1
           }
@@ -21930,7 +21954,7 @@
           },
           "position": {
             "x": 8,
-            "y": 66,
+            "y": 76,
             "width": 4,
             "height": 7
           }
@@ -22013,7 +22037,7 @@
           },
           "position": {
             "x": 2,
-            "y": 66,
+            "y": 76,
             "width": 6,
             "height": 7
           }
@@ -22034,7 +22058,7 @@
           },
           "position": {
             "x": 0,
-            "y": 65,
+            "y": 75,
             "width": 12,
             "height": 1
           }
@@ -22080,7 +22104,7 @@
           },
           "position": {
             "x": 0,
-            "y": 66,
+            "y": 76,
             "width": 2,
             "height": 2
           }
@@ -22144,7 +22168,7 @@
           },
           "position": {
             "x": 0,
-            "y": 68,
+            "y": 78,
             "width": 2,
             "height": 2
           }
@@ -22338,7 +22362,7 @@
           "position": {
             "x": 3,
             "y": 0,
-            "width": 2,
+            "width": 3,
             "height": 1
           }
         },
@@ -22358,7 +22382,7 @@
           },
           "position": {
             "x": 0,
-            "y": 23,
+            "y": 33,
             "width": 12,
             "height": 1
           }
@@ -22427,7 +22451,7 @@
           },
           "position": {
             "x": 2,
-            "y": 17,
+            "y": 27,
             "width": 6,
             "height": 6
           }
@@ -22501,7 +22525,7 @@
           },
           "position": {
             "x": 0,
-            "y": 17,
+            "y": 27,
             "width": 2,
             "height": 2
           }
@@ -22553,7 +22577,7 @@
           },
           "position": {
             "x": 0,
-            "y": 19,
+            "y": 29,
             "width": 2,
             "height": 2
           }
@@ -22674,7 +22698,7 @@
           },
           "position": {
             "x": 8,
-            "y": 17,
+            "y": 27,
             "width": 4,
             "height": 6
           }
@@ -22742,7 +22766,7 @@
           },
           "position": {
             "x": 0,
-            "y": 21,
+            "y": 31,
             "width": 2,
             "height": 2
           }
@@ -22799,7 +22823,7 @@
           },
           "position": {
             "x": 0,
-            "y": 49,
+            "y": 59,
             "width": 2,
             "height": 2
           }
@@ -22820,7 +22844,7 @@
           },
           "position": {
             "x": 0,
-            "y": 9,
+            "y": 14,
             "width": 12,
             "height": 1
           }
@@ -22890,7 +22914,7 @@
           },
           "position": {
             "x": 0,
-            "y": 10,
+            "y": 15,
             "width": 2,
             "height": 2
           }
@@ -23003,7 +23027,7 @@
           },
           "position": {
             "x": 2,
-            "y": 10,
+            "y": 15,
             "width": 6,
             "height": 6
           }
@@ -23080,7 +23104,7 @@
           },
           "position": {
             "x": 0,
-            "y": 12,
+            "y": 17,
             "width": 2,
             "height": 2
           }
@@ -23157,7 +23181,7 @@
           },
           "position": {
             "x": 0,
-            "y": 14,
+            "y": 19,
             "width": 2,
             "height": 2
           }
@@ -23378,9 +23402,611 @@
           },
           "position": {
             "x": 8,
-            "y": 10,
+            "y": 15,
             "width": 4,
             "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "lakebase-weighted-prjection",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "fiscal_quarter",
+                      "expression": "`fiscal_quarter`"
+                    },
+                    {
+                      "name": "sum(lakebase_wp)",
+                      "expression": "SUM(`lakebase_wp`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`lakebase_wp` IS NULL OR `lakebase_wp` NOT IN ('0')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Lakebase Weighted Projection"
+              },
+              "mark": {
+                "layout": "stack"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "fiscal_quarter",
+                  "axis": {
+                    "title": "Fiscal Qtr",
+                    "labelAngle": 0
+                  },
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(lakebase_wp)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "Lakebase $DBUs Weighted Proj",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "showTotal": false
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "50402231",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "sum(lakebase_wp)",
+                      "expression": "SUM(`lakebase_wp`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`is_current_fiscal` IN ('true')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Lakebase WP # (Curr FY)",
+                "showDescription": false,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(lakebase_wp)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "a4684837",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "sum(lakebase_uc_count)",
+                      "expression": "SUM(`lakebase_uc_count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`is_current_fiscal` IN ('true')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "Lakebase UCO # (Curr FY)",
+                "showDescription": false,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(lakebase_uc_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "90203e9d",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(lakebase_wp)",
+                      "expression": "SUM(`lakebase_wp`)"
+                    },
+                    {
+                      "name": "sum(lakebase_uc_count)",
+                      "expression": "SUM(`lakebase_uc_count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`is_current_fiscal` IN ('true')"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "DESC",
+                      "expression": "SUM(`lakebase_wp`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "[Current FY] Lakebase Account Weighted Projectio n"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 150,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "sum(lakebase_wp)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "columnWidth": 140,
+                    "displayName": "Weighted Proj"
+                  },
+                  {
+                    "fieldName": "sum(lakebase_uc_count)",
+                    "columnWidth": 140,
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "displayName": "UCO #"
+                  }
+                ],
+                "rowOrder": [
+                  {
+                    "by": "column-reversed",
+                    "field": {
+                      "index": 1
+                    }
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 9,
+            "width": 4,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "a68dc050",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "fiscal_quarter",
+                      "expression": "`fiscal_quarter`"
+                    },
+                    {
+                      "name": "sum(fmapi_partner_wp)",
+                      "expression": "SUM(`fmapi_partner_wp`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`lakebase_wp` IS NULL OR `lakebase_wp` NOT IN ('0')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "FMAPI Weighted Projection"
+              },
+              "mark": {
+                "layout": "stack"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "fiscal_quarter",
+                  "axis": {
+                    "title": "Fiscal Qtr",
+                    "labelAngle": 0
+                  },
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "natural-order"
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(fmapi_partner_wp)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "displayName": "Lakebase $DBUs Weighted Proj",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "showTotal": false
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 2,
+            "y": 21,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "4c997589",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "sum(fmapi_partner_wp)",
+                      "expression": "SUM(`fmapi_partner_wp`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`is_current_fiscal` IN ('true')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "FMAPI WP # (Curr FY)",
+                "showDescription": false,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(fmapi_partner_wp)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 21,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "0701d956",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "sum(fmapi_partner_uc_count)",
+                      "expression": "SUM(`fmapi_partner_uc_count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`is_current_fiscal` IN ('true')"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "FMAPI UCO # (Curr FY)",
+                "showDescription": false,
+                "description": "Last week"
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(fmapi_partner_uc_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 2,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "b0f869fd",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ee75307f",
+                  "fields": [
+                    {
+                      "name": "deployable_account_name",
+                      "expression": "`deployable_account_name`"
+                    },
+                    {
+                      "name": "sum(fmapi_partner_wp)",
+                      "expression": "SUM(`fmapi_partner_wp`)"
+                    },
+                    {
+                      "name": "sum(fmapi_partner_uc_count)",
+                      "expression": "SUM(`fmapi_partner_uc_count`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`is_current_fiscal` IN ('true')"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "DESC",
+                      "expression": "SUM(`fmapi_partner_wp`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": "[Current FY] FMAPI Account Weighted Projection"
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "deployable_account_name",
+                    "columnWidth": 150,
+                    "displayName": "Account Name"
+                  },
+                  {
+                    "fieldName": "sum(fmapi_partner_wp)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "hideGroupSeparator": false
+                    },
+                    "columnWidth": 140,
+                    "displayName": "Weighted Proj"
+                  },
+                  {
+                    "fieldName": "sum(fmapi_partner_uc_count)",
+                    "columnWidth": 140,
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 3
+                      },
+                      "hideGroupSeparator": true
+                    },
+                    "displayName": "UCO #"
+                  }
+                ],
+                "rowOrder": [
+                  {
+                    "by": "column-reversed",
+                    "field": {
+                      "index": 1
+                    }
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 21,
+            "width": 4,
+            "height": 5
           }
         }
       ],
