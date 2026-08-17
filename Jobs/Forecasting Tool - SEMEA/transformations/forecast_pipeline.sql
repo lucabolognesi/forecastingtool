@@ -1243,10 +1243,10 @@ SELECT
   solution_architect_user_name AS solution_architect,
   date_format(add_months(live_date, 11), 'yyyy') AS live_date_fiscal,
   date_format(dateadd(year, +1, dateadd(month, -1, live_date)), "'FY'yy'-Q'Q") AS live_date_fq,
-  SUM(CASE WHEN stage_number = 6 AND days_in_confirming_all_time = 0 THEN 1 END) AS uco_count_confirm_skipped,
-  SUM(CASE WHEN stage_number = 6 AND days_in_confirming > 0 AND days_in_confirming <= 60 THEN 1 END) AS confirm_lt_60_days_uco_count,
-  SUM(CASE WHEN stage_number = 6 AND days_in_confirming > 0 THEN days_in_confirming END) AS past_confirm_days_sum,
-  NULLIF(COUNT(CASE WHEN stage_number = 6 AND days_in_confirming > 0 THEN 1 END), 0) AS past_confirm_total_uco_count
+  SUM(CASE WHEN stage_number = 6 AND days_in_live_all_time = 0 THEN 1 END) AS uco_count_live_skipped,
+  SUM(CASE WHEN stage_number = 6 AND days_in_live > 0 AND days_in_live <= 60 THEN 1 END) AS live_lt_60_days_uco_count,
+  SUM(CASE WHEN stage_number = 6 AND days_in_live > 0 THEN days_in_live END) AS past_live_days_sum,
+  NULLIF(COUNT(CASE WHEN stage_number = 6 AND days_in_live > 0 THEN 1 END), 0) AS past_live_total_uco_count
 FROM main.gtm_gold.rpt_use_case_detail
 WHERE date_format(add_months(live_date, 11), 'yyyy') >= 2026
   AND stage_number = 6

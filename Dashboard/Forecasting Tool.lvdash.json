@@ -592,25 +592,49 @@
       "queryLines": [
         "-- Expose ALL base cols (incl *_prev) used by v_*_wow / v_*_penetration calc fields.\n",
         "SELECT\n",
-        "  deployable_account_name, fiscal_year, fiscal_year_quarter, usage_date, latest_snapshot,\n",
-        "  dbu_dollars_t7d_avg, dbu_dollars_t28d_avg,\n",
-        "  lakebase_dbu_dollars_ytd, lakebase_dbu_dollars_t7d_avg, lakebase_dbu_dollars_t7d_prev,\n",
-        "  lakebase_dbu_dollars_t28d_avg, lakebase_dbu_dollars_t28d_avg_prev,\n",
-        "  lakebase_dbu_dollars_t28d_sum, lakebase_dbu_dollars_t28d_sum_prev, lakebase_activated,\n",
-        "  ai_gateway_dbu_dollars_ytd, ai_gateway_dbu_dollars_t7d_avg, ai_gateway_dbu_dollars_t7d_prev,\n",
-        "  ai_gateway_dbu_dollars_t28d_avg, ai_gateway_dbu_dollars_t28d_avg_prev,\n",
-        "  ai_gateway_dbu_dollars_t28d_sum, ai_gateway_dbu_dollars_t28d_sum_prev, ai_gateway_activated,\n",
-        "  dwh_dbu_dollars_ytd, dwh_dbu_dollars_t7d_avg, dwh_dbu_dollars_t7d_avg_prev,\n",
-        "  dwh_dbu_dollars_t28d_avg, dwh_dbu_dollars_t28d_avg_prev,\n",
-        "  lakebase_penetration_t7d_pct, lakebase_penetration_t28d_pct,\n",
-        "  ai_gateway_penetration_t7d_pct, ai_gateway_penetration_t28d_pct,\n",
-        "  dwh_penetration_t7d_pct, dwh_penetration_t28d_pct\n",
-        "FROM main.field_forecasting_tool.agg_okr_product\n",
-        "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
+        "  deployable_account_name,\n",
+        "  fiscal_year,\n",
+        "  fiscal_year_quarter,\n",
+        "  usage_date,\n",
+        "  latest_snapshot,\n",
+        "  dbu_dollars_t7d_avg,\n",
+        "  dbu_dollars_t28d_avg,\n",
+        "  lakebase_dbu_dollars_ytd,\n",
+        "  lakebase_dbu_dollars_t7d_avg,\n",
+        "  lakebase_dbu_dollars_t7d_prev,\n",
+        "  lakebase_dbu_dollars_t28d_avg,\n",
+        "  lakebase_dbu_dollars_t28d_avg_prev,\n",
+        "  lakebase_dbu_dollars_t28d_sum,\n",
+        "  lakebase_dbu_dollars_t28d_sum_prev,\n",
+        "  lakebase_activated,\n",
+        "  ai_gateway_dbu_dollars_ytd,\n",
+        "  ai_gateway_dbu_dollars_t7d_avg,\n",
+        "  ai_gateway_dbu_dollars_t7d_prev,\n",
+        "  ai_gateway_dbu_dollars_t28d_avg,\n",
+        "  ai_gateway_dbu_dollars_t28d_avg_prev,\n",
+        "  ai_gateway_dbu_dollars_t28d_sum,\n",
+        "  ai_gateway_dbu_dollars_t28d_sum_prev,\n",
+        "  ai_gateway_activated,\n",
+        "  dwh_dbu_dollars_ytd,\n",
+        "  dwh_dbu_dollars_t7d_avg,\n",
+        "  dwh_dbu_dollars_t7d_avg_prev,\n",
+        "  dwh_dbu_dollars_t28d_avg,\n",
+        "  dwh_dbu_dollars_t28d_avg_prev,\n",
+        "  lakebase_penetration_t7d_pct,\n",
+        "  lakebase_penetration_t28d_pct,\n",
+        "  ai_gateway_penetration_t7d_pct,\n",
+        "  ai_gateway_penetration_t28d_pct,\n",
+        "  dwh_penetration_t7d_pct,\n",
+        "  dwh_penetration_t28d_pct\n",
+        "FROM\n",
+        "  main.field_forecasting_tool.agg_okr_product\n",
+        "WHERE\n",
+        "  horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
         "  AND Business_Unit = :business_unit\n",
         "  AND sales_subregion_level_1 = :region_level_1\n",
         "  AND sales_subregion_level_2 = :region_level_2\n",
-        "ORDER BY dbu_dollars_t7d_avg DESC"
+        "ORDER BY\n",
+        "  dbu_dollars_t7d_avg DESC"
       ],
       "parameters": [
         {
@@ -1077,7 +1101,7 @@
         "SELECT\n",
         "  solution_architect AS solution_architect_user_name,\n",
         "  live_date_fiscal, live_date_fq,\n",
-        "  uco_count_confirm_skipped, confirm_lt_60_days_uco_count, past_confirm_days_sum, past_confirm_total_uco_count\n",
+        "  uco_count_live_skipped, live_lt_60_days_uco_count, past_live_days_sum, past_live_total_uco_count\n",
         "FROM main.field_forecasting_tool.agg_okr_u5_velocity\n",
         "WHERE horizontal_and_vertical_hierarchy_concatenated_emails LIKE CONCAT('%', :ae_email, '%')\n",
         "  AND Business_Unit = :business_unit\n",
@@ -1148,14 +1172,14 @@
       ],
       "columns": [
         {
-          "displayName": "avg_days_in_confirming",
+          "displayName": "avg_days_in_live",
           "description": "",
-          "expression": "try_divide(SUM(past_confirm_days_sum), SUM(past_confirm_total_uco_count))\n"
+          "expression": "try_divide(SUM(past_live_days_sum), SUM(past_live_total_uco_count))\n"
         },
         {
           "displayName": "pct_live_within_60_days",
           "description": "",
-          "expression": "try_divide(SUM(confirm_lt_60_days_uco_count), SUM(past_confirm_total_uco_count))\n"
+          "expression": "try_divide(SUM(live_lt_60_days_uco_count), SUM(past_live_total_uco_count))\n"
         }
       ]
     },
@@ -14966,6 +14990,10 @@
                       "expression": "MEASURE(`OKR__ProductTrend`.`v_lakebase_penetration_t7d_pct`)"
                     },
                     {
+                      "name": "sum(OKR__ProductTrend__lakebase_dbu_dollars_ytd)",
+                      "expression": "SUM(`OKR__ProductTrend`.`lakebase_dbu_dollars_ytd`)"
+                    },
+                    {
                       "name": "OKR__ProductTrend__usage_date",
                       "expression": "`OKR__ProductTrend`.`usage_date`"
                     }
@@ -15042,6 +15070,19 @@
                       }
                     },
                     "displayName": "Lakebase Penetration %"
+                  },
+                  {
+                    "fieldName": "sum(OKR__ProductTrend__lakebase_dbu_dollars_ytd)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "Lakebase YTD ($DBUs)"
                   }
                 ]
               },
@@ -15115,7 +15156,8 @@
             "spec": {
               "version": 3,
               "frame": {
-                "showTitle": true
+                "showTitle": true,
+                "version": 1
               },
               "widgetType": "area",
               "encodings": {
@@ -16572,19 +16614,18 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "e3f8b50c",
                   "fields": [
                     {
-                      "name": "live_date_fq",
-                      "expression": "`live_date_fq`"
+                      "name": "OKR__U5_Velocity__live_date_fq",
+                      "expression": "`OKR__U5_Velocity`.`live_date_fq`"
                     },
                     {
-                      "name": "sum(past_confirm_total_uco_count)",
-                      "expression": "SUM(`past_confirm_total_uco_count`)"
+                      "name": "sum(OKR__U5_Velocity__past_live_total_uco_count)",
+                      "expression": "SUM(`OKR__U5_Velocity`.`past_live_total_uco_count`)"
                     },
                     {
-                      "name": "measure(avg_days_in_confirming)",
-                      "expression": "MEASURE(`avg_days_in_confirming`)"
+                      "name": "measure(OKR__U5_Velocity__avg_days_in_live)",
+                      "expression": "MEASURE(`OKR__U5_Velocity`.`avg_days_in_live`)"
                     }
                   ],
                   "disaggregated": false
@@ -16595,12 +16636,13 @@
               "version": 1,
               "frame": {
                 "showTitle": true,
-                "title": "Live UCO (=U6): Average days in Confirming"
+                "title": "Live UCO (=U6): Average days in Live",
+                "version": 1
               },
               "widgetType": "combo",
               "encodings": {
                 "x": {
-                  "fieldName": "live_date_fq",
+                  "fieldName": "OKR__U5_Velocity__live_date_fq",
                   "displayName": "FY Qtr (Live Date)",
                   "scale": {
                     "type": "categorical"
@@ -16613,7 +16655,7 @@
                   "primary": {
                     "fields": [
                       {
-                        "fieldName": "sum(past_confirm_total_uco_count)",
+                        "fieldName": "sum(OKR__U5_Velocity__past_live_total_uco_count)",
                         "displayName": "# UCOs gone Live"
                       }
                     ],
@@ -16632,8 +16674,8 @@
                   "secondary": {
                     "fields": [
                       {
-                        "fieldName": "measure(avg_days_in_confirming)",
-                        "displayName": "Avg Days in U4"
+                        "fieldName": "measure(OKR__U5_Velocity__avg_days_in_live)",
+                        "displayName": "Avg Days in U5"
                       }
                     ],
                     "scale": {
@@ -16641,6 +16683,9 @@
                     }
                   }
                 }
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -16768,23 +16813,23 @@
                       "expression": "`OKR__U5_Velocity`.`solution_architect_user_name`"
                     },
                     {
-                      "name": "measure(OKR__U5_Velocity__avg_days_in_confirming)",
-                      "expression": "MEASURE(`OKR__U5_Velocity`.`avg_days_in_confirming`)"
+                      "name": "measure(OKR__U5_Velocity__avg_days_in_live)",
+                      "expression": "MEASURE(`OKR__U5_Velocity`.`avg_days_in_live`)"
                     },
                     {
                       "name": "measure(OKR__U5_Velocity__pct_live_within_60_days)",
                       "expression": "MEASURE(`OKR__U5_Velocity`.`pct_live_within_60_days`)"
                     },
                     {
-                      "name": "sum(OKR__U5_Velocity__past_confirm_total_uco_count)",
-                      "expression": "SUM(`OKR__U5_Velocity`.`past_confirm_total_uco_count`)"
+                      "name": "sum(OKR__U5_Velocity__past_live_total_uco_count)",
+                      "expression": "SUM(`OKR__U5_Velocity`.`past_live_total_uco_count`)"
                     }
                   ],
                   "disaggregated": false,
                   "orders": [
                     {
                       "direction": "DESC",
-                      "expression": "MEASURE(`OKR__U5_Velocity`.`avg_days_in_confirming`)"
+                      "expression": "MEASURE(`OKR__U5_Velocity`.`avg_days_in_live`)"
                     }
                   ]
                 }
@@ -16806,7 +16851,7 @@
                     "displayName": "SA"
                   },
                   {
-                    "fieldName": "measure(OKR__U5_Velocity__avg_days_in_confirming)",
+                    "fieldName": "measure(OKR__U5_Velocity__avg_days_in_live)",
                     "columnWidth": 140,
                     "format": {
                       "type": "number-plain",
@@ -16833,7 +16878,7 @@
                     "displayName": "% UCO Live in 60 days"
                   },
                   {
-                    "fieldName": "sum(OKR__U5_Velocity__past_confirm_total_uco_count)",
+                    "fieldName": "sum(OKR__U5_Velocity__past_live_total_uco_count)",
                     "columnWidth": 120,
                     "displayName": "UCO # (U6)"
                   }
@@ -17004,23 +17049,22 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "measure(uco_count)",
-                      "expression": "MEASURE(`uco_count`)"
+                      "name": "measure(UCOs__uco_count)",
+                      "expression": "MEASURE(`UCOs`.`uco_count`)"
                     },
                     {
-                      "name": "measure(uco_count_with_partner)",
-                      "expression": "MEASURE(`uco_count_with_partner`)"
+                      "name": "measure(UCOs__uco_count_with_partner)",
+                      "expression": "MEASURE(`UCOs`.`uco_count_with_partner`)"
                     },
                     {
-                      "name": "account_name",
-                      "expression": "`account_name`"
+                      "name": "UCOs__account_name",
+                      "expression": "`UCOs`.`account_name`"
                     },
                     {
-                      "name": "measure(partner_attach_rate_pct)",
-                      "expression": "MEASURE(`partner_attach_rate_pct`)"
+                      "name": "measure(UCOs__partner_attach_rate_pct)",
+                      "expression": "MEASURE(`UCOs`.`partner_attach_rate_pct`)"
                     }
                   ],
                   "disaggregated": false
@@ -17031,12 +17075,13 @@
               "version": 3,
               "frame": {
                 "showTitle": true,
-                "title": "Partner attach rate by Account"
+                "title": "Partner attach rate by Account",
+                "version": 1
               },
               "widgetType": "bar",
               "encodings": {
                 "x": {
-                  "fieldName": "account_name",
+                  "fieldName": "UCOs__account_name",
                   "displayName": "Account Name",
                   "scale": {
                     "type": "categorical",
@@ -17046,7 +17091,7 @@
                   }
                 },
                 "y": {
-                  "fieldName": "measure(partner_attach_rate_pct)",
+                  "fieldName": "measure(UCOs__partner_attach_rate_pct)",
                   "format": {
                     "type": "number-percent",
                     "decimalPlaces": {
@@ -17064,12 +17109,15 @@
                 },
                 "extra": [
                   {
-                    "fieldName": "measure(uco_count)"
+                    "fieldName": "measure(UCOs__uco_count)"
                   },
                   {
-                    "fieldName": "measure(uco_count_with_partner)"
+                    "fieldName": "measure(UCOs__uco_count_with_partner)"
                   }
                 ]
+              },
+              "data": {
+                "queryName": "main_query"
               }
             }
           },
@@ -18366,31 +18414,30 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "0464c74f",
                   "fields": [
                     {
                       "name": "lb_t7d",
-                      "expression": "SUM(`lakebase_dbu_dollars_t7d_avg`)"
+                      "expression": "SUM(`OKR__Product`.`lakebase_dbu_dollars_t7d_avg`)"
                     },
                     {
                       "name": "tot_t7d",
-                      "expression": "SUM(`dbu_dollars_t7d_avg`)"
+                      "expression": "SUM(`OKR__Product`.`dbu_dollars_t7d_avg`)"
                     },
                     {
                       "name": "lb_t7d_prev",
-                      "expression": "SUM(`lakebase_dbu_dollars_t7d_prev`)"
+                      "expression": "SUM(`OKR__Product`.`lakebase_dbu_dollars_t7d_prev`)"
                     },
                     {
                       "name": "lb_t28d",
-                      "expression": "SUM(`lakebase_dbu_dollars_t28d_avg`)"
+                      "expression": "SUM(`OKR__Product`.`lakebase_dbu_dollars_t28d_avg`)"
                     },
                     {
                       "name": "tot_t28d",
-                      "expression": "SUM(`dbu_dollars_t28d_avg`)"
+                      "expression": "SUM(`OKR__Product`.`dbu_dollars_t28d_avg`)"
                     },
                     {
                       "name": "lb_t28d_prev",
-                      "expression": "SUM(`lakebase_dbu_dollars_t28d_avg_prev`)"
+                      "expression": "SUM(`OKR__Product`.`lakebase_dbu_dollars_t28d_avg_prev`)"
                     }
                   ],
                   "disaggregated": false
@@ -18918,15 +18965,14 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "e3f8b50c",
                   "fields": [
                     {
                       "name": "val",
-                      "expression": "MEASURE(`pct_live_within_60_days`)"
+                      "expression": "MEASURE(`OKR__U5_Velocity`.`pct_live_within_60_days`)"
                     },
                     {
                       "name": "cnt",
-                      "expression": "SUM(`confirm_lt_60_days_uco_count`)"
+                      "expression": "SUM(`OKR__U5_Velocity`.`live_lt_60_days_uco_count`)"
                     }
                   ],
                   "disaggregated": false
@@ -18935,12 +18981,16 @@
             ],
             "spec": {
               "version": 1,
-              "widgetType": "custom-vega-viz",
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"calculate\":\"datum.val==null?'n/a':format(datum.val,'.1%')\",\"as\":\"valfmt\"},{\"calculate\":\"datum.cnt==null?'':format(datum.cnt,',d')+(datum.cnt==1?' UCO':' UCOs')\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-2,\"fontSize\":20,\"fontWeight\":700,\"fill\":\"#000000\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":20,\"fontSize\":14,\"fill\":\"#5A6E75\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
+              },
               "frame": {
                 "showTitle": true,
                 "title": "% UCO Live within 60 days ",
                 "version": 1
               },
+              "widgetType": "custom-vega-viz",
               "encodings": {
                 "fields": [
                   {
@@ -18953,10 +19003,6 @@
               },
               "data": {
                 "queryName": "main_query"
-              },
-              "jsonSpec": {
-                "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"calculate\":\"datum.val==null?'n/a':format(datum.val,'.1%')\",\"as\":\"valfmt\"},{\"calculate\":\"datum.cnt==null?'':format(datum.cnt,',d')+(datum.cnt==1?' UCO':' UCOs')\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-2,\"fontSize\":20,\"fontWeight\":700,\"fill\":\"#000000\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":20,\"fontSize\":14,\"fill\":\"#5A6E75\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
               }
             }
           },
@@ -19030,15 +19076,14 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "8b30c0f1",
                   "fields": [
                     {
                       "name": "val",
-                      "expression": "MEASURE(`avg_days_in_evaluating`)"
+                      "expression": "MEASURE(`OKR__U3_Velocity`.`avg_days_in_evaluating`)"
                     },
                     {
                       "name": "cnt",
-                      "expression": "SUM(`past_eval_total_uco_count`)"
+                      "expression": "SUM(`OKR__U3_Velocity`.`past_eval_total_uco_count`)"
                     }
                   ],
                   "disaggregated": false
@@ -19047,12 +19092,16 @@
             ],
             "spec": {
               "version": 1,
-              "widgetType": "custom-vega-viz",
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"calculate\":\"datum.val==null?'n/a':format(datum.val,',.1f')+'d'\",\"as\":\"valfmt\"},{\"calculate\":\"datum.cnt==null?'':format(datum.cnt,',d')+(datum.cnt==1?' UCO':' UCOs')\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-2,\"fontSize\":20,\"fontWeight\":700,\"fill\":\"#000000\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":20,\"fontSize\":14,\"fill\":\"#5A6E75\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
+              },
               "frame": {
                 "showTitle": true,
                 "title": "Avg days in U3",
                 "version": 1
               },
+              "widgetType": "custom-vega-viz",
               "encodings": {
                 "fields": [
                   {
@@ -19065,10 +19114,6 @@
               },
               "data": {
                 "queryName": "main_query"
-              },
-              "jsonSpec": {
-                "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"calculate\":\"datum.val==null?'n/a':format(datum.val,',.1f')+'d'\",\"as\":\"valfmt\"},{\"calculate\":\"datum.cnt==null?'':format(datum.cnt,',d')+(datum.cnt==1?' UCO':' UCOs')\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-2,\"fontSize\":20,\"fontWeight\":700,\"fill\":\"#000000\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":20,\"fontSize\":14,\"fill\":\"#5A6E75\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
               }
             }
           },
@@ -19086,15 +19131,14 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "e3f8b50c",
                   "fields": [
                     {
                       "name": "val",
-                      "expression": "MEASURE(`avg_days_in_confirming`)"
+                      "expression": "MEASURE(`OKR__U5_Velocity`.`avg_days_in_live`)"
                     },
                     {
                       "name": "cnt",
-                      "expression": "SUM(`past_confirm_total_uco_count`)"
+                      "expression": "SUM(`OKR__U5_Velocity`.`past_live_total_uco_count`)"
                     }
                   ],
                   "disaggregated": false
@@ -19103,12 +19147,16 @@
             ],
             "spec": {
               "version": 1,
-              "widgetType": "custom-vega-viz",
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"calculate\":\"datum.val==null?'n/a':format(datum.val,',.1f')+'d'\",\"as\":\"valfmt\"},{\"calculate\":\"datum.cnt==null?'':format(datum.cnt,',d')+(datum.cnt==1?' UCO':' UCOs')\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-2,\"fontSize\":20,\"fontWeight\":700,\"fill\":\"#000000\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":20,\"fontSize\":14,\"fill\":\"#5A6E75\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
+              },
               "frame": {
                 "showTitle": true,
-                "title": "Avg days in U4",
+                "title": "Avg days in U5",
                 "version": 1
               },
+              "widgetType": "custom-vega-viz",
               "encodings": {
                 "fields": [
                   {
@@ -19121,10 +19169,6 @@
               },
               "data": {
                 "queryName": "main_query"
-              },
-              "jsonSpec": {
-                "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"calculate\":\"datum.val==null?'n/a':format(datum.val,',.1f')+'d'\",\"as\":\"valfmt\"},{\"calculate\":\"datum.cnt==null?'':format(datum.cnt,',d')+(datum.cnt==1?' UCO':' UCOs')\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-2,\"fontSize\":20,\"fontWeight\":700,\"fill\":\"#000000\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":20,\"fontSize\":14,\"fill\":\"#5A6E75\",\"align\":\"center\",\"baseline\":\"middle\"},\"encoding\":{\"x\":{\"datum\":\"box\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"box\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
               }
             }
           },
