@@ -1081,7 +1081,17 @@ QUALIFY ROW_NUMBER() OVER (
 CREATE OR REFRESH MATERIALIZED VIEW agg_okr_genie
 CLUSTER BY (Business_Unit, sales_subregion_level_1, sales_subregion_level_2)
 AS
-WITH account_dims AS (
+WITH account_mapping AS (
+  -- Still needed: maps sfdcAccountName → deployable_account_name.
+  -- No existing pipeline MV provides this mapping.
+  SELECT DISTINCT
+    sfdc_account_name,
+    deployable_account_name
+  FROM main.fin_live_gold.sfdc_hierarchy_mapping
+),
+account_dims AS (
+  -- Still needed: maps deployable_account_name → hierarchy columns.
+  -- No existing pipeline MV exposes concatenated_emails at account level.
   SELECT DISTINCT
     deployable_account_name,
     horizontal_and_vertical_hierarchy_concatenated_emails,
@@ -1089,52 +1099,55 @@ WITH account_dims AS (
     sales_subregion_level_1,
     sales_subregion_level_2
   FROM main.gtm_gold.account_consumption_daily
-  WHERE YEAR(usage_date) + CASE WHEN MONTH(usage_date) >= 2 THEN 1 ELSE 0 END >= 2026
+  WHERE usage_date >= (SELECT MIN(m) FROM dates)
     AND Business_Unit = '${business_unit}'
     AND sales_subregion_level_1 = '${region_level_1}'
 ),
-genie_kpis AS (
+genie_metrics AS (
   SELECT
     g.date,
     h.deployable_account_name,
-    SUM(g.T7D_Users)  AS genie_t7d_users,
-    SUM(g.T28D_Users) AS genie_t28d_users
-  FROM main.eng_datarooms.genie_daily_kpis g
-  INNER JOIN main.fin_live_gold.sfdc_hierarchy_mapping h
-    ON g.salesforce_account_name = h.sfdc_account_name
-  WHERE YEAR(g.date) + CASE WHEN MONTH(g.date) >= 2 THEN 1 ELSE 0 END >= 2026
+    SUM(COALESCE(g.dashboard_users_t7d_account_level, 0)
+      + COALESCE(g.genie_users_t7d_account_level, 0))       AS genie_t7d_users,
+    SUM(COALESCE(g.dashboard_users_t28d_account_level, 0)
+      + COALESCE(g.genie_users_t28d_account_level, 0))      AS genie_t28d_users,
+    ROUND(SUM(COALESCE(g.dashboard_dollars_t1d, 0)
+      + COALESCE(g.genie_dollars_t1d, 0)), 2)               AS genie_dbu_dollars,
+    -- Daily averages (sum divided by window length)
+    ROUND(SUM(COALESCE(g.dashboard_dollars_t7d, 0)
+      + COALESCE(g.genie_dollars_t7d, 0)) / 7, 2)           AS genie_t7d_dbu_dollars,
+    ROUND(SUM(COALESCE(g.dashboard_dollars_t7d_lag28, 0)
+      + COALESCE(g.genie_dollars_t7d_lag28, 0)) / 7, 2)     AS genie_t7d_dbu_dollars_prev,
+    ROUND(SUM(COALESCE(g.dashboard_dollars_t28d, 0)
+      + COALESCE(g.genie_dollars_t28d, 0)) / 28, 2)         AS genie_t28d_dbu_dollars,
+    ROUND(SUM(COALESCE(g.dashboard_dollars_t28d_lag28, 0)
+      + COALESCE(g.genie_dollars_t28d_lag28, 0)) / 28, 2)   AS genie_t28d_dbu_dollars_prev
+  FROM main.field_emea_product_usage.gold_genie_account_daily g
+  INNER JOIN account_mapping h
+    ON g.sfdcAccountName = h.sfdc_account_name
+  WHERE g.date >= (SELECT MIN(m) FROM dates)
+    AND g.sfdcAccountName IS NOT NULL
   GROUP BY g.date, h.deployable_account_name
-),
-genie_dbu AS (
-  SELECT
-    usage_date,
-    deployable_account_name,
-    SUM(genie_standalone_dbu_dollars)               AS genie_dbu_dollars,
-    SUM(genie_standalone_dbu_dollars_t7d_sum)       AS genie_t7d_dbu_dollars,
-    SUM(genie_standalone_dbu_dollars_t7d_sum_prev)  AS genie_t7d_dbu_dollars_prev,
-    SUM(genie_standalone_dbu_dollars_t28d_sum)      AS genie_t28d_dbu_dollars,
-    SUM(genie_standalone_dbu_dollars_t28d_sum_prev) AS genie_t28d_dbu_dollars_prev
-  FROM main.gtm_gold.account_consumption_daily
-  WHERE YEAR(usage_date) + CASE WHEN MONTH(usage_date) >= 2 THEN 1 ELSE 0 END >= 2026
-  GROUP BY usage_date, deployable_account_name
 ),
 fy_start AS (
   SELECT MIN(date) AS fy_first_date
-  FROM main.eng_datarooms.genie_daily_kpis
+  FROM main.field_emea_product_usage.gold_genie_account_daily
   WHERE date >= MAKE_DATE(
-    CASE WHEN MONTH((SELECT MAX(date) FROM main.eng_datarooms.genie_daily_kpis)) >= 2
-         THEN YEAR((SELECT MAX(date) FROM main.eng_datarooms.genie_daily_kpis))
-         ELSE YEAR((SELECT MAX(date) FROM main.eng_datarooms.genie_daily_kpis)) - 1 END, 2, 1)
+    CASE WHEN MONTH((SELECT MAX(date) FROM main.field_emea_product_usage.gold_genie_account_daily)) >= 2
+         THEN YEAR((SELECT MAX(date) FROM main.field_emea_product_usage.gold_genie_account_daily))
+         ELSE YEAR((SELECT MAX(date) FROM main.field_emea_product_usage.gold_genie_account_daily)) - 1 END, 2, 1)
 ),
 fy_start_kpis AS (
   SELECT
     h.deployable_account_name,
-    SUM(g.T28D_Users) AS fy_start_t28d_users
-  FROM main.eng_datarooms.genie_daily_kpis g
-  INNER JOIN main.fin_live_gold.sfdc_hierarchy_mapping h
-    ON g.salesforce_account_name = h.sfdc_account_name
+    SUM(COALESCE(g.dashboard_users_t28d_account_level, 0)
+      + COALESCE(g.genie_users_t28d_account_level, 0)) AS fy_start_t28d_users
+  FROM main.field_emea_product_usage.gold_genie_account_daily g
+  INNER JOIN account_mapping h
+    ON g.sfdcAccountName = h.sfdc_account_name
   CROSS JOIN fy_start fs
   WHERE g.date = fs.fy_first_date
+    AND g.sfdcAccountName IS NOT NULL
   GROUP BY h.deployable_account_name
 )
 SELECT
@@ -1142,31 +1155,30 @@ SELECT
   d.Business_Unit,
   d.sales_subregion_level_1,
   d.sales_subregion_level_2,
-  k.date,
-  YEAR(k.date) + CASE WHEN MONTH(k.date) >= 2 THEN 1 ELSE 0 END AS fiscal_year,
-  CONCAT('FY', RIGHT(CAST(YEAR(k.date) + CASE WHEN MONTH(k.date) >= 2 THEN 1 ELSE 0 END AS STRING), 2), '-',
-    CASE WHEN MONTH(k.date) IN (2,3,4) THEN 'Q1'
-         WHEN MONTH(k.date) IN (5,6,7) THEN 'Q2'
-         WHEN MONTH(k.date) IN (8,9,10) THEN 'Q3'
-         ELSE 'Q4' END) AS fiscal_quarter,
-  CASE WHEN k.date = (SELECT MAX(date) FROM genie_kpis) THEN 'Y' ELSE 'N' END AS latest_snapshot,
-  k.deployable_account_name,
-  k.genie_t7d_users,
-  k.genie_t28d_users,
-  k.genie_t28d_users - f.fy_start_t28d_users AS t28d_users_ytd_diff,
-  f.fy_start_t28d_users,
-  d2.genie_dbu_dollars,
-  d2.genie_t7d_dbu_dollars,
-  d2.genie_t7d_dbu_dollars_prev,
-  d2.genie_t28d_dbu_dollars,
-  d2.genie_t28d_dbu_dollars_prev
-FROM genie_kpis k
-INNER JOIN account_dims d ON k.deployable_account_name = d.deployable_account_name
-LEFT JOIN genie_dbu d2
-  ON k.deployable_account_name = d2.deployable_account_name AND k.date = d2.usage_date
+  m.date,
+  dt.fy AS fiscal_year,
+  dt.fq AS fiscal_quarter,
+  CASE WHEN m.date = (SELECT MAX(date) FROM main.field_emea_product_usage.gold_genie_account_daily)
+       THEN 'Y' ELSE 'N' END AS latest_snapshot,
+  m.deployable_account_name,
+  m.genie_t7d_users,
+  m.genie_t28d_users,
+  m.genie_t28d_users - COALESCE(f.fy_start_t28d_users, 0) AS t28d_users_ytd_diff,
+  COALESCE(f.fy_start_t28d_users, 0) AS fy_start_t28d_users,
+  m.genie_dbu_dollars,
+  m.genie_t7d_dbu_dollars,
+  m.genie_t7d_dbu_dollars_prev,
+  m.genie_t28d_dbu_dollars,
+  m.genie_t28d_dbu_dollars_prev
+FROM genie_metrics m
+INNER JOIN account_dims d
+  ON m.deployable_account_name = d.deployable_account_name
+INNER JOIN dates dt
+  ON date_trunc('month', m.date) = dt.m
 LEFT JOIN fy_start_kpis f
-  ON k.deployable_account_name = f.deployable_account_name
-WHERE (DAYOFWEEK(k.date) = 6 OR k.date = (SELECT MAX(date) FROM genie_kpis))
+  ON m.deployable_account_name = f.deployable_account_name
+WHERE (DAYOFWEEK(m.date) = 6
+       OR m.date = (SELECT MAX(date) FROM main.field_emea_product_usage.gold_genie_account_daily))
 
 -- COMMAND ----------
 
