@@ -342,6 +342,8 @@ SELECT
           ARRAY(
             COALESCE('<a href="https://databrickinternal.ideas.aha.io/ideas/' || aha_item.aha_reference || '" target="_blank">' || aha_item.aha_reference || '</a>', ''),
             COALESCE(aha_item.aha_name, ''),
+            COALESCE('<a href="https://brickster.databricks.com/brickroad/issues/' || b.brickroad_issue_id || '" target="_blank">' || b.brickroad_issue_id || '</a>', ''),
+            COALESCE(br.brickroad_issue_title, ''),
             COALESCE(b.comment, '')
           ),
           x -> x != ''
@@ -352,6 +354,9 @@ SELECT
     '. '
   ) AS blocker_details
 FROM main.gtm_silver.blocker_detail b
+LEFT JOIN main.gtm_silver.brickroad_issue_detail br
+  ON b.brickroad_issue_sfdc_id = br.brickroad_issue_sfdc_id
+  AND b.usecase_id = br.usecase_id
 LATERAL VIEW OUTER EXPLODE(b.aha) AS aha_item
 WHERE b.business_unit = '${business_unit}'
 AND b.region_level_1 = '${region_level_1}'
@@ -453,15 +458,15 @@ select ae.user_id, ae.ae_email, use_case_detail.usecase_id, usecase_name, accoun
   , case 
       when days_to_go_live >= 0 and stage_number < 5 and days_to_go_live < (5 - stage_number) * 30
         then concat('Go live in ', cast(days_to_go_live as string), ' days from stage ', stage)
-      when days_to_go_live >= 0 and stage_number = 5 and implementation_status <> "Green" 
+      when days_to_go_live >= 0 and stage_number = 5 and implementation_status <> "Green" and days_to_go_live < 30
         then concat('Go live in ', cast(days_to_go_live as string), ' days from stage ', stage, " (", implementation_status, ")") 
       else 'Ok'
     end as go_live_slippage_details
   , case
       when days_to_onboarding >= 0 and stage_number < 4 and days_to_onboarding < (4 - stage_number) * 30
         then concat('Onboarding in ', cast(days_to_onboarding as string), ' days from stage ', stage)
-      when days_to_onboarding >= 0 and stage_number = 4 and implementation_status <> "Green" 
-        then concat('Onboarding in ', cast(days_to_go_live as string), ' days from stage ', stage, " (", implementation_status, ")") 
+      when days_to_onboarding >= 0 and stage_number = 4 and implementation_status <> "Green" and days_to_onboarding < 30
+        then concat('Onboarding in ', cast(days_to_onboarding as string), ' days from stage ', stage, " (", implementation_status, ")") 
       else 'Ok'
     end as onboarding_slippage_details
   , flatten(array(
