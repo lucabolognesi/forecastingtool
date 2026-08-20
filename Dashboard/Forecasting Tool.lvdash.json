@@ -2228,6 +2228,32 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c91aaeb7c5076ccb79a_region_level_1",
+                "query": {
+                  "datasetName": "7d0f7a04",
+                  "parameters": [
+                    {
+                      "name": "region_level_1",
+                      "keyword": "region_level_1"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1caabd3b780a2d49f9f6_region_level_1",
+                "query": {
+                  "datasetName": "1d0f7a05",
+                  "parameters": [
+                    {
+                      "name": "region_level_1",
+                      "keyword": "region_level_1"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -2299,6 +2325,14 @@
                   {
                     "fieldName": "level_1",
                     "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1cbcb2d34aa45e95a0a2_level_1"
+                  },
+                  {
+                    "parameterName": "region_level_1",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c91aaeb7c5076ccb79a_region_level_1"
+                  },
+                  {
+                    "parameterName": "region_level_1",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1caabd3b780a2d49f9f6_region_level_1"
                   }
                 ]
               }
@@ -2500,6 +2534,32 @@
                   ],
                   "disaggregated": false
                 }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1caabd3b780a2d49f9f6_region_level_2",
+                "query": {
+                  "datasetName": "1d0f7a05",
+                  "parameters": [
+                    {
+                      "name": "region_level_2",
+                      "keyword": "region_level_2"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c91aaeb7c5076ccb79a_region_level_2",
+                "query": {
+                  "datasetName": "7d0f7a04",
+                  "parameters": [
+                    {
+                      "name": "region_level_2",
+                      "keyword": "region_level_2"
+                    }
+                  ],
+                  "disaggregated": false
+                }
               }
             ],
             "spec": {
@@ -2567,6 +2627,14 @@
                   {
                     "fieldName": "level_2",
                     "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1cc0a37e1562fd17fdd7_level_2"
+                  },
+                  {
+                    "parameterName": "region_level_2",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1caabd3b780a2d49f9f6_region_level_2"
+                  },
+                  {
+                    "parameterName": "region_level_2",
+                    "queryName": "parameter_dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c91aaeb7c5076ccb79a_region_level_2"
                   }
                 ]
               }
@@ -3914,11 +3982,10 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "201a8ec4",
                   "fields": [
                     {
-                      "name": "sum(fin_target)",
-                      "expression": "SUM(`fin_target`)"
+                      "name": "sum(Forecast__Account__fin_target)",
+                      "expression": "SUM(`Forecast__Account`.`fin_target`)"
                     }
                   ],
                   "disaggregated": false
@@ -3937,7 +4004,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(fin_target)",
+                  "fieldName": "sum(Forecast__Account__fin_target)",
                   "format": {
                     "type": "number-currency",
                     "currencyCode": "USD",
@@ -4256,7 +4323,7 @@
               "version": 1,
               "frame": {
                 "showTitle": true,
-                "title": "Forecast Metrics vs Target",
+                "title": "Forecast Metrics vs Target (details)",
                 "version": 1,
                 "showDescription": true,
                 "description": "The footnotes show: Attainment % | QoQ % | Gap vs target"
@@ -4579,7 +4646,7 @@
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">Yearly Forecast Summary</span>"
+                "## <span style=\"color:#E8ECF0\">Yearly Forecast</span><span style=\"color:#E8ECF0\"> (My Call)</span>"
               ]
             },
             "specExtensions": {
@@ -4590,7 +4657,7 @@
           },
           "position": {
             "x": 0,
-            "y": 0,
+            "y": 1,
             "width": 12,
             "height": 1
           }
@@ -4600,7 +4667,7 @@
             "name": "account_header",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">Account Roll-up</span>"
+                "## <span style=\"color:#E8ECF0\">Yearly Foreast (Account Roll-up)</span>"
               ]
             },
             "specExtensions": {
@@ -4611,7 +4678,7 @@
           },
           "position": {
             "x": 0,
-            "y": 7,
+            "y": 14,
             "width": 12,
             "height": 1
           }
@@ -4658,7 +4725,7 @@
           },
           "position": {
             "x": 0,
-            "y": 8,
+            "y": 15,
             "width": 3,
             "height": 1
           }
@@ -4705,7 +4772,7 @@
           },
           "position": {
             "x": 6,
-            "y": 8,
+            "y": 15,
             "width": 4,
             "height": 1
           }
@@ -4752,7 +4819,7 @@
           },
           "position": {
             "x": 3,
-            "y": 8,
+            "y": 15,
             "width": 3,
             "height": 1
           }
@@ -4766,184 +4833,137 @@
                 "query": {
                   "fields": [
                     {
-                      "name": "Forecast__Account__account_name",
-                      "expression": "`Forecast__Account`.`account_name`"
-                    },
-                    {
-                      "name": "Forecast__Account__fq",
+                      "name": "fq",
                       "expression": "`Forecast__Account`.`fq`"
                     },
                     {
-                      "name": "sum(Forecast__Account__fin_target)",
+                      "name": "fin_target",
                       "expression": "SUM(`Forecast__Account`.`fin_target`)"
                     },
                     {
-                      "name": "sum(Forecast__Account__submitted_my_call)",
+                      "name": "submitted_my_call",
                       "expression": "SUM(`Forecast__Account`.`submitted_my_call`)"
                     },
                     {
-                      "name": "measure(Forecast__Account__v_my_call_attainment)",
-                      "expression": "MEASURE(`Forecast__Account`.`v_my_call_attainment`)"
+                      "name": "gap_my_call",
+                      "expression": "SUM(`Forecast__Account`.`gap_my_call`)"
                     },
                     {
-                      "name": "measure(Forecast__Account__v_my_call_qoq)",
-                      "expression": "MEASURE(`Forecast__Account`.`v_my_call_qoq`)"
-                    }
-                  ],
-                  "filters": [
-                    {
-                      "expression": "`Forecast__Account`.`fy` IN (2027)"
-                    }
-                  ],
-                  "cubeGroupingSets": {
-                    "sets": [
-                      {
-                        "fieldNames": [
-                          "Forecast__Account__account_name"
-                        ]
-                      },
-                      {
-                        "fieldNames": [
-                          "Forecast__Account__fq"
-                        ]
-                      }
-                    ]
-                  },
-                  "disaggregated": false,
-                  "orders": [
-                    {
-                      "direction": "ASC",
-                      "expression": "`Forecast__Account`.`account_name`"
+                      "name": "submitted_direct_field_consumption_forecast",
+                      "expression": "SUM(`Forecast__Account`.`submitted_direct_field_consumption_forecast`)"
                     },
                     {
-                      "direction": "ASC",
-                      "expression": "`Forecast__Account`.`fq`"
+                      "name": "gap_directs_forecast",
+                      "expression": "SUM(`Forecast__Account`.`gap_directs_forecast`)"
+                    },
+                    {
+                      "name": "worst_case_projection",
+                      "expression": "SUM(`Forecast__Account`.`worst_case_projection`)"
+                    },
+                    {
+                      "name": "gap_worst_case",
+                      "expression": "SUM(`Forecast__Account`.`gap_worst_case`)"
+                    },
+                    {
+                      "name": "best_case_projection",
+                      "expression": "SUM(`Forecast__Account`.`best_case_projection`)"
+                    },
+                    {
+                      "name": "gap_best_case",
+                      "expression": "SUM(`Forecast__Account`.`gap_best_case`)"
+                    },
+                    {
+                      "name": "current_ds_forecast",
+                      "expression": "SUM(`Forecast__Account`.`current_ds_forecast`)"
+                    },
+                    {
+                      "name": "gap_ds_forecast",
+                      "expression": "SUM(`Forecast__Account`.`gap_ds_forecast`)"
+                    },
+                    {
+                      "name": "dbu_actuals",
+                      "expression": "SUM(`Forecast__Account`.`dbu_actuals`)"
+                    },
+                    {
+                      "name": "days_left",
+                      "expression": "MAX(`Forecast__Account`.`days_left_in_quarter`)"
+                    },
+                    {
+                      "name": "submitted_weighted_projection",
+                      "expression": "SUM(`Forecast__Account`.`submitted_weighted_projection`)"
                     }
-                  ]
+                  ],
+                  "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "version": 4,
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"data\":{\"name\":\"databricks_query\"},\"height\":\"container\",\"width\":\"container\",\"config\":{\"view\":{\"stroke\":null}},\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"transform\":[{\"calculate\":\"toNumber(datum.dbu_actuals)-toNumber(datum.fin_target)\",\"as\":\"gap_actuals\"},{\"calculate\":\"((toNumber(datum.fin_target))<0?'-':'')+'$'+(abs(toNumber(datum.fin_target))>=1e9?format(abs(toNumber(datum.fin_target))/1e9,',.3f')+'B':abs(toNumber(datum.fin_target))>=1e6?format(abs(toNumber(datum.fin_target))/1e6,',.3f')+'M':abs(toNumber(datum.fin_target))>=1e3?format(abs(toNumber(datum.fin_target))/1e3,',.3f')+'k':format(abs(toNumber(datum.fin_target)),',.3f'))\",\"as\":\"target_fmt\"},{\"calculate\":\"toNumber(datum.days_left)==0?'Actual $DBUs:':'My Forecast:'\",\"as\":\"lbl1\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Directs Forecast:'\",\"as\":\"lbl2\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Worst Case:'\",\"as\":\"lbl3\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Best Case:'\",\"as\":\"lbl4\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'DS Forecast:'\",\"as\":\"lbl5\"},{\"calculate\":\"toNumber(datum.days_left)==0?((toNumber(datum.dbu_actuals))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_actuals))>=1e6?format(abs(toNumber(datum.dbu_actuals))/1e6,',.3f')+'M':format(abs(toNumber(datum.dbu_actuals))/1e3,',.3f')+'k')+' ('+(datum.gap_actuals>=0?'+':'')+format(datum.gap_actuals/1e6,',.3f')+'M)':((toNumber(datum.submitted_my_call))<0?'-':'')+'$'+(abs(toNumber(datum.submitted_my_call))>=1e6?format(abs(toNumber(datum.submitted_my_call))/1e6,',.3f')+'M':format(abs(toNumber(datum.submitted_my_call))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_my_call))>=0?'+':'')+format(toNumber(datum.gap_my_call)/1e6,',.3f')+'M)'\",\"as\":\"val_line1\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.submitted_direct_field_consumption_forecast))<0?'-':'')+'$'+(abs(toNumber(datum.submitted_direct_field_consumption_forecast))>=1e6?format(abs(toNumber(datum.submitted_direct_field_consumption_forecast))/1e6,',.3f')+'M':format(abs(toNumber(datum.submitted_direct_field_consumption_forecast))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_directs_forecast))>=0?'+':'')+format(toNumber(datum.gap_directs_forecast)/1e6,',.3f')+'M)'\",\"as\":\"val_line2\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.worst_case_projection))<0?'-':'')+'$'+(abs(toNumber(datum.worst_case_projection))>=1e6?format(abs(toNumber(datum.worst_case_projection))/1e6,',.3f')+'M':format(abs(toNumber(datum.worst_case_projection))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_worst_case))>=0?'+':'')+format(toNumber(datum.gap_worst_case)/1e6,',.3f')+'M)'\",\"as\":\"val_line3\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.best_case_projection))<0?'-':'')+'$'+(abs(toNumber(datum.best_case_projection))>=1e6?format(abs(toNumber(datum.best_case_projection))/1e6,',.3f')+'M':format(abs(toNumber(datum.best_case_projection))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_best_case))>=0?'+':'')+format(toNumber(datum.gap_best_case)/1e6,',.3f')+'M)'\",\"as\":\"val_line4\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.current_ds_forecast))<0?'-':'')+'$'+(abs(toNumber(datum.current_ds_forecast))>=1e6?format(abs(toNumber(datum.current_ds_forecast))/1e6,',.3f')+'M':format(abs(toNumber(datum.current_ds_forecast))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_ds_forecast))>=0?'+':'')+format(toNumber(datum.gap_ds_forecast)/1e6,',.3f')+'M)'\",\"as\":\"val_line5\"},{\"calculate\":\"toNumber(datum.days_left)==0?(toNumber(datum.dbu_actuals)-toNumber(datum.fin_target)):toNumber(datum.gap_my_call)\",\"as\":\"gap_line1\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Weighted Proj:'\",\"as\":\"lbl6\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.submitted_weighted_projection))<0?'-':'')+'$'+(abs(toNumber(datum.submitted_weighted_projection))>=1e6?format(abs(toNumber(datum.submitted_weighted_projection))/1e6,',.3f')+'M':format(abs(toNumber(datum.submitted_weighted_projection))/1e3,',.3f')+'k')+' ('+((toNumber(datum.submitted_weighted_projection)-toNumber(datum.fin_target))>=0?'+':'')+format((toNumber(datum.submitted_weighted_projection)-toNumber(datum.fin_target))/1e6,',.3f')+'M)'\",\"as\":\"val_line6\"}],\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}}}},{\"mark\":{\"type\":\"text\",\"dy\":-97,\"fontSize\":16,\"fontWeight\":700,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"fq\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-72,\"fontSize\":12,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"value\":\"Target\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-47,\"fontSize\":24,\"fontWeight\":700,\"fill\":\"#1B3139\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"target_fmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-14,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl1\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-14,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line1\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"datum.gap_line1>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":8,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl2\"}}},{\"mark\":{\"type\":\"text\",\"dy\":8,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line2\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"toNumber(datum.gap_directs_forecast)>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":30,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl3\"}}},{\"mark\":{\"type\":\"text\",\"dy\":30,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line3\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"toNumber(datum.gap_worst_case)>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":52,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl4\"}}},{\"mark\":{\"type\":\"text\",\"dy\":52,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line4\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"toNumber(datum.gap_best_case)>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":74,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl5\"}}},{\"mark\":{\"type\":\"text\",\"dy\":74,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line5\"},\"color\":{\"condition\":{\"test\":\"toNumber(datum.gap_ds_forecast)>=0\",\"value\":\"#00A972\"},\"value\":\"#C4462E\"}}},{\"mark\":{\"type\":\"text\",\"dy\":96,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl6\"}}},{\"mark\":{\"type\":\"text\",\"dy\":96,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line6\"},\"color\":{\"condition\":{\"test\":\"(toNumber(datum.submitted_weighted_projection)-toNumber(datum.fin_target))>=0\",\"value\":\"#00A972\"},\"value\":\"#C4462E\"}}}]}"
+              },
               "frame": {
                 "showTitle": true,
-                "title": "Quarterly Breakdown (Account roll-up)",
-                "version": 1
-              },
-              "widgetType": "pivot",
-              "encodings": {
-                "rows": {
-                  "fields": [
-                    {
-                      "fieldName": "Forecast__Account__account_name",
-                      "displayName": "Account Name",
-                      "scale": {
-                        "type": "categorical"
-                      },
-                      "total": {
-                        "show": true
-                      }
-                    }
-                  ]
+                "showDescription": false,
+                "title": {
+                  "value": "Quarterly Breakdown (Account roll-up)",
+                  "fields": []
                 },
-                "columns": {
-                  "fields": [
-                    {
-                      "fieldName": "Forecast__Account__fq",
-                      "displayName": "Fiscal Quarter",
-                      "scale": {
-                        "type": "categorical"
-                      }
-                    }
-                  ]
-                },
-                "cells": {
-                  "fields": [
-                    {
-                      "fieldName": "sum(Forecast__Account__fin_target)",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "compact",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 3
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "Target",
-                      "cellType": "text",
-                      "style": {
-                        "type": "basic",
-                        "bold": true
-                      }
-                    },
-                    {
-                      "fieldName": "sum(Forecast__Account__submitted_my_call)",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "compact",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 3
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "AE Forecast",
-                      "cellType": "text"
-                    },
-                    {
-                      "fieldName": "measure(Forecast__Account__v_my_call_attainment)",
-                      "format": {
-                        "type": "number-percent",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "Attainment %",
-                      "cellType": "text",
-                      "style": {
-                        "type": "basic",
-                        "foregroundColor": {
-                          "themeColorType": "visualizationColors",
-                          "position": 4
-                        },
-                        "rules": [
-                          {
-                            "condition": {
-                              "operand": {
-                                "type": "data-value",
-                                "value": "1"
-                              },
-                              "operator": ">="
-                            },
-                            "foregroundColor": {
-                              "themeColorType": "visualizationColors",
-                              "position": 3
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "fieldName": "measure(Forecast__Account__v_my_call_qoq)",
-                      "format": {
-                        "type": "number-percent",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "QoQ %",
-                      "cellType": "text"
-                    }
-                  ],
-                  "displayAs": "rows"
+                "description": {
+                  "value": "Target (bold) | Metrics with gap vs target. Filterable by BU/AE/Account.",
+                  "fields": []
                 }
+              },
+              "version": 1,
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "fq"
+                  },
+                  {
+                    "fieldName": "fin_target"
+                  },
+                  {
+                    "fieldName": "submitted_my_call"
+                  },
+                  {
+                    "fieldName": "gap_my_call"
+                  },
+                  {
+                    "fieldName": "submitted_direct_field_consumption_forecast"
+                  },
+                  {
+                    "fieldName": "gap_directs_forecast"
+                  },
+                  {
+                    "fieldName": "worst_case_projection"
+                  },
+                  {
+                    "fieldName": "gap_worst_case"
+                  },
+                  {
+                    "fieldName": "best_case_projection"
+                  },
+                  {
+                    "fieldName": "gap_best_case"
+                  },
+                  {
+                    "fieldName": "current_ds_forecast"
+                  },
+                  {
+                    "fieldName": "gap_ds_forecast"
+                  },
+                  {
+                    "fieldName": "dbu_actuals"
+                  },
+                  {
+                    "fieldName": "days_left"
+                  },
+                  {
+                    "fieldName": "submitted_weighted_projection"
+                  }
+                ]
               },
               "data": {
                 "queryName": "main_query"
@@ -4952,262 +4972,9 @@
           },
           "position": {
             "x": 0,
-            "y": 9,
-            "width": 5,
-            "height": 9
-          }
-        },
-        {
-          "widget": {
-            "name": "yearly-view",
-            "queries": [
-              {
-                "name": "main_query",
-                "query": {
-                  "fields": [
-                    {
-                      "name": "Forecast__Individual__fq",
-                      "expression": "`Forecast__Individual`.`fq`"
-                    },
-                    {
-                      "name": "sum(Forecast__Individual__fin_target)",
-                      "expression": "SUM(`Forecast__Individual`.`fin_target`)"
-                    },
-                    {
-                      "name": "sum(Forecast__Individual__submitted_my_call)",
-                      "expression": "SUM(`Forecast__Individual`.`submitted_my_call`)"
-                    },
-                    {
-                      "name": "measure(Forecast__Individual__v_my_call_attainment)",
-                      "expression": "MEASURE(`Forecast__Individual`.`v_my_call_attainment`)"
-                    },
-                    {
-                      "name": "measure(Forecast__Individual__v_my_call_qoq)",
-                      "expression": "MEASURE(`Forecast__Individual`.`v_my_call_qoq`)"
-                    },
-                    {
-                      "name": "sum(Forecast__Individual__submitted_direct_field_consumption_forecast)",
-                      "expression": "SUM(`Forecast__Individual`.`submitted_direct_field_consumption_forecast`)"
-                    },
-                    {
-                      "name": "measure(Forecast__Individual__v_ae_attainment)",
-                      "expression": "MEASURE(`Forecast__Individual`.`v_ae_attainment`)"
-                    },
-                    {
-                      "name": "measure(Forecast__Individual__v_ae_qoq)",
-                      "expression": "MEASURE(`Forecast__Individual`.`v_ae_qoq`)"
-                    }
-                  ],
-                  "filters": [
-                    {
-                      "expression": "`Forecast__Individual`.`fy` IN (2027)"
-                    }
-                  ],
-                  "cubeGroupingSets": {
-                    "sets": [
-                      {},
-                      {
-                        "fieldNames": [
-                          "Forecast__Individual__fq"
-                        ]
-                      }
-                    ]
-                  },
-                  "disaggregated": false,
-                  "orders": [
-                    {
-                      "direction": "ASC",
-                      "expression": "`Forecast__Individual`.`fq`"
-                    }
-                  ]
-                }
-              }
-            ],
-            "spec": {
-              "version": 4,
-              "frame": {
-                "showTitle": true,
-                "title": "Quarterly Breakdown",
-                "version": 1
-              },
-              "widgetType": "pivot",
-              "encodings": {
-                "columns": {
-                  "fields": [
-                    {
-                      "fieldName": "Forecast__Individual__fq",
-                      "displayName": "Fiscal Quarter",
-                      "scale": {
-                        "type": "categorical"
-                      }
-                    }
-                  ]
-                },
-                "cells": {
-                  "fields": [
-                    {
-                      "fieldName": "sum(Forecast__Individual__fin_target)",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "compact",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 3
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "Target",
-                      "cellType": "text"
-                    },
-                    {
-                      "fieldName": "sum(Forecast__Individual__submitted_my_call)",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "compact",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 3
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "AE Forecast",
-                      "cellType": "text",
-                      "style": {
-                        "type": "basic",
-                        "bold": true
-                      }
-                    },
-                    {
-                      "fieldName": "measure(Forecast__Individual__v_my_call_attainment)",
-                      "format": {
-                        "type": "number-percent",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "-> Attainment %",
-                      "cellType": "text",
-                      "style": {
-                        "type": "basic",
-                        "foregroundColor": {
-                          "themeColorType": "visualizationColors",
-                          "position": 4
-                        },
-                        "rules": [
-                          {
-                            "condition": {
-                              "operand": {
-                                "type": "data-value",
-                                "value": "1"
-                              },
-                              "operator": ">="
-                            },
-                            "foregroundColor": {
-                              "themeColorType": "visualizationColors",
-                              "position": 3
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "fieldName": "measure(Forecast__Individual__v_my_call_qoq)",
-                      "format": {
-                        "type": "number-percent",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "-> QoQ %",
-                      "cellType": "text"
-                    },
-                    {
-                      "fieldName": "sum(Forecast__Individual__submitted_direct_field_consumption_forecast)",
-                      "format": {
-                        "type": "number-currency",
-                        "currencyCode": "USD",
-                        "abbreviation": "compact",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 3
-                        },
-                        "hideGroupSeparator": false
-                      },
-                      "displayName": "Directs Forecast",
-                      "cellType": "text",
-                      "style": {
-                        "type": "basic",
-                        "bold": true
-                      }
-                    },
-                    {
-                      "fieldName": "measure(Forecast__Individual__v_ae_attainment)",
-                      "format": {
-                        "type": "number-percent",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "-> AE Attainment %",
-                      "cellType": "text",
-                      "style": {
-                        "type": "basic",
-                        "foregroundColor": {
-                          "themeColorType": "visualizationColors",
-                          "position": 4
-                        },
-                        "rules": [
-                          {
-                            "condition": {
-                              "operand": {
-                                "type": "data-value",
-                                "value": "1"
-                              },
-                              "operator": ">="
-                            },
-                            "foregroundColor": {
-                              "themeColorType": "visualizationColors",
-                              "position": 3
-                            }
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "fieldName": "measure(Forecast__Individual__v_ae_qoq)",
-                      "format": {
-                        "type": "number-percent",
-                        "decimalPlaces": {
-                          "type": "exact",
-                          "places": 1
-                        },
-                        "hideGroupSeparator": true
-                      },
-                      "displayName": "-> AE QoQ %",
-                      "cellType": "text"
-                    }
-                  ],
-                  "displayAs": "rows"
-                }
-              },
-              "data": {
-                "queryName": "main_query"
-              }
-            }
-          },
-          "position": {
-            "x": 0,
-            "y": 1,
-            "width": 5,
-            "height": 6
+            "y": 20,
+            "width": 12,
+            "height": 5
           }
         },
         {
@@ -5239,12 +5006,12 @@
                       "expression": "SUM(`Forecast__Individual`.`current_ds_forecast`)"
                     },
                     {
-                      "name": "target_t7d",
-                      "expression": "SUM(`Forecast__Individual`.`target_t7d`)"
+                      "name": "t7d_flat_projection",
+                      "expression": "SUM(`Forecast__Individual`.`t7d_flat_projection`)"
                     },
                     {
-                      "name": "dbu_dollars_t7d_prev_adj",
-                      "expression": "SUM(`Forecast__Individual`.`dbu_dollars_t7d_prev_adj`)"
+                      "name": "target_t7d",
+                      "expression": "SUM(`Forecast__Individual`.`target_t7d`)"
                     },
                     {
                       "name": "submitted_direct_field_consumption_forecast",
@@ -5259,17 +5026,12 @@
                       "expression": "SUM(`Forecast__Individual`.`submitted_weighted_projection`)"
                     },
                     {
-                      "name": "dbu_dollars_t28d_prev_adj",
-                      "expression": "SUM(`Forecast__Individual`.`dbu_dollars_t28d_prev_adj`)"
+                      "name": "t28d_flat_projection",
+                      "expression": "SUM(`Forecast__Individual`.`t28d_flat_projection`)"
                     },
                     {
                       "name": "dbu_actuals_or_forecast_prev_quarter",
                       "expression": "SUM(`Forecast__Individual`.`dbu_actuals_or_forecast_prev_quarter`)"
-                    }
-                  ],
-                  "filters": [
-                    {
-                      "expression": "`Forecast__Individual`.`fy` IN (2027)"
                     }
                   ],
                   "disaggregated": false
@@ -5277,15 +5039,17 @@
               }
             ],
             "spec": {
+              "version": 1,
               "jsonSpec": {
                 "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"fold\":[\"fin_target\",\"submitted_my_call\",\"worst_case_projection\",\"current_ds_forecast\",\"submitted_direct_field_consumption_forecast\",\"best_case_projection\",\"submitted_weighted_projection\"],\"as\":[\"mkey\",\"valraw\"]},{\"calculate\":\"toNumber(datum.valraw)\",\"as\":\"val\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'Target' : datum.mkey == 'submitted_my_call' ? 'My Forecast' : datum.mkey == 'worst_case_projection' ? 'Worst Case' : datum.mkey == 'current_ds_forecast' ? 'DS Forecast' : datum.mkey == 't7d_flat_projection' ? 'T7D Flat Proj' : datum.mkey == 'dbu_dollars_t7d_adj' ? 'T7D' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'Directs Forecast' : datum.mkey == 'best_case_projection' ? 'Best Case' : datum.mkey == 'submitted_weighted_projection' ? 'Weighted Proj' : datum.mkey == 't28d_flat_projection' ? 'T28D Flat Proj' : datum.mkey == 'dbu_dollars_t28d_adj' ? 'T28D' : ''\",\"as\":\"label\"},{\"calculate\":\"datum.mkey == 'fin_target' ? '0' : datum.mkey == 'submitted_my_call' ? '1' : datum.mkey == 'worst_case_projection' ? '2' : datum.mkey == 'current_ds_forecast' ? '3' : datum.mkey == 't7d_flat_projection' ? '4' : datum.mkey == 'dbu_dollars_t7d_adj' ? '5' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? '1' : datum.mkey == 'best_case_projection' ? '2' : datum.mkey == 'submitted_weighted_projection' ? '3' : datum.mkey == 't28d_flat_projection' ? '4' : datum.mkey == 'dbu_dollars_t28d_adj' ? '5' : '0'\",\"as\":\"col\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'T' : datum.mkey == 'submitted_my_call' ? 'T' : datum.mkey == 'worst_case_projection' ? 'T' : datum.mkey == 'current_ds_forecast' ? 'T' : datum.mkey == 't7d_flat_projection' ? 'T' : datum.mkey == 'dbu_dollars_t7d_adj' ? 'T' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'B' : datum.mkey == 'best_case_projection' ? 'B' : datum.mkey == 'submitted_weighted_projection' ? 'B' : datum.mkey == 't28d_flat_projection' ? 'B' : datum.mkey == 'dbu_dollars_t28d_adj' ? 'B' : 'B'\",\"as\":\"row\"},{\"calculate\":\"datum.mkey=='fin_target'?'neu':datum.mkey=='dbu_dollars_t7d_adj'?(toNumber(datum.dbu_dollars_t7d_adj)>toNumber(datum.dbu_dollars_t7d_prev_adj)?'good':'bad'):datum.mkey=='dbu_dollars_t28d_adj'?(toNumber(datum.dbu_dollars_t28d_adj)>toNumber(datum.dbu_dollars_t28d_prev_adj)?'good':'bad'):(datum.val>toNumber(datum.fin_target)?'good':'bad')\",\"as\":\"vcat\"},{\"calculate\":\"((datum.val)<0?'-':'')+'$'+(abs(datum.val)>=1e9?format(abs(datum.val)/1e9,',.3f')+'B':abs(datum.val)>=1e6?format(abs(datum.val)/1e6,',.3f')+'M':abs(datum.val)>=1e3?format(abs(datum.val)/1e3,',.3f')+'k':format(abs(datum.val),',.3f'))\",\"as\":\"valfmt\"},{\"calculate\":\"datum.mkey=='fin_target'?'QoQ tgt '+format(toNumber(datum.qoq_target_growth),'+.2%'):datum.mkey=='t7d_flat_projection'?'tgt '+((toNumber(datum.target_t7d))<0?'-':'')+'$'+(abs(toNumber(datum.target_t7d))>=1e9?format(abs(toNumber(datum.target_t7d))/1e9,',.3f')+'B':abs(toNumber(datum.target_t7d))>=1e6?format(abs(toNumber(datum.target_t7d))/1e6,',.3f')+'M':abs(toNumber(datum.target_t7d))>=1e3?format(abs(toNumber(datum.target_t7d))/1e3,',.3f')+'k':format(abs(toNumber(datum.target_t7d)),',.3f')):datum.mkey=='t28d_flat_projection'?'':datum.mkey=='dbu_dollars_t7d_adj'?(toNumber(datum.dbu_dollars_t7d_prev_adj)?format((toNumber(datum.dbu_dollars_t7d_adj)-toNumber(datum.dbu_dollars_t7d_prev_adj))/toNumber(datum.dbu_dollars_t7d_prev_adj),'+.2%')+' vs '+((toNumber(datum.dbu_dollars_t7d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj)),',.3f'))+' prev':'prev '+((toNumber(datum.dbu_dollars_t7d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj)),',.3f'))):datum.mkey=='dbu_dollars_t28d_adj'?(toNumber(datum.dbu_dollars_t28d_prev_adj)?format((toNumber(datum.dbu_dollars_t28d_adj)-toNumber(datum.dbu_dollars_t28d_prev_adj))/toNumber(datum.dbu_dollars_t28d_prev_adj),'+.2%')+' vs '+((toNumber(datum.dbu_dollars_t28d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj)),',.3f'))+' prev':'prev '+((toNumber(datum.dbu_dollars_t28d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj)),',.3f'))):(toNumber(datum.fin_target)?format(datum.val/toNumber(datum.fin_target),'.2%'):'n/a')+' | '+(toNumber(datum.dbu_actuals_or_forecast_prev_quarter)?format((datum.val-toNumber(datum.dbu_actuals_or_forecast_prev_quarter))/toNumber(datum.dbu_actuals_or_forecast_prev_quarter),'+.2%'):'n/a')+' | '+(((datum.val-toNumber(datum.fin_target)))<0?'-':'')+'$'+(abs((datum.val-toNumber(datum.fin_target)))>=1e9?format(abs((datum.val-toNumber(datum.fin_target)))/1e9,',.3f')+'B':abs((datum.val-toNumber(datum.fin_target)))>=1e6?format(abs((datum.val-toNumber(datum.fin_target)))/1e6,',.3f')+'M':abs((datum.val-toNumber(datum.fin_target)))>=1e3?format(abs((datum.val-toNumber(datum.fin_target)))/1e3,',.3f')+'k':format(abs((datum.val-toNumber(datum.fin_target))),',.3f'))\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null}},\"resolve\":{\"scale\":{\"y\":\"independent\"}},\"layer\":[{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"rect\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":-26,\"fontSize\":14,\"fontWeight\":600,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":20,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]},\"legend\":null}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":10,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"sub\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"rect\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":-34,\"fontSize\":16,\"fontWeight\":600,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":26,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]},\"legend\":null}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":34,\"fontSize\":11,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
+                "spec": "{\"width\":\"container\",\"height\":\"container\",\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"view\":{\"stroke\":null}},\"resolve\":{\"scale\":{\"y\":\"independent\"}},\"transform\":[{\"fold\":[\"fin_target\",\"submitted_my_call\",\"worst_case_projection\",\"current_ds_forecast\",\"t7d_flat_projection\",\"submitted_direct_field_consumption_forecast\",\"best_case_projection\",\"submitted_weighted_projection\",\"t28d_flat_projection\"],\"as\":[\"mkey\",\"valraw\"]},{\"calculate\":\"toNumber(datum.valraw)\",\"as\":\"val\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'Target' : datum.mkey == 'submitted_my_call' ? 'My Forecast' : datum.mkey == 'worst_case_projection' ? 'Worst Case' : datum.mkey == 'current_ds_forecast' ? 'DS Forecast' : datum.mkey == 't7d_flat_projection' ? 'T7D Flat Proj' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'Directs Forecast' : datum.mkey == 'best_case_projection' ? 'Best Case' : datum.mkey == 'submitted_weighted_projection' ? 'Weighted Proj' : datum.mkey == 't28d_flat_projection' ? 'T28D Flat Proj' : ''\",\"as\":\"label\"},{\"calculate\":\"datum.mkey == 'fin_target' ? '0' : datum.mkey == 'submitted_my_call' ? '1' : datum.mkey == 'worst_case_projection' ? '2' : datum.mkey == 'current_ds_forecast' ? '3' : datum.mkey == 't7d_flat_projection' ? '4' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? '1' : datum.mkey == 'best_case_projection' ? '2' : datum.mkey == 'submitted_weighted_projection' ? '3' : datum.mkey == 't28d_flat_projection' ? '4' : '0'\",\"as\":\"col\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'T' : datum.mkey == 'submitted_my_call' ? 'T' : datum.mkey == 'worst_case_projection' ? 'T' : datum.mkey == 'current_ds_forecast' ? 'T' : datum.mkey == 't7d_flat_projection' ? 'T' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'B' : datum.mkey == 'best_case_projection' ? 'B' : datum.mkey == 'submitted_weighted_projection' ? 'B' : datum.mkey == 't28d_flat_projection' ? 'B' : 'B'\",\"as\":\"row\"},{\"calculate\":\"datum.mkey=='fin_target'?'neu':(datum.val>toNumber(datum.fin_target)?'good':'bad')\",\"as\":\"vcat\"},{\"calculate\":\"((datum.val)<0?'-':'')+'$'+(abs(datum.val)>=1e9?format(abs(datum.val)/1e9,',.3f')+'B':abs(datum.val)>=1e6?format(abs(datum.val)/1e6,',.3f')+'M':abs(datum.val)>=1e3?format(abs(datum.val)/1e3,',.3f')+'k':format(abs(datum.val),',.3f'))\",\"as\":\"valfmt\"},{\"calculate\":\"datum.mkey=='fin_target'?'QoQ tgt '+format(toNumber(datum.qoq_target_growth),'+.2%'):datum.mkey=='t7d_flat_projection'?'tgt '+((toNumber(datum.target_t7d))<0?'-':'')+'$'+(abs(toNumber(datum.target_t7d))>=1e6?format(abs(toNumber(datum.target_t7d))/1e6,',.3f')+'M':abs(toNumber(datum.target_t7d))>=1e3?format(abs(toNumber(datum.target_t7d))/1e3,',.3f')+'k':format(abs(toNumber(datum.target_t7d)),',.3f')):datum.mkey=='t28d_flat_projection'?'':(toNumber(datum.fin_target)?format(datum.val/toNumber(datum.fin_target),'.2%'):'n/a')+' | '+(toNumber(datum.dbu_actuals_or_forecast_prev_quarter)?format((datum.val-toNumber(datum.dbu_actuals_or_forecast_prev_quarter))/toNumber(datum.dbu_actuals_or_forecast_prev_quarter),'+.2%'):'n/a')+' | '+(((datum.val-toNumber(datum.fin_target)))<0?'-':'')+'$'+(abs((datum.val-toNumber(datum.fin_target)))>=1e9?format(abs((datum.val-toNumber(datum.fin_target)))/1e9,',.3f')+'B':abs((datum.val-toNumber(datum.fin_target)))>=1e6?format(abs((datum.val-toNumber(datum.fin_target)))/1e6,',.3f')+'M':abs((datum.val-toNumber(datum.fin_target)))>=1e3?format(abs((datum.val-toNumber(datum.fin_target)))/1e3,',.3f')+'k':format(abs((datum.val-toNumber(datum.fin_target))),',.3f'))\",\"as\":\"sub\"}],\"layer\":[{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"stroke\":\"#D0D3D6\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"type\":\"rect\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"dy\":-26,\"fill\":\"#5A6E75\",\"fontSize\":14,\"type\":\"text\",\"fontWeight\":600},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":20,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"legend\":null,\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":11,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}},\"text\":{\"field\":\"sub\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"stroke\":\"#D0D3D6\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"type\":\"rect\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"dy\":-34,\"fill\":\"#5A6E75\",\"fontSize\":16,\"type\":\"text\",\"fontWeight\":600},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":26,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"legend\":null,\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":34,\"fontSize\":12,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}},\"text\":{\"field\":\"sub\"}}}]}"
               },
-              "version": 1,
               "frame": {
                 "showTitle": true,
-                "title": "Yearly Forecast Metrics vs Target (FY total)",
-                "version": 1
+                "title": "Yearly Forecast Metrics vs Target (details)",
+                "version": 1,
+                "showDescription": true,
+                "description": "The footnotes show: Attainment % | QoQ % | Gap vs target"
               },
               "widgetType": "custom-vega-viz",
               "encodings": {
@@ -5306,10 +5070,10 @@
                     "fieldName": "current_ds_forecast"
                   },
                   {
-                    "fieldName": "target_t7d"
+                    "fieldName": "t7d_flat_projection"
                   },
                   {
-                    "fieldName": "dbu_dollars_t7d_prev_adj"
+                    "fieldName": "target_t7d"
                   },
                   {
                     "fieldName": "submitted_direct_field_consumption_forecast"
@@ -5321,7 +5085,7 @@
                     "fieldName": "submitted_weighted_projection"
                   },
                   {
-                    "fieldName": "dbu_dollars_t28d_prev_adj"
+                    "fieldName": "t28d_flat_projection"
                   },
                   {
                     "fieldName": "dbu_actuals_or_forecast_prev_quarter"
@@ -5334,9 +5098,9 @@
             }
           },
           "position": {
-            "x": 5,
-            "y": 1,
-            "width": 5,
+            "x": 0,
+            "y": 5,
+            "width": 12,
             "height": 4
           }
         },
@@ -5369,12 +5133,12 @@
                       "expression": "SUM(`Forecast__Account`.`current_ds_forecast`)"
                     },
                     {
-                      "name": "target_t7d",
-                      "expression": "SUM(`Forecast__Account`.`target_t7d`)"
+                      "name": "t7d_flat_projection",
+                      "expression": "SUM(`Forecast__Account`.`t7d_flat_projection`)"
                     },
                     {
-                      "name": "dbu_dollars_t7d_prev_adj",
-                      "expression": "SUM(`Forecast__Account`.`dbu_dollars_t7d_prev_adj`)"
+                      "name": "target_t7d",
+                      "expression": "SUM(`Forecast__Account`.`target_t7d`)"
                     },
                     {
                       "name": "submitted_direct_field_consumption_forecast",
@@ -5389,17 +5153,12 @@
                       "expression": "SUM(`Forecast__Account`.`submitted_weighted_projection`)"
                     },
                     {
-                      "name": "dbu_dollars_t28d_prev_adj",
-                      "expression": "SUM(`Forecast__Account`.`dbu_dollars_t28d_prev_adj`)"
+                      "name": "t28d_flat_projection",
+                      "expression": "SUM(`Forecast__Account`.`t28d_flat_projection`)"
                     },
                     {
                       "name": "dbu_actuals_or_forecast_prev_quarter",
                       "expression": "SUM(`Forecast__Account`.`dbu_actuals_or_forecast_prev_quarter`)"
-                    }
-                  ],
-                  "filters": [
-                    {
-                      "expression": "`Forecast__Account`.`fy` IN (2027)"
                     }
                   ],
                   "disaggregated": false
@@ -5409,13 +5168,20 @@
             "spec": {
               "jsonSpec": {
                 "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"transform\":[{\"fold\":[\"fin_target\",\"submitted_my_call\",\"worst_case_projection\",\"current_ds_forecast\",\"submitted_direct_field_consumption_forecast\",\"best_case_projection\",\"submitted_weighted_projection\"],\"as\":[\"mkey\",\"valraw\"]},{\"calculate\":\"toNumber(datum.valraw)\",\"as\":\"val\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'Target' : datum.mkey == 'submitted_my_call' ? 'My Forecast' : datum.mkey == 'worst_case_projection' ? 'Worst Case' : datum.mkey == 'current_ds_forecast' ? 'DS Forecast' : datum.mkey == 't7d_flat_projection' ? 'T7D Flat Proj' : datum.mkey == 'dbu_dollars_t7d_adj' ? 'T7D' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'Directs Forecast' : datum.mkey == 'best_case_projection' ? 'Best Case' : datum.mkey == 'submitted_weighted_projection' ? 'Weighted Proj' : datum.mkey == 't28d_flat_projection' ? 'T28D Flat Proj' : datum.mkey == 'dbu_dollars_t28d_adj' ? 'T28D' : ''\",\"as\":\"label\"},{\"calculate\":\"datum.mkey == 'fin_target' ? '0' : datum.mkey == 'submitted_my_call' ? '1' : datum.mkey == 'worst_case_projection' ? '2' : datum.mkey == 'current_ds_forecast' ? '3' : datum.mkey == 't7d_flat_projection' ? '4' : datum.mkey == 'dbu_dollars_t7d_adj' ? '5' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? '1' : datum.mkey == 'best_case_projection' ? '2' : datum.mkey == 'submitted_weighted_projection' ? '3' : datum.mkey == 't28d_flat_projection' ? '4' : datum.mkey == 'dbu_dollars_t28d_adj' ? '5' : '0'\",\"as\":\"col\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'T' : datum.mkey == 'submitted_my_call' ? 'T' : datum.mkey == 'worst_case_projection' ? 'T' : datum.mkey == 'current_ds_forecast' ? 'T' : datum.mkey == 't7d_flat_projection' ? 'T' : datum.mkey == 'dbu_dollars_t7d_adj' ? 'T' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'B' : datum.mkey == 'best_case_projection' ? 'B' : datum.mkey == 'submitted_weighted_projection' ? 'B' : datum.mkey == 't28d_flat_projection' ? 'B' : datum.mkey == 'dbu_dollars_t28d_adj' ? 'B' : 'B'\",\"as\":\"row\"},{\"calculate\":\"datum.mkey=='fin_target'?'neu':datum.mkey=='dbu_dollars_t7d_adj'?(toNumber(datum.dbu_dollars_t7d_adj)>toNumber(datum.dbu_dollars_t7d_prev_adj)?'good':'bad'):datum.mkey=='dbu_dollars_t28d_adj'?(toNumber(datum.dbu_dollars_t28d_adj)>toNumber(datum.dbu_dollars_t28d_prev_adj)?'good':'bad'):(datum.val>toNumber(datum.fin_target)?'good':'bad')\",\"as\":\"vcat\"},{\"calculate\":\"((datum.val)<0?'-':'')+'$'+(abs(datum.val)>=1e9?format(abs(datum.val)/1e9,',.3f')+'B':abs(datum.val)>=1e6?format(abs(datum.val)/1e6,',.3f')+'M':abs(datum.val)>=1e3?format(abs(datum.val)/1e3,',.3f')+'k':format(abs(datum.val),',.3f'))\",\"as\":\"valfmt\"},{\"calculate\":\"datum.mkey=='fin_target'?'QoQ tgt '+format(toNumber(datum.qoq_target_growth),'+.2%'):datum.mkey=='t7d_flat_projection'?'tgt '+((toNumber(datum.target_t7d))<0?'-':'')+'$'+(abs(toNumber(datum.target_t7d))>=1e9?format(abs(toNumber(datum.target_t7d))/1e9,',.3f')+'B':abs(toNumber(datum.target_t7d))>=1e6?format(abs(toNumber(datum.target_t7d))/1e6,',.3f')+'M':abs(toNumber(datum.target_t7d))>=1e3?format(abs(toNumber(datum.target_t7d))/1e3,',.3f')+'k':format(abs(toNumber(datum.target_t7d)),',.3f')):datum.mkey=='t28d_flat_projection'?'':datum.mkey=='dbu_dollars_t7d_adj'?(toNumber(datum.dbu_dollars_t7d_prev_adj)?format((toNumber(datum.dbu_dollars_t7d_adj)-toNumber(datum.dbu_dollars_t7d_prev_adj))/toNumber(datum.dbu_dollars_t7d_prev_adj),'+.2%')+' vs '+((toNumber(datum.dbu_dollars_t7d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj)),',.3f'))+' prev':'prev '+((toNumber(datum.dbu_dollars_t7d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t7d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t7d_prev_adj)),',.3f'))):datum.mkey=='dbu_dollars_t28d_adj'?(toNumber(datum.dbu_dollars_t28d_prev_adj)?format((toNumber(datum.dbu_dollars_t28d_adj)-toNumber(datum.dbu_dollars_t28d_prev_adj))/toNumber(datum.dbu_dollars_t28d_prev_adj),'+.2%')+' vs '+((toNumber(datum.dbu_dollars_t28d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj)),',.3f'))+' prev':'prev '+((toNumber(datum.dbu_dollars_t28d_prev_adj))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e9?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e9,',.3f')+'B':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e6?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e6,',.3f')+'M':abs(toNumber(datum.dbu_dollars_t28d_prev_adj))>=1e3?format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj))/1e3,',.3f')+'k':format(abs(toNumber(datum.dbu_dollars_t28d_prev_adj)),',.3f'))):(toNumber(datum.fin_target)?format(datum.val/toNumber(datum.fin_target),'.2%'):'n/a')+' | '+(toNumber(datum.dbu_actuals_or_forecast_prev_quarter)?format((datum.val-toNumber(datum.dbu_actuals_or_forecast_prev_quarter))/toNumber(datum.dbu_actuals_or_forecast_prev_quarter),'+.2%'):'n/a')+' | '+(((datum.val-toNumber(datum.fin_target)))<0?'-':'')+'$'+(abs((datum.val-toNumber(datum.fin_target)))>=1e9?format(abs((datum.val-toNumber(datum.fin_target)))/1e9,',.3f')+'B':abs((datum.val-toNumber(datum.fin_target)))>=1e6?format(abs((datum.val-toNumber(datum.fin_target)))/1e6,',.3f')+'M':abs((datum.val-toNumber(datum.fin_target)))>=1e3?format(abs((datum.val-toNumber(datum.fin_target)))/1e3,',.3f')+'k':format(abs((datum.val-toNumber(datum.fin_target))),',.3f'))\",\"as\":\"sub\"}],\"config\":{\"view\":{\"stroke\":null}},\"resolve\":{\"scale\":{\"y\":\"independent\"}},\"layer\":[{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"rect\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":-26,\"fontSize\":14,\"fontWeight\":600,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":20,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]},\"legend\":null}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":10,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"T\",\"B\"],\"paddingInner\":0.18,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"sub\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"rect\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":-34,\"fontSize\":16,\"fontWeight\":600,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":26,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]},\"legend\":null}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":34,\"fontSize\":11,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\"],\"paddingInner\":0.12,\"paddingOuter\":0.06},\"axis\":null},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"ALL\"],\"paddingInner\":0.0,\"paddingOuter\":0.08},\"axis\":null},\"text\":{\"field\":\"sub\"}}}]}"
+                "spec": "{\"width\":\"container\",\"height\":\"container\",\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"view\":{\"stroke\":null}},\"resolve\":{\"scale\":{\"y\":\"independent\"}},\"transform\":[{\"fold\":[\"fin_target\",\"submitted_my_call\",\"worst_case_projection\",\"current_ds_forecast\",\"t7d_flat_projection\",\"submitted_direct_field_consumption_forecast\",\"best_case_projection\",\"submitted_weighted_projection\",\"t28d_flat_projection\"],\"as\":[\"mkey\",\"valraw\"]},{\"calculate\":\"toNumber(datum.valraw)\",\"as\":\"val\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'Target' : datum.mkey == 'submitted_my_call' ? 'AE forecast' : datum.mkey == 'worst_case_projection' ? 'Worst Case' : datum.mkey == 'current_ds_forecast' ? 'DS Forecast' : datum.mkey == 't7d_flat_projection' ? 'T7D Flat Proj' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'Directs Forecast' : datum.mkey == 'best_case_projection' ? 'Best Case' : datum.mkey == 'submitted_weighted_projection' ? 'Weighted Proj' : datum.mkey == 't28d_flat_projection' ? 'T28D Flat Proj' : ''\",\"as\":\"label\"},{\"calculate\":\"datum.mkey == 'fin_target' ? '0' : datum.mkey == 'submitted_my_call' ? '1' : datum.mkey == 'worst_case_projection' ? '2' : datum.mkey == 'current_ds_forecast' ? '3' : datum.mkey == 't7d_flat_projection' ? '4' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? '1' : datum.mkey == 'best_case_projection' ? '2' : datum.mkey == 'submitted_weighted_projection' ? '3' : datum.mkey == 't28d_flat_projection' ? '4' : '0'\",\"as\":\"col\"},{\"calculate\":\"datum.mkey == 'fin_target' ? 'T' : datum.mkey == 'submitted_my_call' ? 'T' : datum.mkey == 'worst_case_projection' ? 'T' : datum.mkey == 'current_ds_forecast' ? 'T' : datum.mkey == 't7d_flat_projection' ? 'T' : datum.mkey == 'submitted_direct_field_consumption_forecast' ? 'B' : datum.mkey == 'best_case_projection' ? 'B' : datum.mkey == 'submitted_weighted_projection' ? 'B' : datum.mkey == 't28d_flat_projection' ? 'B' : 'B'\",\"as\":\"row\"},{\"calculate\":\"datum.mkey=='fin_target'?'neu':(datum.val>toNumber(datum.fin_target)?'good':'bad')\",\"as\":\"vcat\"},{\"calculate\":\"((datum.val)<0?'-':'')+'$'+(abs(datum.val)>=1e9?format(abs(datum.val)/1e9,',.3f')+'B':abs(datum.val)>=1e6?format(abs(datum.val)/1e6,',.3f')+'M':abs(datum.val)>=1e3?format(abs(datum.val)/1e3,',.3f')+'k':format(abs(datum.val),',.3f'))\",\"as\":\"valfmt\"},{\"calculate\":\"datum.mkey=='fin_target'?'QoQ tgt '+format(toNumber(datum.qoq_target_growth),'+.2%'):datum.mkey=='t7d_flat_projection'?'tgt '+((toNumber(datum.target_t7d))<0?'-':'')+'$'+(abs(toNumber(datum.target_t7d))>=1e6?format(abs(toNumber(datum.target_t7d))/1e6,',.3f')+'M':abs(toNumber(datum.target_t7d))>=1e3?format(abs(toNumber(datum.target_t7d))/1e3,',.3f')+'k':format(abs(toNumber(datum.target_t7d)),',.3f')):datum.mkey=='t28d_flat_projection'?'':(toNumber(datum.fin_target)?format(datum.val/toNumber(datum.fin_target),'.2%'):'n/a')+' | '+(toNumber(datum.dbu_actuals_or_forecast_prev_quarter)?format((datum.val-toNumber(datum.dbu_actuals_or_forecast_prev_quarter))/toNumber(datum.dbu_actuals_or_forecast_prev_quarter),'+.2%'):'n/a')+' | '+(((datum.val-toNumber(datum.fin_target)))<0?'-':'')+'$'+(abs((datum.val-toNumber(datum.fin_target)))>=1e9?format(abs((datum.val-toNumber(datum.fin_target)))/1e9,',.3f')+'B':abs((datum.val-toNumber(datum.fin_target)))>=1e6?format(abs((datum.val-toNumber(datum.fin_target)))/1e6,',.3f')+'M':abs((datum.val-toNumber(datum.fin_target)))>=1e3?format(abs((datum.val-toNumber(datum.fin_target)))/1e3,',.3f')+'k':format(abs((datum.val-toNumber(datum.fin_target))),',.3f'))\",\"as\":\"sub\"}],\"layer\":[{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"stroke\":\"#D0D3D6\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"type\":\"rect\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"dy\":-26,\"fill\":\"#5A6E75\",\"fontSize\":14,\"type\":\"text\",\"fontWeight\":600},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":20,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"legend\":null,\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey!='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":11,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"field\":\"row\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.18,\"paddingOuter\":0.08,\"domain\":[\"T\",\"B\"]}},\"text\":{\"field\":\"sub\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"stroke\":\"#D0D3D6\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"type\":\"rect\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"dy\":-34,\"fill\":\"#5A6E75\",\"fontSize\":16,\"type\":\"text\",\"fontWeight\":600},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}},\"text\":{\"field\":\"label\"}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":26,\"fontWeight\":700},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"vcat\",\"type\":\"nominal\",\"legend\":null,\"scale\":{\"domain\":[\"neu\",\"good\",\"bad\"],\"range\":[\"#1B3139\",\"#00A972\",\"#C4462E\"]}}}},{\"transform\":[{\"filter\":\"datum.mkey=='fin_target'\"}],\"mark\":{\"type\":\"text\",\"dy\":34,\"fontSize\":12,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.12,\"paddingOuter\":0.06,\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\"]}},\"y\":{\"datum\":\"ALL\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.08,\"domain\":[\"ALL\"]}},\"text\":{\"field\":\"sub\"}}}]}"
               },
               "version": 1,
               "frame": {
                 "showTitle": true,
-                "title": "Account Forecast Metrics vs Target (FY total)",
-                "version": 1
+                "title": {
+                  "value": "Yearly Forecast Metrics vs Target (Account roll-up)",
+                  "fields": []
+                },
+                "showDescription": true,
+                "description": {
+                  "value": "The footnotes show: Attainment % | QoQ % | Gap vs target",
+                  "fields": []
+                }
               },
               "widgetType": "custom-vega-viz",
               "encodings": {
@@ -5436,10 +5202,10 @@
                     "fieldName": "current_ds_forecast"
                   },
                   {
-                    "fieldName": "target_t7d"
+                    "fieldName": "t7d_flat_projection"
                   },
                   {
-                    "fieldName": "dbu_dollars_t7d_prev_adj"
+                    "fieldName": "target_t7d"
                   },
                   {
                     "fieldName": "submitted_direct_field_consumption_forecast"
@@ -5451,7 +5217,7 @@
                     "fieldName": "submitted_weighted_projection"
                   },
                   {
-                    "fieldName": "dbu_dollars_t28d_prev_adj"
+                    "fieldName": "t28d_flat_projection"
                   },
                   {
                     "fieldName": "dbu_actuals_or_forecast_prev_quarter"
@@ -5464,10 +5230,365 @@
             }
           },
           "position": {
-            "x": 5,
-            "y": 9,
-            "width": 5,
+            "x": 0,
+            "y": 16,
+            "width": 12,
             "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "ytd_dot_plot2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "user_name",
+                      "expression": "`Forecast__Individual`.`user_name`"
+                    },
+                    {
+                      "name": "submitted_my_call",
+                      "expression": "SUM(`Forecast__Individual`.`submitted_my_call`)"
+                    },
+                    {
+                      "name": "current_ds_forecast",
+                      "expression": "SUM(`Forecast__Individual`.`current_ds_forecast`)"
+                    },
+                    {
+                      "name": "worst_case_projection",
+                      "expression": "SUM(`Forecast__Individual`.`worst_case_projection`)"
+                    },
+                    {
+                      "name": "best_case_projection",
+                      "expression": "SUM(`Forecast__Individual`.`best_case_projection`)"
+                    },
+                    {
+                      "name": "submitted_weighted_projection",
+                      "expression": "SUM(`Forecast__Individual`.`submitted_weighted_projection`)"
+                    },
+                    {
+                      "name": "t7d_flat_projection",
+                      "expression": "SUM(`Forecast__Individual`.`t7d_flat_projection`)"
+                    },
+                    {
+                      "name": "t28d_flat_projection",
+                      "expression": "SUM(`Forecast__Individual`.`t28d_flat_projection`)"
+                    },
+                    {
+                      "name": "submitted_direct_field_consumption_forecast",
+                      "expression": "SUM(`Forecast__Individual`.`submitted_direct_field_consumption_forecast`)"
+                    },
+                    {
+                      "name": "fin_target",
+                      "expression": "SUM(`Forecast__Individual`.`fin_target`)"
+                    },
+                    {
+                      "name": "sales_level",
+                      "expression": "`Forecast__Individual`.`sales_level`"
+                    },
+                    {
+                      "name": "dbu_actuals",
+                      "expression": "SUM(`Forecast__Individual`.`dbu_actuals`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"width\":\"container\",\"height\":\"container\",\"data\":{\"name\":\"databricks_query\"},\"config\":{\"autosize\":{\"type\":\"fit\",\"contains\":\"padding\"},\"axis\":{\"gridOpacity\":0.3}},\"layer\":[{\"mark\":{\"type\":\"bar\",\"color\":\"#2196F3\",\"opacity\":0.22},\"encoding\":{\"x\":{\"field\":\"dbu_actuals\",\"type\":\"quantitative\",\"scale\":{\"zero\":true}},\"y\":{\"field\":\"user_name\",\"type\":\"nominal\"},\"tooltip\":[{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":\"User\"},{\"field\":\"dbu_actuals\",\"type\":\"quantitative\",\"title\":\"YTD $DBUs\",\"format\":\"$,.0f\"}]}},{\"mark\":{\"type\":\"rule\",\"color\":\"#333333\",\"strokeWidth\":2.5,\"strokeDash\":[6,3]},\"encoding\":{\"x\":{\"field\":\"fin_target\",\"type\":\"quantitative\"}}},{\"mark\":{\"type\":\"rule\",\"color\":\"#D0D0D0\",\"strokeWidth\":1,\"strokeDash\":[3,3]},\"encoding\":{\"y\":{\"field\":\"user_name\",\"type\":\"nominal\"}}},{\"params\":[{\"name\":\"metric_select\",\"bind\":\"legend\",\"select\":{\"type\":\"point\",\"fields\":[\"metric\"]}}],\"transform\":[{\"fold\":[\"submitted_my_call\",\"current_ds_forecast\",\"worst_case_projection\",\"best_case_projection\",\"submitted_weighted_projection\",\"t7d_flat_projection\",\"t28d_flat_projection\",\"submitted_direct_field_consumption_forecast\"],\"as\":[\"metric_key\",\"value\"]},{\"calculate\":\"datum.metric_key == 'submitted_my_call' ? 'My Call' : datum.metric_key == 'current_ds_forecast' ? 'DS Forecast' : datum.metric_key == 'worst_case_projection' ? 'Worst Case' : datum.metric_key == 'best_case_projection' ? 'Best Case' : datum.metric_key == 'submitted_weighted_projection' ? 'Weighted Proj' : datum.metric_key == 't7d_flat_projection' ? 'T7D Flat' : datum.metric_key == 't28d_flat_projection' ? 'T28D Flat' : datum.metric_key == 'submitted_direct_field_consumption_forecast' ? 'Directs' : datum.metric_key\",\"as\":\"metric\"},{\"filter\":\"!(datum.metric == 'Directs' && datum.sales_level == 'AE')\"}],\"mark\":{\"type\":\"circle\",\"size\":200},\"encoding\":{\"x\":{\"field\":\"value\",\"type\":\"quantitative\",\"title\":\"Forecast Value ($)\",\"axis\":{\"format\":\"$,.0f\"},\"scale\":{\"zero\":true}},\"y\":{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":null,\"axis\":{\"labelLimit\":200}},\"color\":{\"field\":\"metric\",\"type\":\"nominal\",\"sort\":[\"My Call\",\"DS Forecast\",\"Worst Case\",\"Best Case\",\"Weighted Proj\",\"T7D Flat\",\"T28D Flat\",\"Directs\"],\"scale\":{\"range\":[\"#2196F3\",\"#9C27B0\",\"#E03E3E\",\"#4CAF50\",\"#FF9800\",\"#C8A465\",\"#795548\",\"#0D47A1\"]},\"legend\":{\"title\":\"Metric\",\"orient\":\"top\"}},\"opacity\":{\"value\":0.1,\"condition\":{\"param\":\"metric_select\",\"value\":0.85}},\"tooltip\":[{\"field\":\"user_name\",\"type\":\"nominal\",\"title\":\"User\"},{\"field\":\"metric\",\"type\":\"nominal\",\"title\":\"Metric\"},{\"field\":\"value\",\"type\":\"quantitative\",\"title\":\"Value\",\"format\":\"$,.0f\"}]}}]}"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Yearly Forecast Metrics vs Target",
+                "version": 1
+              },
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "user_name"
+                  },
+                  {
+                    "fieldName": "submitted_my_call"
+                  },
+                  {
+                    "fieldName": "current_ds_forecast"
+                  },
+                  {
+                    "fieldName": "worst_case_projection"
+                  },
+                  {
+                    "fieldName": "best_case_projection"
+                  },
+                  {
+                    "fieldName": "submitted_weighted_projection"
+                  },
+                  {
+                    "fieldName": "t7d_flat_projection"
+                  },
+                  {
+                    "fieldName": "t28d_flat_projection"
+                  },
+                  {
+                    "fieldName": "submitted_direct_field_consumption_forecast"
+                  },
+                  {
+                    "fieldName": "fin_target"
+                  },
+                  {
+                    "fieldName": "sales_level"
+                  },
+                  {
+                    "fieldName": "dbu_actuals"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fiscal-year",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c80afde7cd84d915885_fy",
+                "query": {
+                  "datasetName": "201a8ec4",
+                  "fields": [
+                    {
+                      "name": "fy",
+                      "expression": "`fy`"
+                    },
+                    {
+                      "name": "fy_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c46a8169207567e4d16_fy",
+                "query": {
+                  "datasetName": "9008543e",
+                  "fields": [
+                    {
+                      "name": "fy",
+                      "expression": "`fy`"
+                    },
+                    {
+                      "name": "fy_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "INTEGER",
+                    "values": [
+                      {
+                        "value": "2027"
+                      }
+                    ]
+                  }
+                }
+              },
+              "disallowAll": true,
+              "frame": {
+                "showTitle": true,
+                "title": "Fiscal Year ",
+                "version": 1
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "fy",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c80afde7cd84d915885_fy"
+                  },
+                  {
+                    "fieldName": "fy",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c46a8169207567e4d16_fy"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 3,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "quarterly_breakdown_cards",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "fq",
+                      "expression": "`Forecast__Individual`.`fq`"
+                    },
+                    {
+                      "name": "fin_target",
+                      "expression": "SUM(`Forecast__Individual`.`fin_target`)"
+                    },
+                    {
+                      "name": "submitted_my_call",
+                      "expression": "SUM(`Forecast__Individual`.`submitted_my_call`)"
+                    },
+                    {
+                      "name": "gap_my_call",
+                      "expression": "SUM(`Forecast__Individual`.`gap_my_call`)"
+                    },
+                    {
+                      "name": "submitted_direct_field_consumption_forecast",
+                      "expression": "SUM(`Forecast__Individual`.`submitted_direct_field_consumption_forecast`)"
+                    },
+                    {
+                      "name": "gap_directs_forecast",
+                      "expression": "SUM(`Forecast__Individual`.`gap_directs_forecast`)"
+                    },
+                    {
+                      "name": "worst_case_projection",
+                      "expression": "SUM(`Forecast__Individual`.`worst_case_projection`)"
+                    },
+                    {
+                      "name": "gap_worst_case",
+                      "expression": "SUM(`Forecast__Individual`.`gap_worst_case`)"
+                    },
+                    {
+                      "name": "best_case_projection",
+                      "expression": "SUM(`Forecast__Individual`.`best_case_projection`)"
+                    },
+                    {
+                      "name": "gap_best_case",
+                      "expression": "SUM(`Forecast__Individual`.`gap_best_case`)"
+                    },
+                    {
+                      "name": "current_ds_forecast",
+                      "expression": "SUM(`Forecast__Individual`.`current_ds_forecast`)"
+                    },
+                    {
+                      "name": "gap_ds_forecast",
+                      "expression": "SUM(`Forecast__Individual`.`gap_ds_forecast`)"
+                    },
+                    {
+                      "name": "dbu_actuals",
+                      "expression": "SUM(`Forecast__Individual`.`dbu_actuals`)"
+                    },
+                    {
+                      "name": "days_left",
+                      "expression": "MIN(`Forecast__Individual`.`days_left_in_quarter`)"
+                    },
+                    {
+                      "name": "submitted_weighted_projection",
+                      "expression": "SUM(`Forecast__Individual`.`submitted_weighted_projection`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "jsonSpec": {
+                "type": "vega-lite",
+                "spec": "{\"data\":{\"name\":\"databricks_query\"},\"height\":\"container\",\"width\":\"container\",\"config\":{\"view\":{\"stroke\":null}},\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"transform\":[{\"calculate\":\"toNumber(datum.dbu_actuals)-toNumber(datum.fin_target)\",\"as\":\"gap_actuals\"},{\"calculate\":\"((toNumber(datum.fin_target))<0?'-':'')+'$'+(abs(toNumber(datum.fin_target))>=1e9?format(abs(toNumber(datum.fin_target))/1e9,',.3f')+'B':abs(toNumber(datum.fin_target))>=1e6?format(abs(toNumber(datum.fin_target))/1e6,',.3f')+'M':abs(toNumber(datum.fin_target))>=1e3?format(abs(toNumber(datum.fin_target))/1e3,',.3f')+'k':format(abs(toNumber(datum.fin_target)),',.3f'))\",\"as\":\"target_fmt\"},{\"calculate\":\"toNumber(datum.days_left)==0?'Actual $DBUs:':'My Forecast:'\",\"as\":\"lbl1\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Directs Forecast:'\",\"as\":\"lbl2\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Worst Case:'\",\"as\":\"lbl3\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Best Case:'\",\"as\":\"lbl4\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'DS Forecast:'\",\"as\":\"lbl5\"},{\"calculate\":\"toNumber(datum.days_left)==0?((toNumber(datum.dbu_actuals))<0?'-':'')+'$'+(abs(toNumber(datum.dbu_actuals))>=1e6?format(abs(toNumber(datum.dbu_actuals))/1e6,',.3f')+'M':format(abs(toNumber(datum.dbu_actuals))/1e3,',.3f')+'k')+' ('+(datum.gap_actuals>=0?'+':'')+format(datum.gap_actuals/1e6,',.3f')+'M)':((toNumber(datum.submitted_my_call))<0?'-':'')+'$'+(abs(toNumber(datum.submitted_my_call))>=1e6?format(abs(toNumber(datum.submitted_my_call))/1e6,',.3f')+'M':format(abs(toNumber(datum.submitted_my_call))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_my_call))>=0?'+':'')+format(toNumber(datum.gap_my_call)/1e6,',.3f')+'M)'\",\"as\":\"val_line1\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.submitted_direct_field_consumption_forecast))<0?'-':'')+'$'+(abs(toNumber(datum.submitted_direct_field_consumption_forecast))>=1e6?format(abs(toNumber(datum.submitted_direct_field_consumption_forecast))/1e6,',.3f')+'M':format(abs(toNumber(datum.submitted_direct_field_consumption_forecast))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_directs_forecast))>=0?'+':'')+format(toNumber(datum.gap_directs_forecast)/1e6,',.3f')+'M)'\",\"as\":\"val_line2\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.worst_case_projection))<0?'-':'')+'$'+(abs(toNumber(datum.worst_case_projection))>=1e6?format(abs(toNumber(datum.worst_case_projection))/1e6,',.3f')+'M':format(abs(toNumber(datum.worst_case_projection))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_worst_case))>=0?'+':'')+format(toNumber(datum.gap_worst_case)/1e6,',.3f')+'M)'\",\"as\":\"val_line3\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.best_case_projection))<0?'-':'')+'$'+(abs(toNumber(datum.best_case_projection))>=1e6?format(abs(toNumber(datum.best_case_projection))/1e6,',.3f')+'M':format(abs(toNumber(datum.best_case_projection))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_best_case))>=0?'+':'')+format(toNumber(datum.gap_best_case)/1e6,',.3f')+'M)'\",\"as\":\"val_line4\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.current_ds_forecast))<0?'-':'')+'$'+(abs(toNumber(datum.current_ds_forecast))>=1e6?format(abs(toNumber(datum.current_ds_forecast))/1e6,',.3f')+'M':format(abs(toNumber(datum.current_ds_forecast))/1e3,',.3f')+'k')+' ('+((toNumber(datum.gap_ds_forecast))>=0?'+':'')+format(toNumber(datum.gap_ds_forecast)/1e6,',.3f')+'M)'\",\"as\":\"val_line5\"},{\"calculate\":\"toNumber(datum.days_left)==0?(toNumber(datum.dbu_actuals)-toNumber(datum.fin_target)):toNumber(datum.gap_my_call)\",\"as\":\"gap_line1\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':'Weighted Proj:'\",\"as\":\"lbl6\"},{\"calculate\":\"toNumber(datum.days_left)==0?'':((toNumber(datum.submitted_weighted_projection))<0?'-':'')+'$'+(abs(toNumber(datum.submitted_weighted_projection))>=1e6?format(abs(toNumber(datum.submitted_weighted_projection))/1e6,',.3f')+'M':format(abs(toNumber(datum.submitted_weighted_projection))/1e3,',.3f')+'k')+' ('+((toNumber(datum.submitted_weighted_projection)-toNumber(datum.fin_target))>=0?'+':'')+format((toNumber(datum.submitted_weighted_projection)-toNumber(datum.fin_target))/1e6,',.3f')+'M)'\",\"as\":\"val_line6\"}],\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":8,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}}}},{\"mark\":{\"type\":\"text\",\"dy\":-97,\"fontSize\":16,\"fontWeight\":700,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"fq\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-72,\"fontSize\":12,\"fill\":\"#5A6E75\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"value\":\"Target\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-47,\"fontSize\":24,\"fontWeight\":700,\"fill\":\"#1B3139\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"target_fmt\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-14,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl1\"}}},{\"mark\":{\"type\":\"text\",\"dy\":-14,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line1\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"datum.gap_line1>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":8,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl2\"}}},{\"mark\":{\"type\":\"text\",\"dy\":8,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line2\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"toNumber(datum.gap_directs_forecast)>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":30,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl3\"}}},{\"mark\":{\"type\":\"text\",\"dy\":30,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line3\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"toNumber(datum.gap_worst_case)>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":52,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl4\"}}},{\"mark\":{\"type\":\"text\",\"dy\":52,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line4\"},\"color\":{\"value\":\"#C4462E\",\"condition\":{\"test\":\"toNumber(datum.gap_best_case)>=0\",\"value\":\"#00A972\"}}}},{\"mark\":{\"type\":\"text\",\"dy\":74,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl5\"}}},{\"mark\":{\"type\":\"text\",\"dy\":74,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line5\"},\"color\":{\"condition\":{\"test\":\"toNumber(datum.gap_ds_forecast)>=0\",\"value\":\"#00A972\"},\"value\":\"#C4462E\"}}},{\"mark\":{\"type\":\"text\",\"dy\":96,\"dx\":-30,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"right\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"lbl6\"}}},{\"mark\":{\"type\":\"text\",\"dy\":96,\"dx\":-25,\"fontSize\":14,\"fontWeight\":600,\"align\":\"left\"},\"encoding\":{\"x\":{\"field\":\"fq\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0.08,\"paddingOuter\":0.04}},\"y\":{\"datum\":\"R\",\"type\":\"ordinal\",\"axis\":null,\"scale\":{\"type\":\"band\",\"paddingInner\":0,\"paddingOuter\":0.04,\"domain\":[\"R\"]}},\"text\":{\"field\":\"val_line6\"},\"color\":{\"condition\":{\"test\":\"(toNumber(datum.submitted_weighted_projection)-toNumber(datum.fin_target))>=0\",\"value\":\"#00A972\"},\"value\":\"#C4462E\"}}}]}"
+              },
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "title": {
+                  "value": "Quarterly Breakdown",
+                  "fields": []
+                }
+              },
+              "version": 1,
+              "widgetType": "custom-vega-viz",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "fq"
+                  },
+                  {
+                    "fieldName": "fin_target"
+                  },
+                  {
+                    "fieldName": "submitted_my_call"
+                  },
+                  {
+                    "fieldName": "gap_my_call"
+                  },
+                  {
+                    "fieldName": "submitted_direct_field_consumption_forecast"
+                  },
+                  {
+                    "fieldName": "gap_directs_forecast"
+                  },
+                  {
+                    "fieldName": "worst_case_projection"
+                  },
+                  {
+                    "fieldName": "gap_worst_case"
+                  },
+                  {
+                    "fieldName": "best_case_projection"
+                  },
+                  {
+                    "fieldName": "gap_best_case"
+                  },
+                  {
+                    "fieldName": "current_ds_forecast"
+                  },
+                  {
+                    "fieldName": "gap_ds_forecast"
+                  },
+                  {
+                    "fieldName": "dbu_actuals"
+                  },
+                  {
+                    "fieldName": "days_left"
+                  },
+                  {
+                    "fieldName": "submitted_weighted_projection"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 5
           }
         }
       ],
@@ -8050,10 +8171,15 @@
               "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Quarterly incremental consumption by use case",
+                "title": {
+                  "value": "Quarterly incremental consumption by use case",
+                  "fields": []
+                },
                 "showDescription": true,
-                "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
-                "version": 1
+                "description": {
+                  "value": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
+                  "fields": []
+                }
               },
               "widgetType": "table",
               "encodings": {
@@ -9376,7 +9502,7 @@
             "spec": {
               "jsonSpec": {
                 "type": "vega-lite",
-                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"padding\":0,\"transform\":[{\"calculate\":\"(true)?toNumber(datum.w):0\",\"as\":\"wc_total\"},{\"calculate\":\"(true)?1:0\",\"as\":\"cn_total\"},{\"calculate\":\"(toNumber(datum.stage_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?toNumber(datum.w):0\",\"as\":\"wc_sp\"},{\"calculate\":\"(toNumber(datum.stage_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?1:0\",\"as\":\"cn_sp\"},{\"calculate\":\"(toNumber(datum.stage_regressed_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_sr\"},{\"calculate\":\"(toNumber(datum.stage_regressed_count)>0)?1:0\",\"as\":\"cn_sr\"},{\"calculate\":\"(toNumber(datum.live_date_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?toNumber(datum.w):0\",\"as\":\"wc_la\"},{\"calculate\":\"(toNumber(datum.live_date_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?1:0\",\"as\":\"cn_la\"},{\"calculate\":\"(toNumber(datum.live_date_regressed_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_ls\"},{\"calculate\":\"(toNumber(datum.live_date_regressed_count)>0)?1:0\",\"as\":\"cn_ls\"},{\"calculate\":\"(toNumber(datum.amount_grew_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_au\"},{\"calculate\":\"(toNumber(datum.amount_grew_count)>0)?1:0\",\"as\":\"cn_au\"},{\"calculate\":\"(toNumber(datum.amount_shrank_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_ad\"},{\"calculate\":\"(toNumber(datum.amount_shrank_count)>0)?1:0\",\"as\":\"cn_ad\"},{\"calculate\":\"(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline')?toNumber(datum.w):0\",\"as\":\"wc_nu\"},{\"calculate\":\"(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline')?1:0\",\"as\":\"cn_nu\"},{\"calculate\":\"(datum.slippage_risk!=null && datum.slippage_risk!='No Risk')?toNumber(datum.w):0\",\"as\":\"wc_sl\"},{\"calculate\":\"(datum.slippage_risk!=null && datum.slippage_risk!='No Risk')?1:0\",\"as\":\"cn_sl\"},{\"aggregate\":[{\"op\":\"sum\",\"field\":\"wc_total\",\"as\":\"wc_total\"},{\"op\":\"sum\",\"field\":\"cn_total\",\"as\":\"cn_total\"},{\"op\":\"sum\",\"field\":\"wc_sp\",\"as\":\"wc_sp\"},{\"op\":\"sum\",\"field\":\"cn_sp\",\"as\":\"cn_sp\"},{\"op\":\"sum\",\"field\":\"wc_sr\",\"as\":\"wc_sr\"},{\"op\":\"sum\",\"field\":\"cn_sr\",\"as\":\"cn_sr\"},{\"op\":\"sum\",\"field\":\"wc_la\",\"as\":\"wc_la\"},{\"op\":\"sum\",\"field\":\"cn_la\",\"as\":\"cn_la\"},{\"op\":\"sum\",\"field\":\"wc_ls\",\"as\":\"wc_ls\"},{\"op\":\"sum\",\"field\":\"cn_ls\",\"as\":\"cn_ls\"},{\"op\":\"sum\",\"field\":\"wc_au\",\"as\":\"wc_au\"},{\"op\":\"sum\",\"field\":\"cn_au\",\"as\":\"cn_au\"},{\"op\":\"sum\",\"field\":\"wc_ad\",\"as\":\"wc_ad\"},{\"op\":\"sum\",\"field\":\"cn_ad\",\"as\":\"cn_ad\"},{\"op\":\"sum\",\"field\":\"wc_nu\",\"as\":\"wc_nu\"},{\"op\":\"sum\",\"field\":\"cn_nu\",\"as\":\"cn_nu\"},{\"op\":\"sum\",\"field\":\"wc_sl\",\"as\":\"wc_sl\"},{\"op\":\"sum\",\"field\":\"cn_sl\",\"as\":\"cn_sl\"}],\"groupby\":[]},{\"fold\":[\"wc_total\",\"wc_sp\",\"wc_sr\",\"wc_la\",\"wc_ls\",\"wc_au\",\"wc_ad\",\"wc_nu\",\"wc_sl\"],\"as\":[\"mkey\",\"val\"]},{\"calculate\":\"datum.mkey=='wc_total'?'0':(datum.mkey=='wc_nu'?'1':(datum.mkey=='wc_sp'?'2':(datum.mkey=='wc_la'?'3':(datum.mkey=='wc_au'?'4':(datum.mkey=='wc_sr'?'5':(datum.mkey=='wc_ls'?'6':(datum.mkey=='wc_ad'?'7':(datum.mkey=='wc_sl'?'8':''))))))))\",\"as\":\"col\"},{\"calculate\":\"datum.mkey=='wc_total'?'Total UCOs':(datum.mkey=='wc_sp'?'Stage Progression':(datum.mkey=='wc_sr'?'Stage Regression':(datum.mkey=='wc_la'?'Live Date Accel.':(datum.mkey=='wc_ls'?'Live Date Slip.':(datum.mkey=='wc_au'?'Amount Up':(datum.mkey=='wc_ad'?'Amount Down':(datum.mkey=='wc_nu'?'New UCOs':(datum.mkey=='wc_sl'?'Slippage Warnings':''))))))))\",\"as\":\"label\"},{\"calculate\":\"datum.mkey=='wc_total'?(toNumber(datum.cn_total)):(datum.mkey=='wc_sp'?(toNumber(datum.cn_sp)):(datum.mkey=='wc_sr'?(toNumber(datum.cn_sr)):(datum.mkey=='wc_la'?(toNumber(datum.cn_la)):(datum.mkey=='wc_ls'?(toNumber(datum.cn_ls)):(datum.mkey=='wc_au'?(toNumber(datum.cn_au)):(datum.mkey=='wc_ad'?(toNumber(datum.cn_ad)):(datum.mkey=='wc_nu'?(toNumber(datum.cn_nu)):(datum.mkey=='wc_sl'?(toNumber(datum.cn_sl)):(0)))))))))\",\"as\":\"cnt\"},{\"calculate\":\"((toNumber(datum.val))<0?'-':'')+'$'+(abs(toNumber(datum.val))>=1e9?format(abs(toNumber(datum.val))/1e9,',.2f')+'B':abs(toNumber(datum.val))>=1e6?format(abs(toNumber(datum.val))/1e6,',.2f')+'M':abs(toNumber(datum.val))>=1e3?format(abs(toNumber(datum.val))/1e3,',.2f')+'k':format(abs(toNumber(datum.val)),',.2f'))\",\"as\":\"valfmt\"},{\"calculate\":\"format(datum.cnt,',d')+(datum.cnt==1?' use case':' use cases')\",\"as\":\"cntfmt\"},{\"calculate\":\"datum.mkey=='wc_total'?'#1B3139':((datum.mkey=='wc_sp'||datum.mkey=='wc_la'||datum.mkey=='wc_au'||datum.mkey=='wc_nu')?'#1B8A4B':'#C4262E')\",\"as\":\"valcolor\"},{\"calculate\":\"datum.mkey=='wc_total'?'#5A6E75':((datum.mkey=='wc_sp'||datum.mkey=='wc_la'||datum.mkey=='wc_au'||datum.mkey=='wc_nu')?'#1B8A4B':'#C4262E')\",\"as\":\"lblcolor\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-24,\"fontSize\":11,\"fontWeight\":600,\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"label\"},\"color\":{\"field\":\"lblcolor\",\"type\":\"nominal\",\"scale\":null,\"legend\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":19,\"fontWeight\":700,\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"valcolor\",\"type\":\"nominal\",\"scale\":null,\"legend\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"cntfmt\"}}}]}"
+                "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"padding\":0,\"transform\":[{\"calculate\":\"(true)?toNumber(datum.w):0\",\"as\":\"wc_total\"},{\"calculate\":\"(true)?1:0\",\"as\":\"cn_total\"},{\"calculate\":\"(toNumber(datum.stage_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?toNumber(datum.w):0\",\"as\":\"wc_sp\"},{\"calculate\":\"(toNumber(datum.stage_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?1:0\",\"as\":\"cn_sp\"},{\"calculate\":\"(toNumber(datum.stage_regressed_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_sr\"},{\"calculate\":\"(toNumber(datum.stage_regressed_count)>0)?1:0\",\"as\":\"cn_sr\"},{\"calculate\":\"(toNumber(datum.live_date_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?toNumber(datum.w):0\",\"as\":\"wc_la\"},{\"calculate\":\"(toNumber(datum.live_date_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?1:0\",\"as\":\"cn_la\"},{\"calculate\":\"(toNumber(datum.live_date_regressed_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_ls\"},{\"calculate\":\"(toNumber(datum.live_date_regressed_count)>0)?1:0\",\"as\":\"cn_ls\"},{\"calculate\":\"(toNumber(datum.amount_grew_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_au\"},{\"calculate\":\"(toNumber(datum.amount_grew_count)>0)?1:0\",\"as\":\"cn_au\"},{\"calculate\":\"(toNumber(datum.amount_shrank_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_ad\"},{\"calculate\":\"(toNumber(datum.amount_shrank_count)>0)?1:0\",\"as\":\"cn_ad\"},{\"calculate\":\"(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline')?toNumber(datum.w):0\",\"as\":\"wc_nu\"},{\"calculate\":\"(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline')?1:0\",\"as\":\"cn_nu\"},{\"calculate\":\"(datum.slippage_risk!=null && datum.slippage_risk!='No Risk')?toNumber(datum.w):0\",\"as\":\"wc_sl\"},{\"calculate\":\"(datum.slippage_risk!=null && datum.slippage_risk!='No Risk')?1:0\",\"as\":\"cn_sl\"},{\"aggregate\":[{\"op\":\"sum\",\"field\":\"wc_total\",\"as\":\"wc_total\"},{\"op\":\"sum\",\"field\":\"cn_total\",\"as\":\"cn_total\"},{\"op\":\"sum\",\"field\":\"wc_sp\",\"as\":\"wc_sp\"},{\"op\":\"sum\",\"field\":\"cn_sp\",\"as\":\"cn_sp\"},{\"op\":\"sum\",\"field\":\"wc_sr\",\"as\":\"wc_sr\"},{\"op\":\"sum\",\"field\":\"cn_sr\",\"as\":\"cn_sr\"},{\"op\":\"sum\",\"field\":\"wc_la\",\"as\":\"wc_la\"},{\"op\":\"sum\",\"field\":\"cn_la\",\"as\":\"cn_la\"},{\"op\":\"sum\",\"field\":\"wc_ls\",\"as\":\"wc_ls\"},{\"op\":\"sum\",\"field\":\"cn_ls\",\"as\":\"cn_ls\"},{\"op\":\"sum\",\"field\":\"wc_au\",\"as\":\"wc_au\"},{\"op\":\"sum\",\"field\":\"cn_au\",\"as\":\"cn_au\"},{\"op\":\"sum\",\"field\":\"wc_ad\",\"as\":\"wc_ad\"},{\"op\":\"sum\",\"field\":\"cn_ad\",\"as\":\"cn_ad\"},{\"op\":\"sum\",\"field\":\"wc_nu\",\"as\":\"wc_nu\"},{\"op\":\"sum\",\"field\":\"cn_nu\",\"as\":\"cn_nu\"},{\"op\":\"sum\",\"field\":\"wc_sl\",\"as\":\"wc_sl\"},{\"op\":\"sum\",\"field\":\"cn_sl\",\"as\":\"cn_sl\"}],\"groupby\":[]},{\"fold\":[\"wc_total\",\"wc_sp\",\"wc_sr\",\"wc_la\",\"wc_ls\",\"wc_au\",\"wc_ad\",\"wc_nu\",\"wc_sl\"],\"as\":[\"mkey\",\"val\"]},{\"calculate\":\"datum.mkey=='wc_total'?'0':(datum.mkey=='wc_nu'?'1':(datum.mkey=='wc_sp'?'2':(datum.mkey=='wc_la'?'3':(datum.mkey=='wc_au'?'4':(datum.mkey=='wc_sr'?'5':(datum.mkey=='wc_ls'?'6':(datum.mkey=='wc_ad'?'7':(datum.mkey=='wc_sl'?'8':''))))))))\",\"as\":\"col\"},{\"calculate\":\"datum.mkey=='wc_total'?'Total UCOs':(datum.mkey=='wc_sp'?'Stage Progression':(datum.mkey=='wc_sr'?'Stage Regression':(datum.mkey=='wc_la'?'Live Date Accel.':(datum.mkey=='wc_ls'?'Live Date pushed back':(datum.mkey=='wc_au'?'Amount Up':(datum.mkey=='wc_ad'?'Amount Down':(datum.mkey=='wc_nu'?'New UCOs':(datum.mkey=='wc_sl'?'Slippage Warnings':''))))))))\",\"as\":\"label\"},{\"calculate\":\"datum.mkey=='wc_total'?(toNumber(datum.cn_total)):(datum.mkey=='wc_sp'?(toNumber(datum.cn_sp)):(datum.mkey=='wc_sr'?(toNumber(datum.cn_sr)):(datum.mkey=='wc_la'?(toNumber(datum.cn_la)):(datum.mkey=='wc_ls'?(toNumber(datum.cn_ls)):(datum.mkey=='wc_au'?(toNumber(datum.cn_au)):(datum.mkey=='wc_ad'?(toNumber(datum.cn_ad)):(datum.mkey=='wc_nu'?(toNumber(datum.cn_nu)):(datum.mkey=='wc_sl'?(toNumber(datum.cn_sl)):(0)))))))))\",\"as\":\"cnt\"},{\"calculate\":\"((toNumber(datum.val))<0?'-':'')+'$'+(abs(toNumber(datum.val))>=1e9?format(abs(toNumber(datum.val))/1e9,',.2f')+'B':abs(toNumber(datum.val))>=1e6?format(abs(toNumber(datum.val))/1e6,',.2f')+'M':abs(toNumber(datum.val))>=1e3?format(abs(toNumber(datum.val))/1e3,',.2f')+'k':format(abs(toNumber(datum.val)),',.2f'))\",\"as\":\"valfmt\"},{\"calculate\":\"format(datum.cnt,',d')+(datum.cnt==1?' use case':' use cases')\",\"as\":\"cntfmt\"},{\"calculate\":\"datum.mkey=='wc_total'?'#1B3139':((datum.mkey=='wc_sp'||datum.mkey=='wc_la'||datum.mkey=='wc_au'||datum.mkey=='wc_nu')?'#1B8A4B':'#C4262E')\",\"as\":\"valcolor\"},{\"calculate\":\"datum.mkey=='wc_total'?'#5A6E75':((datum.mkey=='wc_sp'||datum.mkey=='wc_la'||datum.mkey=='wc_au'||datum.mkey=='wc_nu')?'#1B8A4B':'#C4262E')\",\"as\":\"lblcolor\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-24,\"fontSize\":10,\"fontWeight\":600,\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"label\"},\"color\":{\"field\":\"lblcolor\",\"type\":\"nominal\",\"scale\":null,\"legend\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":19,\"fontWeight\":700,\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"valcolor\",\"type\":\"nominal\",\"scale\":null,\"legend\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"cntfmt\"}}}]}"
               },
               "version": 1,
               "frame": {
@@ -11136,151 +11262,150 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "account_name",
-                      "expression": "`account_name`"
+                      "name": "UCOs__account_name",
+                      "expression": "`UCOs`.`account_name`"
                     },
                     {
-                      "name": "usecase_url",
-                      "expression": "`usecase_url`"
+                      "name": "UCOs__usecase_url",
+                      "expression": "`UCOs`.`usecase_url`"
                     },
                     {
-                      "name": "hygiene_icon",
-                      "expression": "`hygiene_icon`"
+                      "name": "UCOs__hygiene_icon",
+                      "expression": "`UCOs`.`hygiene_icon`"
                     },
                     {
-                      "name": "keytechwin_icon",
-                      "expression": "`keytechwin_icon`"
+                      "name": "UCOs__keytechwin_icon",
+                      "expression": "`UCOs`.`keytechwin_icon`"
                     },
                     {
-                      "name": "account_executive",
-                      "expression": "`account_executive`"
+                      "name": "UCOs__account_executive",
+                      "expression": "`UCOs`.`account_executive`"
                     },
                     {
-                      "name": "solution_architect",
-                      "expression": "`solution_architect`"
+                      "name": "UCOs__solution_architect",
+                      "expression": "`UCOs`.`solution_architect`"
                     },
                     {
-                      "name": "estimated_quarterly_dollar_dbus",
-                      "expression": "`estimated_quarterly_dollar_dbus`"
+                      "name": "UCOs__estimated_quarterly_dollar_dbus",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
                     },
                     {
-                      "name": "estimated_quarterly_dollar_dbus_weighted",
-                      "expression": "`estimated_quarterly_dollar_dbus_weighted`"
+                      "name": "UCOs__estimated_quarterly_dollar_dbus_weighted",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus_weighted`"
                     },
                     {
-                      "name": "FY27_Q1",
-                      "expression": "`FY27_Q1`"
+                      "name": "UCOs__FY27_Q1",
+                      "expression": "`UCOs`.`FY27_Q1`"
                     },
                     {
-                      "name": "FY27_Q2",
-                      "expression": "`FY27_Q2`"
+                      "name": "UCOs__FY27_Q2",
+                      "expression": "`UCOs`.`FY27_Q2`"
                     },
                     {
-                      "name": "FY27_Q3",
-                      "expression": "`FY27_Q3`"
+                      "name": "UCOs__FY27_Q3",
+                      "expression": "`UCOs`.`FY27_Q3`"
                     },
                     {
-                      "name": "FY27_Q4",
-                      "expression": "`FY27_Q4`"
+                      "name": "UCOs__FY27_Q4",
+                      "expression": "`UCOs`.`FY27_Q4`"
                     },
                     {
-                      "name": "target_onboarding_date",
-                      "expression": "`target_onboarding_date`"
+                      "name": "UCOs__target_onboarding_date",
+                      "expression": "`UCOs`.`target_onboarding_date`"
                     },
                     {
-                      "name": "target_live_date",
-                      "expression": "`target_live_date`"
+                      "name": "UCOs__target_live_date",
+                      "expression": "`UCOs`.`target_live_date`"
                     },
                     {
-                      "name": "slippage_risk",
-                      "expression": "`slippage_risk`"
+                      "name": "UCOs__slippage_risk",
+                      "expression": "`UCOs`.`slippage_risk`"
                     },
                     {
-                      "name": "stage",
-                      "expression": "`stage`"
+                      "name": "UCOs__stage",
+                      "expression": "`UCOs`.`stage`"
                     },
                     {
-                      "name": "days_in_stage",
-                      "expression": "`days_in_stage`"
+                      "name": "UCOs__days_in_stage",
+                      "expression": "`UCOs`.`days_in_stage`"
                     },
                     {
-                      "name": "implementation_status",
-                      "expression": "`implementation_status`"
+                      "name": "UCOs__implementation_status",
+                      "expression": "`UCOs`.`implementation_status`"
                     },
                     {
-                      "name": "blocked_count",
-                      "expression": "`blocked_count`"
+                      "name": "UCOs__blocked_count",
+                      "expression": "`UCOs`.`blocked_count`"
                     },
                     {
-                      "name": "friction_count",
-                      "expression": "`friction_count`"
+                      "name": "UCOs__friction_count",
+                      "expression": "`UCOs`.`friction_count`"
                     },
                     {
-                      "name": "blocker_details",
-                      "expression": "`blocker_details`"
+                      "name": "UCOs__blocker_details",
+                      "expression": "`UCOs`.`blocker_details`"
                     },
                     {
-                      "name": "usecase_description",
-                      "expression": "`usecase_description`"
+                      "name": "UCOs__usecase_description",
+                      "expression": "`UCOs`.`usecase_description`"
                     },
                     {
-                      "name": "demand_plan_next_steps",
-                      "expression": "`demand_plan_next_steps`"
+                      "name": "UCOs__demand_plan_next_steps",
+                      "expression": "`UCOs`.`demand_plan_next_steps`"
                     },
                     {
-                      "name": "ASQ_Summary_HTML",
-                      "expression": "`ASQ_Summary_HTML`"
+                      "name": "UCOs__ASQ_Summary_HTML",
+                      "expression": "`UCOs`.`ASQ_Summary_HTML`"
                     },
                     {
-                      "name": "eval_doc_link",
-                      "expression": "`eval_doc_link`"
+                      "name": "UCOs__eval_doc_link",
+                      "expression": "`UCOs`.`eval_doc_link`"
                     },
                     {
-                      "name": "onboarding_doc_link",
-                      "expression": "`onboarding_doc_link`"
+                      "name": "UCOs__onboarding_doc_link",
+                      "expression": "`UCOs`.`onboarding_doc_link`"
                     },
                     {
-                      "name": "dsa",
-                      "expression": "`dsa`"
+                      "name": "UCOs__dsa",
+                      "expression": "`UCOs`.`dsa`"
                     },
                     {
-                      "name": "manager_notes",
-                      "expression": "`manager_notes`"
+                      "name": "UCOs__manager_notes",
+                      "expression": "`UCOs`.`manager_notes`"
                     },
                     {
-                      "name": "implementation_partner_name",
-                      "expression": "`implementation_partner_name`"
+                      "name": "UCOs__implementation_partner_name",
+                      "expression": "`UCOs`.`implementation_partner_name`"
                     },
                     {
-                      "name": "migration_source_platform_adj",
-                      "expression": "`migration_source_platform_adj`"
+                      "name": "UCOs__migration_source_platform_adj",
+                      "expression": "`UCOs`.`migration_source_platform_adj`"
                     },
                     {
-                      "name": "use_case_product_enriched",
-                      "expression": "`use_case_product_enriched`"
+                      "name": "UCOs__use_case_product_enriched",
+                      "expression": "`UCOs`.`use_case_product_enriched`"
                     },
                     {
-                      "name": "amount_increased",
-                      "expression": "`amount_increased`"
+                      "name": "UCOs__amount_increased",
+                      "expression": "`UCOs`.`amount_increased`"
                     },
                     {
-                      "name": "has_onboarding_slippage_risk",
-                      "expression": "`has_onboarding_slippage_risk`"
+                      "name": "UCOs__has_onboarding_slippage_risk",
+                      "expression": "`UCOs`.`has_onboarding_slippage_risk`"
                     },
                     {
-                      "name": "target_date_pulled_foreward",
-                      "expression": "`target_date_pulled_foreward`"
+                      "name": "UCOs__target_date_pulled_foreward",
+                      "expression": "`UCOs`.`target_date_pulled_foreward`"
                     },
                     {
-                      "name": "has_go_live_slippage_risk",
-                      "expression": "`has_go_live_slippage_risk`"
+                      "name": "UCOs__has_go_live_slippage_risk",
+                      "expression": "`UCOs`.`has_go_live_slippage_risk`"
                     },
                     {
-                      "name": "stage_advanced",
-                      "expression": "`stage_advanced`"
+                      "name": "UCOs__stage_advanced",
+                      "expression": "`UCOs`.`stage_advanced`"
                     },
                     {
                       "name": "`hygiene_rules`",
@@ -11305,14 +11430,14 @@
                   ],
                   "filters": [
                     {
-                      "expression": "`slippage_risk` NOT IN ('No Risk')"
+                      "expression": "`UCOs`.`slippage_risk` NOT IN ('No Risk')"
                     }
                   ],
                   "disaggregated": true,
                   "orders": [
                     {
                       "direction": "DESC",
-                      "expression": "`estimated_quarterly_dollar_dbus`"
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
                     }
                   ]
                 }
@@ -11334,7 +11459,7 @@
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "account_name",
+                    "fieldName": "UCOs__account_name",
                     "useForSearch": true,
                     "columnWidth": 150,
                     "displayName": "Account Name",
@@ -11346,7 +11471,7 @@
                     }
                   },
                   {
-                    "fieldName": "usecase_url",
+                    "fieldName": "UCOs__usecase_url",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Use Case",
@@ -11362,7 +11487,7 @@
                     }
                   },
                   {
-                    "fieldName": "hygiene_icon",
+                    "fieldName": "UCOs__hygiene_icon",
                     "columnWidth": 48,
                     "displayName": " H",
                     "actions": {
@@ -11377,7 +11502,7 @@
                     }
                   },
                   {
-                    "fieldName": "keytechwin_icon",
+                    "fieldName": "UCOs__keytechwin_icon",
                     "columnWidth": 48,
                     "displayName": "K",
                     "style": {
@@ -11386,17 +11511,17 @@
                     }
                   },
                   {
-                    "fieldName": "account_executive",
+                    "fieldName": "UCOs__account_executive",
                     "columnWidth": 150,
                     "displayName": "AE"
                   },
                   {
-                    "fieldName": "solution_architect",
+                    "fieldName": "UCOs__solution_architect",
                     "columnWidth": 150,
                     "displayName": "SA"
                   },
                   {
-                    "fieldName": "estimated_quarterly_dollar_dbus",
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus",
                     "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
@@ -11419,7 +11544,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "amount_increased"
+                            "fieldName": "UCOs__amount_increased"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11433,7 +11558,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "amount_increased"
+                            "fieldName": "UCOs__amount_increased"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11444,7 +11569,7 @@
                     }
                   },
                   {
-                    "fieldName": "estimated_quarterly_dollar_dbus_weighted",
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus_weighted",
                     "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
@@ -11459,7 +11584,7 @@
                     }
                   },
                   {
-                    "fieldName": "FY27_Q1",
+                    "fieldName": "UCOs__FY27_Q1",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -11480,7 +11605,7 @@
                     }
                   },
                   {
-                    "fieldName": "FY27_Q2",
+                    "fieldName": "UCOs__FY27_Q2",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -11496,7 +11621,7 @@
                     }
                   },
                   {
-                    "fieldName": "FY27_Q3",
+                    "fieldName": "UCOs__FY27_Q3",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -11512,7 +11637,7 @@
                     }
                   },
                   {
-                    "fieldName": "FY27_Q4",
+                    "fieldName": "UCOs__FY27_Q4",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -11528,7 +11653,7 @@
                     }
                   },
                   {
-                    "fieldName": "target_onboarding_date",
+                    "fieldName": "UCOs__target_onboarding_date",
                     "useForSearch": false,
                     "columnWidth": 110,
                     "contentAlignment": "right",
@@ -11553,7 +11678,7 @@
                               "value": "1"
                             },
                             "operator": "=",
-                            "fieldName": "has_onboarding_slippage_risk"
+                            "fieldName": "UCOs__has_onboarding_slippage_risk"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11564,7 +11689,7 @@
                     }
                   },
                   {
-                    "fieldName": "target_live_date",
+                    "fieldName": "UCOs__target_live_date",
                     "useForSearch": false,
                     "columnWidth": 100,
                     "contentAlignment": "right",
@@ -11590,7 +11715,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "target_date_pulled_foreward"
+                            "fieldName": "UCOs__target_date_pulled_foreward"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11604,7 +11729,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "target_date_pulled_foreward"
+                            "fieldName": "UCOs__target_date_pulled_foreward"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11618,7 +11743,7 @@
                               "value": "true"
                             },
                             "operator": "=",
-                            "fieldName": "has_go_live_slippage_risk"
+                            "fieldName": "UCOs__has_go_live_slippage_risk"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11629,11 +11754,11 @@
                     }
                   },
                   {
-                    "fieldName": "slippage_risk",
+                    "fieldName": "UCOs__slippage_risk",
                     "displayName": "Slippage Risk"
                   },
                   {
-                    "fieldName": "stage",
+                    "fieldName": "UCOs__stage",
                     "useForSearch": false,
                     "columnWidth": 80,
                     "displayName": "Stage",
@@ -11653,7 +11778,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "stage_advanced"
+                            "fieldName": "UCOs__stage_advanced"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11667,7 +11792,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "stage_advanced"
+                            "fieldName": "UCOs__stage_advanced"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -11743,7 +11868,7 @@
                     }
                   },
                   {
-                    "fieldName": "days_in_stage",
+                    "fieldName": "UCOs__days_in_stage",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -11803,7 +11928,7 @@
                     }
                   },
                   {
-                    "fieldName": "implementation_status",
+                    "fieldName": "UCOs__implementation_status",
                     "useForSearch": false,
                     "columnWidth": 80,
                     "displayName": "Health",
@@ -11863,7 +11988,7 @@
                     }
                   },
                   {
-                    "fieldName": "blocked_count",
+                    "fieldName": "UCOs__blocked_count",
                     "columnWidth": 100,
                     "displayName": "Blockers",
                     "style": {
@@ -11890,7 +12015,7 @@
                     }
                   },
                   {
-                    "fieldName": "friction_count",
+                    "fieldName": "UCOs__friction_count",
                     "columnWidth": 100,
                     "displayName": "Frictions",
                     "style": {
@@ -11917,7 +12042,7 @@
                     }
                   },
                   {
-                    "fieldName": "blocker_details",
+                    "fieldName": "UCOs__blocker_details",
                     "columnWidth": 300,
                     "displayName": "Blocker Details",
                     "style": {
@@ -11926,19 +12051,19 @@
                     }
                   },
                   {
-                    "fieldName": "usecase_description",
+                    "fieldName": "UCOs__usecase_description",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Use Case Description"
                   },
                   {
-                    "fieldName": "demand_plan_next_steps",
+                    "fieldName": "UCOs__demand_plan_next_steps",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Demand Plan Next Steps"
                   },
                   {
-                    "fieldName": "ASQ_Summary_HTML",
+                    "fieldName": "UCOs__ASQ_Summary_HTML",
                     "columnWidth": 300,
                     "displayName": "ASQ Summary",
                     "style": {
@@ -11947,7 +12072,7 @@
                     }
                   },
                   {
-                    "fieldName": "eval_doc_link",
+                    "fieldName": "UCOs__eval_doc_link",
                     "columnWidth": 100,
                     "displayName": "Eval Doc",
                     "style": {
@@ -11956,7 +12081,7 @@
                     }
                   },
                   {
-                    "fieldName": "onboarding_doc_link",
+                    "fieldName": "UCOs__onboarding_doc_link",
                     "columnWidth": 130,
                     "displayName": "Onboarding Doc",
                     "style": {
@@ -11965,27 +12090,27 @@
                     }
                   },
                   {
-                    "fieldName": "dsa",
+                    "fieldName": "UCOs__dsa",
                     "columnWidth": 150,
                     "displayName": "DSA"
                   },
                   {
-                    "fieldName": "manager_notes",
+                    "fieldName": "UCOs__manager_notes",
                     "columnWidth": 300,
                     "displayName": "Manager Notes"
                   },
                   {
-                    "fieldName": "implementation_partner_name",
+                    "fieldName": "UCOs__implementation_partner_name",
                     "columnWidth": 150,
                     "displayName": "Impl Partner"
                   },
                   {
-                    "fieldName": "migration_source_platform_adj",
+                    "fieldName": "UCOs__migration_source_platform_adj",
                     "columnWidth": 150,
                     "displayName": "Migration Source"
                   },
                   {
-                    "fieldName": "use_case_product_enriched",
+                    "fieldName": "UCOs__use_case_product_enriched",
                     "columnWidth": 200,
                     "displayName": "Products"
                   }
@@ -13023,7 +13148,7 @@
               "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
-                "title": "UCO Blocked",
+                "title": "UCO with Blockers",
                 "showDescription": false,
                 "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
                 "version": 1
@@ -16340,34 +16465,33 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "solution_architect",
-                      "expression": "`solution_architect`"
+                      "name": "UCOs__solution_architect",
+                      "expression": "`UCOs`.`solution_architect`"
                     },
                     {
-                      "name": "sum(FY27_Q1)",
-                      "expression": "SUM(`FY27_Q1`)"
+                      "name": "sum(UCOs__FY27_Q1)",
+                      "expression": "SUM(`UCOs`.`FY27_Q1`)"
                     },
                     {
-                      "name": "sum(FY27_Q2)",
-                      "expression": "SUM(`FY27_Q2`)"
+                      "name": "sum(UCOs__FY27_Q2)",
+                      "expression": "SUM(`UCOs`.`FY27_Q2`)"
                     },
                     {
-                      "name": "sum(FY27_Q3)",
-                      "expression": "SUM(`FY27_Q3`)"
+                      "name": "sum(UCOs__FY27_Q3)",
+                      "expression": "SUM(`UCOs`.`FY27_Q3`)"
                     },
                     {
-                      "name": "sum(FY27_Q4)",
-                      "expression": "SUM(`FY27_Q4`)"
+                      "name": "sum(UCOs__FY27_Q4)",
+                      "expression": "SUM(`UCOs`.`FY27_Q4`)"
                     }
                   ],
                   "cubeGroupingSets": {
                     "sets": [
                       {
                         "fieldNames": [
-                          "solution_architect"
+                          "UCOs__solution_architect"
                         ]
                       },
                       {}
@@ -16377,7 +16501,7 @@
                   "orders": [
                     {
                       "direction": "ASC",
-                      "expression": "`solution_architect`"
+                      "expression": "`UCOs`.`solution_architect`"
                     }
                   ]
                 }
@@ -16387,15 +16511,17 @@
               "version": 4,
               "frame": {
                 "showTitle": true,
-                "title": "Incremental Pipeline allocation by SA",
-                "version": 1
+                "title": {
+                  "value": "Incremental Pipeline allocation by SA",
+                  "fields": []
+                }
               },
               "widgetType": "pivot",
               "encodings": {
                 "rows": {
                   "fields": [
                     {
-                      "fieldName": "solution_architect",
+                      "fieldName": "UCOs__solution_architect",
                       "displayName": "SA",
                       "scale": {
                         "type": "categorical"
@@ -16410,7 +16536,7 @@
                   "displayAs": "columns",
                   "fields": [
                     {
-                      "fieldName": "sum(FY27_Q1)",
+                      "fieldName": "sum(UCOs__FY27_Q1)",
                       "format": {
                         "hideGroupSeparator": false,
                         "decimalPlaces": {
@@ -16422,6 +16548,7 @@
                         "abbreviation": "none"
                       },
                       "displayName": "FY27 Q1",
+                      "cellType": "text",
                       "style": {
                         "type": "color-scale",
                         "backgroundColor": {
@@ -16432,11 +16559,10 @@
                             }
                           }
                         }
-                      },
-                      "cellType": "text"
+                      }
                     },
                     {
-                      "fieldName": "sum(FY27_Q2)",
+                      "fieldName": "sum(UCOs__FY27_Q2)",
                       "format": {
                         "hideGroupSeparator": false,
                         "decimalPlaces": {
@@ -16448,6 +16574,7 @@
                         "abbreviation": "none"
                       },
                       "displayName": "FY27 Q2",
+                      "cellType": "text",
                       "style": {
                         "type": "color-scale",
                         "backgroundColor": {
@@ -16458,11 +16585,10 @@
                             }
                           }
                         }
-                      },
-                      "cellType": "text"
+                      }
                     },
                     {
-                      "fieldName": "sum(FY27_Q3)",
+                      "fieldName": "sum(UCOs__FY27_Q3)",
                       "format": {
                         "hideGroupSeparator": false,
                         "decimalPlaces": {
@@ -16474,6 +16600,7 @@
                         "abbreviation": "none"
                       },
                       "displayName": "FY27 Q3",
+                      "cellType": "text",
                       "style": {
                         "type": "color-scale",
                         "backgroundColor": {
@@ -16484,11 +16611,10 @@
                             }
                           }
                         }
-                      },
-                      "cellType": "text"
+                      }
                     },
                     {
-                      "fieldName": "sum(FY27_Q4)",
+                      "fieldName": "sum(UCOs__FY27_Q4)",
                       "format": {
                         "hideGroupSeparator": false,
                         "decimalPlaces": {
@@ -16500,6 +16626,7 @@
                         "abbreviation": "none"
                       },
                       "displayName": "FY27 Q4",
+                      "cellType": "text",
                       "style": {
                         "type": "color-scale",
                         "backgroundColor": {
@@ -16510,8 +16637,7 @@
                             }
                           }
                         }
-                      },
-                      "cellType": "text"
+                      }
                     }
                   ]
                 }
