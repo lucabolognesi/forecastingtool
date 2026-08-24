@@ -8086,12 +8086,12 @@
                       "expression": "`UCOs`.`ASQ_Summary_HTML`"
                     },
                     {
-                      "name": "UCOs__eval_doc_link",
-                      "expression": "`UCOs`.`eval_doc_link`"
+                      "name": "UCOs__eval_path",
+                      "expression": "`UCOs`.`eval_path`"
                     },
                     {
-                      "name": "UCOs__onboarding_doc_link",
-                      "expression": "`UCOs`.`onboarding_doc_link`"
+                      "name": "UCOs__eval_doc_link",
+                      "expression": "`UCOs`.`eval_doc_link`"
                     },
                     {
                       "name": "UCOs__dsa",
@@ -8796,18 +8796,13 @@
                     }
                   },
                   {
+                    "fieldName": "UCOs__eval_path",
+                    "displayName": "Eval Path"
+                  },
+                  {
                     "fieldName": "UCOs__eval_doc_link",
                     "columnWidth": 100,
                     "displayName": "Eval Doc",
-                    "style": {
-                      "type": "html",
-                      "highlightLinks": false
-                    }
-                  },
-                  {
-                    "fieldName": "UCOs__onboarding_doc_link",
-                    "columnWidth": 130,
-                    "displayName": "Onboarding Doc",
                     "style": {
                       "type": "html",
                       "highlightLinks": false
@@ -8934,8 +8929,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Days in Stage",
-                "version": 1
+                "title": {
+                  "value": "Days in \n\nStage",
+                  "fields": []
+                }
               },
               "widgetType": "filter-multi-select",
               "encodings": {
@@ -8949,9 +8946,9 @@
             }
           },
           "position": {
-            "x": 8,
-            "y": 14,
-            "width": 2,
+            "x": 6,
+            "y": 15,
+            "width": 1,
             "height": 1
           }
         },
@@ -8981,8 +8978,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Onboarding",
-                "version": 1
+                "title": {
+                  "value": "Onboarding",
+                  "fields": []
+                }
               },
               "widgetType": "filter-multi-select",
               "encodings": {
@@ -9075,8 +9074,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Health",
-                "version": 1
+                "title": {
+                  "value": "Health",
+                  "fields": []
+                }
               },
               "widgetType": "filter-multi-select",
               "encodings": {
@@ -9090,7 +9091,7 @@
             }
           },
           "position": {
-            "x": 10,
+            "x": 8,
             "y": 14,
             "width": 2,
             "height": 1
@@ -9263,8 +9264,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Slippage Risk?",
-                "version": 1
+                "title": {
+                  "value": "Slippage \n\nRisk?",
+                  "fields": []
+                }
               },
               "widgetType": "filter-multi-select",
               "encodings": {
@@ -9278,9 +9281,9 @@
             }
           },
           "position": {
-            "x": 6,
+            "x": 4,
             "y": 15,
-            "width": 2,
+            "width": 1,
             "height": 1
           }
         },
@@ -9289,16 +9292,16 @@
             "name": "hygiene",
             "queries": [
               {
-                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_hygiene_rules",
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_has_hygiene_issues",
                 "query": {
                   "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "hygiene_rules",
-                      "expression": "`hygiene_rules`"
+                      "name": "has_hygiene_issues",
+                      "expression": "`has_hygiene_issues`"
                     },
                     {
-                      "name": "hygiene_rules_associativity",
+                      "name": "has_hygiene_issues_associativity",
                       "expression": "COUNT_IF(`associative_filter_predicate_group`)"
                     }
                   ],
@@ -9310,15 +9313,17 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Hygiene Issues?",
-                "version": 1
+                "title": {
+                  "value": "Hygiene?",
+                  "fields": []
+                }
               },
-              "widgetType": "filter-multi-select",
+              "widgetType": "filter-single-select",
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "hygiene_rules",
-                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_hygiene_rules"
+                    "fieldName": "has_hygiene_issues",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_has_hygiene_issues"
                   }
                 ]
               }
@@ -9327,7 +9332,7 @@
           "position": {
             "x": 8,
             "y": 15,
-            "width": 2,
+            "width": 1,
             "height": 1
           }
         },
@@ -9357,8 +9362,10 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Migration?",
-                "version": 1
+                "title": {
+                  "value": "Migration?",
+                  "fields": []
+                }
               },
               "widgetType": "filter-single-select",
               "encodings": {
@@ -9372,9 +9379,9 @@
             }
           },
           "position": {
-            "x": 4,
+            "x": 9,
             "y": 15,
-            "width": 2,
+            "width": 1,
             "height": 1
           }
         },
@@ -9425,8 +9432,15 @@
               "version": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Inflow/Outflow?",
-                "version": 1
+                "title": {
+                  "value": "IN/<br>OUT",
+                  "fields": []
+                },
+                "showDescription": true,
+                "description": {
+                  "value": "UCOs updated over the last 14 days period (stage, amount, live date)",
+                  "fields": []
+                }
               },
               "widgetType": "filter-multi-select",
               "encodings": {
@@ -9440,9 +9454,9 @@
             }
           },
           "position": {
-            "x": 10,
+            "x": 5,
             "y": 15,
-            "width": 2,
+            "width": 1,
             "height": 1
           }
         },
@@ -9555,6 +9569,55 @@
             "y": 1,
             "width": 12,
             "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "eval-path",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_eval_path",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "eval_path",
+                      "expression": "`eval_path`"
+                    },
+                    {
+                      "name": "eval_path_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Eval \n\nPath",
+                  "fields": []
+                }
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "eval_path",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_eval_path"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 7,
+            "y": 15,
+            "width": 1,
+            "height": 1
           }
         }
       ],
@@ -9777,8 +9840,10 @@
               "frame": {
                 "showTitle": true,
                 "showDescription": false,
-                "title": "UCO with a positive change in the last 14 days. ",
-                "version": 1
+                "title": {
+                  "value": "UCO with a positive change in the last 14 days: 1) amount increased, or 2) stage advanced, or 3) live date brought foreward",
+                  "fields": []
+                }
               },
               "widgetType": "table",
               "encodings": {
@@ -10405,7 +10470,7 @@
             "name": "uco_negative_header",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">UCO Negative changes</span>"
+                "## <span style=\"color:#E8ECF0\">UCOs slipped or shrunk</span>"
               ]
             },
             "specExtensions": {
@@ -10428,175 +10493,174 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "account_name",
-                      "expression": "`account_name`"
+                      "name": "UCOs__account_name",
+                      "expression": "`UCOs`.`account_name`"
                     },
                     {
-                      "name": "usecase_url",
-                      "expression": "`usecase_url`"
+                      "name": "UCOs__usecase_url",
+                      "expression": "`UCOs`.`usecase_url`"
                     },
                     {
-                      "name": "hygiene_icon",
-                      "expression": "`hygiene_icon`"
+                      "name": "UCOs__hygiene_icon",
+                      "expression": "`UCOs`.`hygiene_icon`"
                     },
                     {
-                      "name": "keytechwin_icon",
-                      "expression": "`keytechwin_icon`"
+                      "name": "UCOs__keytechwin_icon",
+                      "expression": "`UCOs`.`keytechwin_icon`"
                     },
                     {
-                      "name": "account_executive",
-                      "expression": "`account_executive`"
+                      "name": "UCOs__account_executive",
+                      "expression": "`UCOs`.`account_executive`"
                     },
                     {
-                      "name": "solution_architect",
-                      "expression": "`solution_architect`"
+                      "name": "UCOs__solution_architect",
+                      "expression": "`UCOs`.`solution_architect`"
                     },
                     {
-                      "name": "estimated_quarterly_dollar_dbus",
-                      "expression": "`estimated_quarterly_dollar_dbus`"
+                      "name": "UCOs__estimated_quarterly_dollar_dbus",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
                     },
                     {
-                      "name": "amount_change_description",
-                      "expression": "`amount_change_description`"
+                      "name": "UCOs__amount_change_description",
+                      "expression": "`UCOs`.`amount_change_description`"
                     },
                     {
-                      "name": "estimated_quarterly_dollar_dbus_weighted",
-                      "expression": "`estimated_quarterly_dollar_dbus_weighted`"
+                      "name": "UCOs__estimated_quarterly_dollar_dbus_weighted",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus_weighted`"
                     },
                     {
-                      "name": "target_onboarding_date",
-                      "expression": "`target_onboarding_date`"
+                      "name": "UCOs__target_onboarding_date",
+                      "expression": "`UCOs`.`target_onboarding_date`"
                     },
                     {
-                      "name": "target_live_date",
-                      "expression": "`target_live_date`"
+                      "name": "UCOs__target_live_date",
+                      "expression": "`UCOs`.`target_live_date`"
                     },
                     {
-                      "name": "target_date_change_description",
-                      "expression": "`target_date_change_description`"
+                      "name": "UCOs__target_date_change_description",
+                      "expression": "`UCOs`.`target_date_change_description`"
                     },
                     {
-                      "name": "stage",
-                      "expression": "`stage`"
+                      "name": "UCOs__stage",
+                      "expression": "`UCOs`.`stage`"
                     },
                     {
-                      "name": "stage_change_description",
-                      "expression": "`stage_change_description`"
+                      "name": "UCOs__stage_change_description",
+                      "expression": "`UCOs`.`stage_change_description`"
                     },
                     {
-                      "name": "days_in_stage",
-                      "expression": "`days_in_stage`"
+                      "name": "UCOs__days_in_stage",
+                      "expression": "`UCOs`.`days_in_stage`"
                     },
                     {
-                      "name": "implementation_status",
-                      "expression": "`implementation_status`"
+                      "name": "UCOs__implementation_status",
+                      "expression": "`UCOs`.`implementation_status`"
                     },
                     {
-                      "name": "blocked_count",
-                      "expression": "`blocked_count`"
+                      "name": "UCOs__blocked_count",
+                      "expression": "`UCOs`.`blocked_count`"
                     },
                     {
-                      "name": "friction_count",
-                      "expression": "`friction_count`"
+                      "name": "UCOs__friction_count",
+                      "expression": "`UCOs`.`friction_count`"
                     },
                     {
-                      "name": "blocker_details",
-                      "expression": "`blocker_details`"
+                      "name": "UCOs__blocker_details",
+                      "expression": "`UCOs`.`blocker_details`"
                     },
                     {
-                      "name": "usecase_description",
-                      "expression": "`usecase_description`"
+                      "name": "UCOs__usecase_description",
+                      "expression": "`UCOs`.`usecase_description`"
                     },
                     {
-                      "name": "demand_plan_next_steps",
-                      "expression": "`demand_plan_next_steps`"
+                      "name": "UCOs__demand_plan_next_steps",
+                      "expression": "`UCOs`.`demand_plan_next_steps`"
                     },
                     {
-                      "name": "ASQ_Summary_HTML",
-                      "expression": "`ASQ_Summary_HTML`"
+                      "name": "UCOs__ASQ_Summary_HTML",
+                      "expression": "`UCOs`.`ASQ_Summary_HTML`"
                     },
                     {
-                      "name": "eval_doc_link",
-                      "expression": "`eval_doc_link`"
+                      "name": "UCOs__eval_doc_link",
+                      "expression": "`UCOs`.`eval_doc_link`"
                     },
                     {
-                      "name": "onboarding_doc_link",
-                      "expression": "`onboarding_doc_link`"
+                      "name": "UCOs__onboarding_doc_link",
+                      "expression": "`UCOs`.`onboarding_doc_link`"
                     },
                     {
-                      "name": "dsa",
-                      "expression": "`dsa`"
+                      "name": "UCOs__dsa",
+                      "expression": "`UCOs`.`dsa`"
                     },
                     {
-                      "name": "manager_notes",
-                      "expression": "`manager_notes`"
+                      "name": "UCOs__manager_notes",
+                      "expression": "`UCOs`.`manager_notes`"
                     },
                     {
-                      "name": "implementation_partner_name",
-                      "expression": "`implementation_partner_name`"
+                      "name": "UCOs__implementation_partner_name",
+                      "expression": "`UCOs`.`implementation_partner_name`"
                     },
                     {
-                      "name": "migration_source_platform_adj",
-                      "expression": "`migration_source_platform_adj`"
+                      "name": "UCOs__migration_source_platform_adj",
+                      "expression": "`UCOs`.`migration_source_platform_adj`"
                     },
                     {
-                      "name": "use_case_product_enriched",
-                      "expression": "`use_case_product_enriched`"
+                      "name": "UCOs__use_case_product_enriched",
+                      "expression": "`UCOs`.`use_case_product_enriched`"
                     },
                     {
-                      "name": "amount_increased",
-                      "expression": "`amount_increased`"
+                      "name": "UCOs__amount_increased",
+                      "expression": "`UCOs`.`amount_increased`"
                     },
                     {
-                      "name": "has_onboarding_slippage_risk",
-                      "expression": "`has_onboarding_slippage_risk`"
+                      "name": "UCOs__has_onboarding_slippage_risk",
+                      "expression": "`UCOs`.`has_onboarding_slippage_risk`"
                     },
                     {
-                      "name": "target_date_pulled_foreward",
-                      "expression": "`target_date_pulled_foreward`"
+                      "name": "UCOs__target_date_pulled_foreward",
+                      "expression": "`UCOs`.`target_date_pulled_foreward`"
                     },
                     {
-                      "name": "has_go_live_slippage_risk",
-                      "expression": "`has_go_live_slippage_risk`"
+                      "name": "UCOs__has_go_live_slippage_risk",
+                      "expression": "`UCOs`.`has_go_live_slippage_risk`"
                     },
                     {
-                      "name": "stage_advanced",
-                      "expression": "`stage_advanced`"
+                      "name": "UCOs__stage_advanced",
+                      "expression": "`UCOs`.`stage_advanced`"
                     },
                     {
-                      "name": "`hygiene_rules`",
-                      "expression": "`hygiene_rules`"
+                      "name": "`UCOs`.`hygiene_rules`",
+                      "expression": "`UCOs`.`hygiene_rules`"
                     },
                     {
-                      "name": "`amount_change_description`",
-                      "expression": "`amount_change_description`"
+                      "name": "`UCOs`.`amount_change_description`",
+                      "expression": "`UCOs`.`amount_change_description`"
                     },
                     {
-                      "name": "`onboarding_slippage_details`",
-                      "expression": "`onboarding_slippage_details`"
+                      "name": "`UCOs`.`onboarding_slippage_details`",
+                      "expression": "`UCOs`.`onboarding_slippage_details`"
                     },
                     {
-                      "name": "`target_date_change_description`",
-                      "expression": "`target_date_change_description`"
+                      "name": "`UCOs`.`target_date_change_description`",
+                      "expression": "`UCOs`.`target_date_change_description`"
                     },
                     {
-                      "name": "`stage_change_description`",
-                      "expression": "`stage_change_description`"
+                      "name": "`UCOs`.`stage_change_description`",
+                      "expression": "`UCOs`.`stage_change_description`"
                     }
                   ],
                   "filters": [
                     {
-                      "expression": "`change_type_label` IN ('Negative change','Negative Change')"
+                      "expression": "`UCOs`.`change_type_label` IN ('Negative change','Negative Change')"
                     }
                   ],
                   "disaggregated": true,
                   "orders": [
                     {
                       "direction": "DESC",
-                      "expression": "`estimated_quarterly_dollar_dbus`"
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
                     }
                   ]
                 }
@@ -10609,16 +10673,21 @@
               "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
-                "title": "UCO with a negative change in the last 14 days",
+                "title": {
+                  "value": "UCO with a negative change in the last 14 days",
+                  "fields": []
+                },
                 "showDescription": false,
-                "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
-                "version": 1
+                "description": {
+                  "value": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
+                  "fields": []
+                }
               },
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "account_name",
+                    "fieldName": "UCOs__account_name",
                     "useForSearch": true,
                     "columnWidth": 150,
                     "displayName": "Account Name",
@@ -10630,7 +10699,7 @@
                     }
                   },
                   {
-                    "fieldName": "usecase_url",
+                    "fieldName": "UCOs__usecase_url",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Use Case",
@@ -10646,13 +10715,13 @@
                     }
                   },
                   {
-                    "fieldName": "hygiene_icon",
+                    "fieldName": "UCOs__hygiene_icon",
                     "columnWidth": 48,
                     "displayName": " H",
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `hygiene_rules` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`hygiene_rules` }}"
                       }
                     },
                     "style": {
@@ -10661,7 +10730,7 @@
                     }
                   },
                   {
-                    "fieldName": "keytechwin_icon",
+                    "fieldName": "UCOs__keytechwin_icon",
                     "columnWidth": 48,
                     "displayName": "K",
                     "style": {
@@ -10670,17 +10739,17 @@
                     }
                   },
                   {
-                    "fieldName": "account_executive",
+                    "fieldName": "UCOs__account_executive",
                     "columnWidth": 150,
                     "displayName": "AE"
                   },
                   {
-                    "fieldName": "solution_architect",
+                    "fieldName": "UCOs__solution_architect",
                     "columnWidth": 150,
                     "displayName": "SA"
                   },
                   {
-                    "fieldName": "estimated_quarterly_dollar_dbus",
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus",
                     "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
@@ -10690,7 +10759,7 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `amount_change_description` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`amount_change_description` }}"
                       }
                     },
                     "style": {
@@ -10703,7 +10772,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "amount_increased"
+                            "fieldName": "UCOs__amount_increased"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10717,7 +10786,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "amount_increased"
+                            "fieldName": "UCOs__amount_increased"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10728,11 +10797,11 @@
                     }
                   },
                   {
-                    "fieldName": "amount_change_description",
+                    "fieldName": "UCOs__amount_change_description",
                     "displayName": "Amount Changed"
                   },
                   {
-                    "fieldName": "estimated_quarterly_dollar_dbus_weighted",
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus_weighted",
                     "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
@@ -10747,7 +10816,7 @@
                     }
                   },
                   {
-                    "fieldName": "target_onboarding_date",
+                    "fieldName": "UCOs__target_onboarding_date",
                     "useForSearch": false,
                     "columnWidth": 110,
                     "contentAlignment": "right",
@@ -10759,7 +10828,7 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `onboarding_slippage_details` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`onboarding_slippage_details` }}"
                       }
                     },
                     "style": {
@@ -10772,7 +10841,7 @@
                               "value": "1"
                             },
                             "operator": "=",
-                            "fieldName": "has_onboarding_slippage_risk"
+                            "fieldName": "UCOs__has_onboarding_slippage_risk"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10783,7 +10852,7 @@
                     }
                   },
                   {
-                    "fieldName": "target_live_date",
+                    "fieldName": "UCOs__target_live_date",
                     "useForSearch": false,
                     "columnWidth": 100,
                     "contentAlignment": "right",
@@ -10796,7 +10865,7 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `target_date_change_description` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`target_date_change_description` }}"
                       }
                     },
                     "style": {
@@ -10809,7 +10878,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "target_date_pulled_foreward"
+                            "fieldName": "UCOs__target_date_pulled_foreward"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10823,7 +10892,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "target_date_pulled_foreward"
+                            "fieldName": "UCOs__target_date_pulled_foreward"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10837,7 +10906,7 @@
                               "value": "true"
                             },
                             "operator": "=",
-                            "fieldName": "has_go_live_slippage_risk"
+                            "fieldName": "UCOs__has_go_live_slippage_risk"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10848,18 +10917,18 @@
                     }
                   },
                   {
-                    "fieldName": "target_date_change_description",
-                    "displayName": "Target Date Changed`"
+                    "fieldName": "UCOs__target_date_change_description",
+                    "displayName": "Target Date Changed"
                   },
                   {
-                    "fieldName": "stage",
+                    "fieldName": "UCOs__stage",
                     "useForSearch": false,
                     "columnWidth": 80,
                     "displayName": "Stage",
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `stage_change_description` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`stage_change_description` }}"
                       }
                     },
                     "style": {
@@ -10872,7 +10941,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "stage_advanced"
+                            "fieldName": "UCOs__stage_advanced"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10886,7 +10955,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "stage_advanced"
+                            "fieldName": "UCOs__stage_advanced"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -10962,11 +11031,11 @@
                     }
                   },
                   {
-                    "fieldName": "stage_change_description",
+                    "fieldName": "UCOs__stage_change_description",
                     "displayName": "Stage Changed"
                   },
                   {
-                    "fieldName": "days_in_stage",
+                    "fieldName": "UCOs__days_in_stage",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -11026,7 +11095,7 @@
                     }
                   },
                   {
-                    "fieldName": "implementation_status",
+                    "fieldName": "UCOs__implementation_status",
                     "useForSearch": false,
                     "columnWidth": 80,
                     "displayName": "Health",
@@ -11086,7 +11155,7 @@
                     }
                   },
                   {
-                    "fieldName": "blocked_count",
+                    "fieldName": "UCOs__blocked_count",
                     "columnWidth": 100,
                     "displayName": "Blockers",
                     "style": {
@@ -11113,7 +11182,7 @@
                     }
                   },
                   {
-                    "fieldName": "friction_count",
+                    "fieldName": "UCOs__friction_count",
                     "columnWidth": 100,
                     "displayName": "Frictions",
                     "style": {
@@ -11140,7 +11209,7 @@
                     }
                   },
                   {
-                    "fieldName": "blocker_details",
+                    "fieldName": "UCOs__blocker_details",
                     "columnWidth": 300,
                     "displayName": "Blocker Details",
                     "style": {
@@ -11149,19 +11218,19 @@
                     }
                   },
                   {
-                    "fieldName": "usecase_description",
+                    "fieldName": "UCOs__usecase_description",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Use Case Description"
                   },
                   {
-                    "fieldName": "demand_plan_next_steps",
+                    "fieldName": "UCOs__demand_plan_next_steps",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Demand Plan Next Steps"
                   },
                   {
-                    "fieldName": "ASQ_Summary_HTML",
+                    "fieldName": "UCOs__ASQ_Summary_HTML",
                     "columnWidth": 300,
                     "displayName": "ASQ Summary",
                     "style": {
@@ -11170,7 +11239,7 @@
                     }
                   },
                   {
-                    "fieldName": "eval_doc_link",
+                    "fieldName": "UCOs__eval_doc_link",
                     "columnWidth": 100,
                     "displayName": "Eval Doc",
                     "style": {
@@ -11179,7 +11248,7 @@
                     }
                   },
                   {
-                    "fieldName": "onboarding_doc_link",
+                    "fieldName": "UCOs__onboarding_doc_link",
                     "columnWidth": 130,
                     "displayName": "Onboarding Doc",
                     "style": {
@@ -11188,27 +11257,27 @@
                     }
                   },
                   {
-                    "fieldName": "dsa",
+                    "fieldName": "UCOs__dsa",
                     "columnWidth": 150,
                     "displayName": "DSA"
                   },
                   {
-                    "fieldName": "manager_notes",
+                    "fieldName": "UCOs__manager_notes",
                     "columnWidth": 300,
                     "displayName": "Manager Notes"
                   },
                   {
-                    "fieldName": "implementation_partner_name",
+                    "fieldName": "UCOs__implementation_partner_name",
                     "columnWidth": 150,
                     "displayName": "Impl Partner"
                   },
                   {
-                    "fieldName": "migration_source_platform_adj",
+                    "fieldName": "UCOs__migration_source_platform_adj",
                     "columnWidth": 150,
                     "displayName": "Migration Source"
                   },
                   {
-                    "fieldName": "use_case_product_enriched",
+                    "fieldName": "UCOs__use_case_product_enriched",
                     "columnWidth": 200,
                     "displayName": "Products"
                   }
@@ -11239,7 +11308,7 @@
             "name": "slippage_warnings_header",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">Slippage Warnings</span>"
+                "## <span style=\"color:#E8ECF0\">Hygiene Check</span><span style=\"color: #E8ECF0;\">s</span>"
               ]
             },
             "specExtensions": {
@@ -11250,7 +11319,7 @@
           },
           "position": {
             "x": 0,
-            "y": 26,
+            "y": 34,
             "width": 12,
             "height": 1
           }
@@ -11450,10 +11519,15 @@
               "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
-                "title": "Quarterly incremental consumption by use case - Slippage",
+                "title": {
+                  "value": "Quarterly incremental consumption by use case - Slippage",
+                  "fields": []
+                },
                 "showDescription": false,
-                "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
-                "version": 1
+                "description": {
+                  "value": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
+                  "fields": []
+                }
               },
               "widgetType": "table",
               "encodings": {
@@ -11675,7 +11749,7 @@
                           "condition": {
                             "operand": {
                               "type": "data-value",
-                              "value": "1"
+                              "value": "true"
                             },
                             "operator": "=",
                             "fieldName": "UCOs__has_onboarding_slippage_risk"
@@ -12152,7 +12226,7 @@
           },
           "position": {
             "x": 0,
-            "y": 34,
+            "y": 42,
             "width": 8,
             "height": 1
           }
@@ -12164,169 +12238,168 @@
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "d284f3b9",
                   "fields": [
                     {
-                      "name": "account_name",
-                      "expression": "`account_name`"
+                      "name": "UCOs__account_name",
+                      "expression": "`UCOs`.`account_name`"
                     },
                     {
-                      "name": "usecase_url",
-                      "expression": "`usecase_url`"
+                      "name": "UCOs__usecase_url",
+                      "expression": "`UCOs`.`usecase_url`"
                     },
                     {
-                      "name": "hygiene_icon",
-                      "expression": "`hygiene_icon`"
+                      "name": "UCOs__hygiene_icon",
+                      "expression": "`UCOs`.`hygiene_icon`"
                     },
                     {
-                      "name": "keytechwin_icon",
-                      "expression": "`keytechwin_icon`"
+                      "name": "UCOs__keytechwin_icon",
+                      "expression": "`UCOs`.`keytechwin_icon`"
                     },
                     {
-                      "name": "account_executive",
-                      "expression": "`account_executive`"
+                      "name": "UCOs__account_executive",
+                      "expression": "`UCOs`.`account_executive`"
                     },
                     {
-                      "name": "solution_architect",
-                      "expression": "`solution_architect`"
+                      "name": "UCOs__solution_architect",
+                      "expression": "`UCOs`.`solution_architect`"
                     },
                     {
-                      "name": "estimated_quarterly_dollar_dbus",
-                      "expression": "`estimated_quarterly_dollar_dbus`"
+                      "name": "UCOs__estimated_quarterly_dollar_dbus",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
                     },
                     {
-                      "name": "estimated_quarterly_dollar_dbus_weighted",
-                      "expression": "`estimated_quarterly_dollar_dbus_weighted`"
+                      "name": "UCOs__estimated_quarterly_dollar_dbus_weighted",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus_weighted`"
                     },
                     {
-                      "name": "target_onboarding_date",
-                      "expression": "`target_onboarding_date`"
+                      "name": "UCOs__target_onboarding_date",
+                      "expression": "`UCOs`.`target_onboarding_date`"
                     },
                     {
-                      "name": "target_live_date",
-                      "expression": "`target_live_date`"
+                      "name": "UCOs__target_live_date",
+                      "expression": "`UCOs`.`target_live_date`"
                     },
                     {
-                      "name": "stage",
-                      "expression": "`stage`"
+                      "name": "UCOs__stage",
+                      "expression": "`UCOs`.`stage`"
                     },
                     {
-                      "name": "days_in_stage",
-                      "expression": "`days_in_stage`"
+                      "name": "UCOs__days_in_stage",
+                      "expression": "`UCOs`.`days_in_stage`"
                     },
                     {
-                      "name": "implementation_status",
-                      "expression": "`implementation_status`"
+                      "name": "UCOs__implementation_status",
+                      "expression": "`UCOs`.`implementation_status`"
                     },
                     {
-                      "name": "blocked_count",
-                      "expression": "`blocked_count`"
+                      "name": "UCOs__blocked_count",
+                      "expression": "`UCOs`.`blocked_count`"
                     },
                     {
-                      "name": "friction_count",
-                      "expression": "`friction_count`"
+                      "name": "UCOs__friction_count",
+                      "expression": "`UCOs`.`friction_count`"
                     },
                     {
-                      "name": "blocker_details",
-                      "expression": "`blocker_details`"
+                      "name": "UCOs__blocker_details",
+                      "expression": "`UCOs`.`blocker_details`"
                     },
                     {
-                      "name": "usecase_description",
-                      "expression": "`usecase_description`"
+                      "name": "UCOs__usecase_description",
+                      "expression": "`UCOs`.`usecase_description`"
                     },
                     {
-                      "name": "demand_plan_next_steps",
-                      "expression": "`demand_plan_next_steps`"
+                      "name": "UCOs__demand_plan_next_steps",
+                      "expression": "`UCOs`.`demand_plan_next_steps`"
                     },
                     {
-                      "name": "ASQ_Summary_HTML",
-                      "expression": "`ASQ_Summary_HTML`"
+                      "name": "UCOs__ASQ_Summary_HTML",
+                      "expression": "`UCOs`.`ASQ_Summary_HTML`"
                     },
                     {
-                      "name": "eval_doc_link",
-                      "expression": "`eval_doc_link`"
+                      "name": "UCOs__eval_doc_link",
+                      "expression": "`UCOs`.`eval_doc_link`"
                     },
                     {
-                      "name": "onboarding_doc_link",
-                      "expression": "`onboarding_doc_link`"
+                      "name": "UCOs__onboarding_doc_link",
+                      "expression": "`UCOs`.`onboarding_doc_link`"
                     },
                     {
-                      "name": "dsa",
-                      "expression": "`dsa`"
+                      "name": "UCOs__dsa",
+                      "expression": "`UCOs`.`dsa`"
                     },
                     {
-                      "name": "manager_notes",
-                      "expression": "`manager_notes`"
+                      "name": "UCOs__manager_notes",
+                      "expression": "`UCOs`.`manager_notes`"
                     },
                     {
-                      "name": "implementation_partner_name",
-                      "expression": "`implementation_partner_name`"
+                      "name": "UCOs__implementation_partner_name",
+                      "expression": "`UCOs`.`implementation_partner_name`"
                     },
                     {
-                      "name": "migration_source_platform_adj",
-                      "expression": "`migration_source_platform_adj`"
+                      "name": "UCOs__migration_source_platform_adj",
+                      "expression": "`UCOs`.`migration_source_platform_adj`"
                     },
                     {
-                      "name": "use_case_product_enriched",
-                      "expression": "`use_case_product_enriched`"
+                      "name": "UCOs__use_case_product_enriched",
+                      "expression": "`UCOs`.`use_case_product_enriched`"
                     },
                     {
-                      "name": "amount_increased",
-                      "expression": "`amount_increased`"
+                      "name": "UCOs__amount_increased",
+                      "expression": "`UCOs`.`amount_increased`"
                     },
                     {
-                      "name": "has_onboarding_slippage_risk",
-                      "expression": "`has_onboarding_slippage_risk`"
+                      "name": "UCOs__has_onboarding_slippage_risk",
+                      "expression": "`UCOs`.`has_onboarding_slippage_risk`"
                     },
                     {
-                      "name": "target_date_pulled_foreward",
-                      "expression": "`target_date_pulled_foreward`"
+                      "name": "UCOs__target_date_pulled_foreward",
+                      "expression": "`UCOs`.`target_date_pulled_foreward`"
                     },
                     {
-                      "name": "has_go_live_slippage_risk",
-                      "expression": "`has_go_live_slippage_risk`"
+                      "name": "UCOs__has_go_live_slippage_risk",
+                      "expression": "`UCOs`.`has_go_live_slippage_risk`"
                     },
                     {
-                      "name": "stage_advanced",
-                      "expression": "`stage_advanced`"
+                      "name": "UCOs__stage_advanced",
+                      "expression": "`UCOs`.`stage_advanced`"
                     },
                     {
-                      "name": "`hygiene_rules`",
-                      "expression": "`hygiene_rules`"
+                      "name": "`UCOs`.`hygiene_rules`",
+                      "expression": "`UCOs`.`hygiene_rules`"
                     },
                     {
-                      "name": "`amount_change_description`",
-                      "expression": "`amount_change_description`"
+                      "name": "`UCOs`.`amount_change_description`",
+                      "expression": "`UCOs`.`amount_change_description`"
                     },
                     {
-                      "name": "`onboarding_slippage_details`",
-                      "expression": "`onboarding_slippage_details`"
+                      "name": "`UCOs`.`onboarding_slippage_details`",
+                      "expression": "`UCOs`.`onboarding_slippage_details`"
                     },
                     {
-                      "name": "`target_date_change_description`",
-                      "expression": "`target_date_change_description`"
+                      "name": "`UCOs`.`target_date_change_description`",
+                      "expression": "`UCOs`.`target_date_change_description`"
                     },
                     {
-                      "name": "`stage_change_description`",
-                      "expression": "`stage_change_description`"
+                      "name": "`UCOs`.`stage_change_description`",
+                      "expression": "`UCOs`.`stage_change_description`"
                     }
                   ],
                   "filters": [
                     {
-                      "expression": "IN_RANGE(`days_in_stage`, 60, NULL)"
+                      "expression": "IN_RANGE(`UCOs`.`days_in_stage`, 60, NULL)"
                     },
                     {
-                      "expression": "`implementation_status` IS NULL OR `implementation_status` NOT IN ('Red')"
+                      "expression": "`UCOs`.`implementation_status` IS NULL OR `UCOs`.`implementation_status` NOT IN ('Red')"
                     },
                     {
-                      "expression": "IN_RANGE(`stage_number`, 2, 4)"
+                      "expression": "IN_RANGE(`UCOs`.`stage_number`, 2, 4)"
                     }
                   ],
                   "disaggregated": true,
                   "orders": [
                     {
                       "direction": "DESC",
-                      "expression": "`estimated_quarterly_dollar_dbus`"
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
                     }
                   ]
                 }
@@ -12339,16 +12412,21 @@
               "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
-                "title": "UCOs stuck in stage for >60 days and Health Satus not \"Red\". Stages between U2 and U4 only.",
+                "title": {
+                  "value": "UCOs stuck in stage for >60 days and Health Satus not \"Red\". Stages between U2 and U4 only.",
+                  "fields": []
+                },
                 "showDescription": false,
-                "description": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
-                "version": 1
+                "description": {
+                  "value": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
+                  "fields": []
+                }
               },
               "widgetType": "table",
               "encodings": {
                 "columns": [
                   {
-                    "fieldName": "account_name",
+                    "fieldName": "UCOs__account_name",
                     "useForSearch": true,
                     "columnWidth": 150,
                     "displayName": "Account Name",
@@ -12360,7 +12438,7 @@
                     }
                   },
                   {
-                    "fieldName": "usecase_url",
+                    "fieldName": "UCOs__usecase_url",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Use Case",
@@ -12376,13 +12454,13 @@
                     }
                   },
                   {
-                    "fieldName": "hygiene_icon",
+                    "fieldName": "UCOs__hygiene_icon",
                     "columnWidth": 48,
                     "displayName": " H",
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `hygiene_rules` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`hygiene_rules` }}"
                       }
                     },
                     "style": {
@@ -12391,7 +12469,7 @@
                     }
                   },
                   {
-                    "fieldName": "keytechwin_icon",
+                    "fieldName": "UCOs__keytechwin_icon",
                     "columnWidth": 48,
                     "displayName": "K",
                     "style": {
@@ -12400,17 +12478,17 @@
                     }
                   },
                   {
-                    "fieldName": "account_executive",
+                    "fieldName": "UCOs__account_executive",
                     "columnWidth": 150,
                     "displayName": "AE"
                   },
                   {
-                    "fieldName": "solution_architect",
+                    "fieldName": "UCOs__solution_architect",
                     "columnWidth": 150,
                     "displayName": "SA"
                   },
                   {
-                    "fieldName": "estimated_quarterly_dollar_dbus",
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus",
                     "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
@@ -12420,7 +12498,7 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `amount_change_description` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`amount_change_description` }}"
                       }
                     },
                     "style": {
@@ -12433,7 +12511,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "amount_increased"
+                            "fieldName": "UCOs__amount_increased"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12447,7 +12525,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "amount_increased"
+                            "fieldName": "UCOs__amount_increased"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12458,7 +12536,7 @@
                     }
                   },
                   {
-                    "fieldName": "estimated_quarterly_dollar_dbus_weighted",
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus_weighted",
                     "useForSearch": false,
                     "format": {
                       "type": "numeral.js",
@@ -12473,7 +12551,7 @@
                     }
                   },
                   {
-                    "fieldName": "target_onboarding_date",
+                    "fieldName": "UCOs__target_onboarding_date",
                     "useForSearch": false,
                     "columnWidth": 110,
                     "contentAlignment": "right",
@@ -12485,7 +12563,7 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `onboarding_slippage_details` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`onboarding_slippage_details` }}"
                       }
                     },
                     "style": {
@@ -12498,7 +12576,7 @@
                               "value": "1"
                             },
                             "operator": "=",
-                            "fieldName": "has_onboarding_slippage_risk"
+                            "fieldName": "UCOs__has_onboarding_slippage_risk"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12509,7 +12587,7 @@
                     }
                   },
                   {
-                    "fieldName": "target_live_date",
+                    "fieldName": "UCOs__target_live_date",
                     "useForSearch": false,
                     "columnWidth": 100,
                     "contentAlignment": "right",
@@ -12522,7 +12600,7 @@
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `target_date_change_description` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`target_date_change_description` }}"
                       }
                     },
                     "style": {
@@ -12535,7 +12613,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "target_date_pulled_foreward"
+                            "fieldName": "UCOs__target_date_pulled_foreward"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12549,7 +12627,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "target_date_pulled_foreward"
+                            "fieldName": "UCOs__target_date_pulled_foreward"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12563,7 +12641,7 @@
                               "value": "true"
                             },
                             "operator": "=",
-                            "fieldName": "has_go_live_slippage_risk"
+                            "fieldName": "UCOs__has_go_live_slippage_risk"
                           },
                           "foregroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12574,14 +12652,14 @@
                     }
                   },
                   {
-                    "fieldName": "stage",
+                    "fieldName": "UCOs__stage",
                     "useForSearch": false,
                     "columnWidth": 80,
                     "displayName": "Stage",
                     "actions": {
                       "hover": {
                         "type": "tooltip",
-                        "tooltipTemplate": "{{ `stage_change_description` }}"
+                        "tooltipTemplate": "{{ `UCOs`.`stage_change_description` }}"
                       }
                     },
                     "style": {
@@ -12594,7 +12672,7 @@
                               "value": "0"
                             },
                             "operator": ">",
-                            "fieldName": "stage_advanced"
+                            "fieldName": "UCOs__stage_advanced"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12608,7 +12686,7 @@
                               "value": "0"
                             },
                             "operator": "<",
-                            "fieldName": "stage_advanced"
+                            "fieldName": "UCOs__stage_advanced"
                           },
                           "backgroundColor": {
                             "themeColorType": "visualizationColors",
@@ -12684,7 +12762,7 @@
                     }
                   },
                   {
-                    "fieldName": "days_in_stage",
+                    "fieldName": "UCOs__days_in_stage",
                     "useForSearch": false,
                     "columnWidth": 130,
                     "format": {
@@ -12744,7 +12822,7 @@
                     }
                   },
                   {
-                    "fieldName": "implementation_status",
+                    "fieldName": "UCOs__implementation_status",
                     "useForSearch": false,
                     "columnWidth": 80,
                     "displayName": "Health",
@@ -12804,7 +12882,7 @@
                     }
                   },
                   {
-                    "fieldName": "blocked_count",
+                    "fieldName": "UCOs__blocked_count",
                     "columnWidth": 100,
                     "displayName": "Blockers",
                     "style": {
@@ -12831,7 +12909,7 @@
                     }
                   },
                   {
-                    "fieldName": "friction_count",
+                    "fieldName": "UCOs__friction_count",
                     "columnWidth": 100,
                     "displayName": "Frictions",
                     "style": {
@@ -12858,7 +12936,7 @@
                     }
                   },
                   {
-                    "fieldName": "blocker_details",
+                    "fieldName": "UCOs__blocker_details",
                     "columnWidth": 300,
                     "displayName": "Blocker Details",
                     "style": {
@@ -12867,19 +12945,19 @@
                     }
                   },
                   {
-                    "fieldName": "usecase_description",
+                    "fieldName": "UCOs__usecase_description",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Use Case Description"
                   },
                   {
-                    "fieldName": "demand_plan_next_steps",
+                    "fieldName": "UCOs__demand_plan_next_steps",
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Demand Plan Next Steps"
                   },
                   {
-                    "fieldName": "ASQ_Summary_HTML",
+                    "fieldName": "UCOs__ASQ_Summary_HTML",
                     "columnWidth": 300,
                     "displayName": "ASQ Summary",
                     "style": {
@@ -12888,7 +12966,7 @@
                     }
                   },
                   {
-                    "fieldName": "eval_doc_link",
+                    "fieldName": "UCOs__eval_doc_link",
                     "columnWidth": 100,
                     "displayName": "Eval Doc",
                     "style": {
@@ -12897,7 +12975,7 @@
                     }
                   },
                   {
-                    "fieldName": "onboarding_doc_link",
+                    "fieldName": "UCOs__onboarding_doc_link",
                     "columnWidth": 130,
                     "displayName": "Onboarding Doc",
                     "style": {
@@ -12906,27 +12984,27 @@
                     }
                   },
                   {
-                    "fieldName": "dsa",
+                    "fieldName": "UCOs__dsa",
                     "columnWidth": 150,
                     "displayName": "DSA"
                   },
                   {
-                    "fieldName": "manager_notes",
+                    "fieldName": "UCOs__manager_notes",
                     "columnWidth": 300,
                     "displayName": "Manager Notes"
                   },
                   {
-                    "fieldName": "implementation_partner_name",
+                    "fieldName": "UCOs__implementation_partner_name",
                     "columnWidth": 150,
                     "displayName": "Impl Partner"
                   },
                   {
-                    "fieldName": "migration_source_platform_adj",
+                    "fieldName": "UCOs__migration_source_platform_adj",
                     "columnWidth": 150,
                     "displayName": "Migration Source"
                   },
                   {
-                    "fieldName": "use_case_product_enriched",
+                    "fieldName": "UCOs__use_case_product_enriched",
                     "columnWidth": 200,
                     "displayName": "Products"
                   }
@@ -12947,7 +13025,7 @@
           },
           "position": {
             "x": 0,
-            "y": 35,
+            "y": 43,
             "width": 12,
             "height": 8
           }
@@ -12968,7 +13046,7 @@
           },
           "position": {
             "x": 0,
-            "y": 43,
+            "y": 51,
             "width": 8,
             "height": 1
           }
@@ -13756,7 +13834,7 @@
           },
           "position": {
             "x": 0,
-            "y": 44,
+            "y": 52,
             "width": 12,
             "height": 8
           }
@@ -13817,7 +13895,7 @@
           },
           "position": {
             "x": 8,
-            "y": 43,
+            "y": 51,
             "width": 2,
             "height": 1
           }
@@ -13878,7 +13956,7 @@
           },
           "position": {
             "x": 10,
-            "y": 43,
+            "y": 51,
             "width": 2,
             "height": 1
           }
@@ -13970,7 +14048,7 @@
           },
           "position": {
             "x": 0,
-            "y": 52,
+            "y": 60,
             "width": 4,
             "height": 8
           }
@@ -14111,7 +14189,7 @@
           },
           "position": {
             "x": 4,
-            "y": 52,
+            "y": 60,
             "width": 8,
             "height": 8
           }
@@ -14121,7 +14199,7 @@
             "name": "b2abe3e8",
             "multilineTextboxSpec": {
               "lines": [
-                "## <span style=\"color:#E8ECF0\">UCO Positive changes</span>"
+                "## <span style=\"color:#E8ECF0\">UCOs Accelerated</span> <span style=\"color: #E8ECF0;\">or increased</span>"
               ]
             },
             "specExtensions": {
@@ -14976,7 +15054,7 @@
           },
           "position": {
             "x": 8,
-            "y": 34,
+            "y": 42,
             "width": 2,
             "height": 1
           }
@@ -15038,9 +15116,921 @@
           },
           "position": {
             "x": 10,
-            "y": 34,
+            "y": 42,
             "width": 2,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "98a8dbb5",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"color:#E8ECF0\">Slippage risk</span>"
+              ]
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#006B9C"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 26,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "9e31bcbb",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "fields": [
+                    {
+                      "name": "UCOs__account_name",
+                      "expression": "`UCOs`.`account_name`"
+                    },
+                    {
+                      "name": "UCOs__usecase_url",
+                      "expression": "`UCOs`.`usecase_url`"
+                    },
+                    {
+                      "name": "UCOs__hygiene_icon",
+                      "expression": "`UCOs`.`hygiene_icon`"
+                    },
+                    {
+                      "name": "UCOs__keytechwin_icon",
+                      "expression": "`UCOs`.`keytechwin_icon`"
+                    },
+                    {
+                      "name": "UCOs__hygiene_rules",
+                      "expression": "`UCOs`.`hygiene_rules`"
+                    },
+                    {
+                      "name": "UCOs__account_executive",
+                      "expression": "`UCOs`.`account_executive`"
+                    },
+                    {
+                      "name": "UCOs__solution_architect",
+                      "expression": "`UCOs`.`solution_architect`"
+                    },
+                    {
+                      "name": "UCOs__estimated_quarterly_dollar_dbus",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
+                    },
+                    {
+                      "name": "UCOs__estimated_quarterly_dollar_dbus_weighted",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus_weighted`"
+                    },
+                    {
+                      "name": "UCOs__FY27_Q1",
+                      "expression": "`UCOs`.`FY27_Q1`"
+                    },
+                    {
+                      "name": "UCOs__FY27_Q2",
+                      "expression": "`UCOs`.`FY27_Q2`"
+                    },
+                    {
+                      "name": "UCOs__FY27_Q3",
+                      "expression": "`UCOs`.`FY27_Q3`"
+                    },
+                    {
+                      "name": "UCOs__FY27_Q4",
+                      "expression": "`UCOs`.`FY27_Q4`"
+                    },
+                    {
+                      "name": "UCOs__target_onboarding_date",
+                      "expression": "`UCOs`.`target_onboarding_date`"
+                    },
+                    {
+                      "name": "UCOs__target_live_date",
+                      "expression": "`UCOs`.`target_live_date`"
+                    },
+                    {
+                      "name": "UCOs__stage",
+                      "expression": "`UCOs`.`stage`"
+                    },
+                    {
+                      "name": "UCOs__days_in_stage",
+                      "expression": "`UCOs`.`days_in_stage`"
+                    },
+                    {
+                      "name": "UCOs__implementation_status",
+                      "expression": "`UCOs`.`implementation_status`"
+                    },
+                    {
+                      "name": "UCOs__blocked_count",
+                      "expression": "`UCOs`.`blocked_count`"
+                    },
+                    {
+                      "name": "UCOs__friction_count",
+                      "expression": "`UCOs`.`friction_count`"
+                    },
+                    {
+                      "name": "UCOs__blocker_details",
+                      "expression": "`UCOs`.`blocker_details`"
+                    },
+                    {
+                      "name": "UCOs__usecase_description",
+                      "expression": "`UCOs`.`usecase_description`"
+                    },
+                    {
+                      "name": "UCOs__demand_plan_next_steps",
+                      "expression": "`UCOs`.`demand_plan_next_steps`"
+                    },
+                    {
+                      "name": "UCOs__ASQ_Summary_HTML",
+                      "expression": "`UCOs`.`ASQ_Summary_HTML`"
+                    },
+                    {
+                      "name": "UCOs__eval_doc_link",
+                      "expression": "`UCOs`.`eval_doc_link`"
+                    },
+                    {
+                      "name": "UCOs__onboarding_doc_link",
+                      "expression": "`UCOs`.`onboarding_doc_link`"
+                    },
+                    {
+                      "name": "UCOs__dsa",
+                      "expression": "`UCOs`.`dsa`"
+                    },
+                    {
+                      "name": "UCOs__manager_notes",
+                      "expression": "`UCOs`.`manager_notes`"
+                    },
+                    {
+                      "name": "UCOs__implementation_partner_name",
+                      "expression": "`UCOs`.`implementation_partner_name`"
+                    },
+                    {
+                      "name": "UCOs__migration_source_platform_adj",
+                      "expression": "`UCOs`.`migration_source_platform_adj`"
+                    },
+                    {
+                      "name": "UCOs__use_case_product_enriched",
+                      "expression": "`UCOs`.`use_case_product_enriched`"
+                    },
+                    {
+                      "name": "UCOs__has_onboarding_slippage_risk",
+                      "expression": "`UCOs`.`has_onboarding_slippage_risk`"
+                    },
+                    {
+                      "name": "UCOs__has_go_live_slippage_risk",
+                      "expression": "`UCOs`.`has_go_live_slippage_risk`"
+                    },
+                    {
+                      "name": "UCOs__amount_increased",
+                      "expression": "`UCOs`.`amount_increased`"
+                    },
+                    {
+                      "name": "UCOs__target_date_pulled_foreward",
+                      "expression": "`UCOs`.`target_date_pulled_foreward`"
+                    },
+                    {
+                      "name": "UCOs__stage_advanced",
+                      "expression": "`UCOs`.`stage_advanced`"
+                    },
+                    {
+                      "name": "`hygiene_rules`",
+                      "expression": "`hygiene_rules`"
+                    },
+                    {
+                      "name": "`amount_change_description`",
+                      "expression": "`amount_change_description`"
+                    },
+                    {
+                      "name": "`onboarding_slippage_details`",
+                      "expression": "`onboarding_slippage_details`"
+                    },
+                    {
+                      "name": "`target_date_change_description`",
+                      "expression": "`target_date_change_description`"
+                    },
+                    {
+                      "name": "`stage_change_description`",
+                      "expression": "`stage_change_description`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`UCOs`.`has_hygiene_issues` IN (TRUE)"
+                    }
+                  ],
+                  "disaggregated": true,
+                  "orders": [
+                    {
+                      "direction": "DESC",
+                      "expression": "`UCOs`.`estimated_quarterly_dollar_dbus`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "displayRowNumbers": true,
+              "version": 2,
+              "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Hygiene rules examples: Eval doc required. Health status missing. Live date in the past. etc. ",
+                  "fields": []
+                },
+                "showDescription": false,
+                "description": {
+                  "value": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
+                  "fields": []
+                }
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "UCOs__account_name",
+                    "useForSearch": true,
+                    "columnWidth": 150,
+                    "displayName": "Account Name",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__usecase_url",
+                    "useForSearch": true,
+                    "columnWidth": 300,
+                    "displayName": "Use Case",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    },
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__hygiene_icon",
+                    "columnWidth": 48,
+                    "displayName": " H",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `hygiene_rules` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__keytechwin_icon",
+                    "displayName": "K",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__hygiene_rules",
+                    "displayName": "Hygiene Comments"
+                  },
+                  {
+                    "fieldName": "UCOs__account_executive",
+                    "columnWidth": 150,
+                    "displayName": "AE"
+                  },
+                  {
+                    "fieldName": "UCOs__solution_architect",
+                    "columnWidth": 150,
+                    "displayName": "SA"
+                  },
+                  {
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus",
+                    "useForSearch": false,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "$0,0"
+                    },
+                    "displayName": "Qtr $DBUs",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `amount_change_description` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">",
+                            "fieldName": "UCOs__amount_increased"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<",
+                            "fieldName": "UCOs__amount_increased"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 8
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__estimated_quarterly_dollar_dbus_weighted",
+                    "useForSearch": false,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "$0,0"
+                    },
+                    "displayName": "Qtr $DBUs (Weighted)",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__FY27_Q1",
+                    "useForSearch": false,
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "hideGroupSeparator": true,
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "FY27 Q1 (Incr)",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__FY27_Q2",
+                    "useForSearch": false,
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "$0,0"
+                    },
+                    "displayName": "FY27 Q2 (Incr)",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__FY27_Q3",
+                    "useForSearch": false,
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "$0,0"
+                    },
+                    "displayName": "FY27 Q3 (Incr)",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__FY27_Q4",
+                    "useForSearch": false,
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "$0,0"
+                    },
+                    "displayName": "FY27 Q4 (Incr)",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__target_onboarding_date",
+                    "useForSearch": false,
+                    "columnWidth": 110,
+                    "contentAlignment": "right",
+                    "format": {
+                      "type": "moment.js",
+                      "format": "MMM YYYY"
+                    },
+                    "displayName": "Onboarding",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `onboarding_slippage_details` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "true"
+                            },
+                            "operator": "=",
+                            "fieldName": "UCOs__has_onboarding_slippage_risk"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__target_live_date",
+                    "useForSearch": false,
+                    "columnWidth": 100,
+                    "contentAlignment": "right",
+                    "format": {
+                      "type": "date",
+                      "date": "year-week",
+                      "leadingZeros": true
+                    },
+                    "displayName": "Live",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `target_date_change_description` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">",
+                            "fieldName": "UCOs__target_date_pulled_foreward"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<",
+                            "fieldName": "UCOs__target_date_pulled_foreward"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 8
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "true"
+                            },
+                            "operator": "=",
+                            "fieldName": "UCOs__has_go_live_slippage_risk"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__stage",
+                    "useForSearch": false,
+                    "columnWidth": 80,
+                    "displayName": "Stage",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ `stage_change_description` }}"
+                      }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">",
+                            "fieldName": "UCOs__stage_advanced"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": "<",
+                            "fieldName": "UCOs__stage_advanced"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 8
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "U1"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 9
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "U2"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 2
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "U3"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 2
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "U4"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 7
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "U5"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__days_in_stage",
+                    "useForSearch": false,
+                    "columnWidth": 130,
+                    "format": {
+                      "type": "numeral.js",
+                      "format": "0"
+                    },
+                    "displayName": "Days In Stage",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "30"
+                            },
+                            "operator": "<"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "90"
+                            },
+                            "operator": ">="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "30"
+                            },
+                            "operator": ">="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__implementation_status",
+                    "useForSearch": false,
+                    "columnWidth": 80,
+                    "displayName": "Health",
+                    "actions": {
+                      "hover": {
+                        "type": "tooltip",
+                        "tooltipTemplate": "{{ @ }}"
+                      }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 9
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Red"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Green"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Yellow"
+                            },
+                            "operator": "="
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__blocked_count",
+                    "columnWidth": 100,
+                    "displayName": "Blockers",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__friction_count",
+                    "columnWidth": 100,
+                    "displayName": "Frictions",
+                    "style": {
+                      "type": "basic",
+                      "foregroundColor": {
+                        "themeColorType": "visualizationColors",
+                        "position": 3
+                      },
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 2
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__blocker_details",
+                    "columnWidth": 300,
+                    "displayName": "Blocker Details",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__usecase_description",
+                    "useForSearch": true,
+                    "columnWidth": 300,
+                    "displayName": "Use Case Description"
+                  },
+                  {
+                    "fieldName": "UCOs__demand_plan_next_steps",
+                    "useForSearch": true,
+                    "columnWidth": 300,
+                    "displayName": "Demand Plan Next Steps"
+                  },
+                  {
+                    "fieldName": "UCOs__ASQ_Summary_HTML",
+                    "columnWidth": 300,
+                    "displayName": "ASQ Summary",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__eval_doc_link",
+                    "columnWidth": 100,
+                    "displayName": "Eval Doc",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__onboarding_doc_link",
+                    "columnWidth": 130,
+                    "displayName": "Onboarding Doc",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
+                    "fieldName": "UCOs__dsa",
+                    "columnWidth": 150,
+                    "displayName": "DSA"
+                  },
+                  {
+                    "fieldName": "UCOs__manager_notes",
+                    "columnWidth": 300,
+                    "displayName": "Manager Notes"
+                  },
+                  {
+                    "fieldName": "UCOs__implementation_partner_name",
+                    "columnWidth": 150,
+                    "displayName": "Impl Partner"
+                  },
+                  {
+                    "fieldName": "UCOs__migration_source_platform_adj",
+                    "columnWidth": 150,
+                    "displayName": "Migration Source"
+                  },
+                  {
+                    "fieldName": "UCOs__use_case_product_enriched",
+                    "columnWidth": 200,
+                    "displayName": "Products"
+                  },
+                  {
+                    "fieldName": "UCOs__has_onboarding_slippage_risk"
+                  },
+                  {
+                    "fieldName": "UCOs__has_go_live_slippage_risk"
+                  }
+                ],
+                "rowOrder": [
+                  {
+                    "by": "column-reversed",
+                    "field": {
+                      "index": 7
+                    }
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 35,
+            "width": 12,
+            "height": 7
           }
         }
       ],
