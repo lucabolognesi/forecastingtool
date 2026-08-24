@@ -8042,6 +8042,10 @@
                       "expression": "`UCOs`.`FY27_Q4`"
                     },
                     {
+                      "name": "UCOs__planned_techwin_date",
+                      "expression": "`UCOs`.`planned_techwin_date`"
+                    },
+                    {
                       "name": "UCOs__target_onboarding_date",
                       "expression": "`UCOs`.`target_onboarding_date`"
                     },
@@ -8074,6 +8078,10 @@
                       "expression": "`UCOs`.`blocker_details`"
                     },
                     {
+                      "name": "UCOs__ASQ_Summary_HTML",
+                      "expression": "`UCOs`.`ASQ_Summary_HTML`"
+                    },
+                    {
                       "name": "UCOs__usecase_description",
                       "expression": "`UCOs`.`usecase_description`"
                     },
@@ -8082,8 +8090,8 @@
                       "expression": "`UCOs`.`demand_plan_next_steps`"
                     },
                     {
-                      "name": "UCOs__ASQ_Summary_HTML",
-                      "expression": "`UCOs`.`ASQ_Summary_HTML`"
+                      "name": "UCOs__next_steps_last_updated_date",
+                      "expression": "`UCOs`.`next_steps_last_updated_date`"
                     },
                     {
                       "name": "UCOs__eval_path",
@@ -8094,12 +8102,12 @@
                       "expression": "`UCOs`.`eval_doc_link`"
                     },
                     {
-                      "name": "UCOs__dsa",
-                      "expression": "`UCOs`.`dsa`"
-                    },
-                    {
                       "name": "UCOs__manager_notes",
                       "expression": "`UCOs`.`manager_notes`"
+                    },
+                    {
+                      "name": "UCOs__dsa",
+                      "expression": "`UCOs`.`dsa`"
                     },
                     {
                       "name": "UCOs__implementation_partner_name",
@@ -8132,6 +8140,10 @@
                     {
                       "name": "UCOs__stage_advanced",
                       "expression": "`UCOs`.`stage_advanced`"
+                    },
+                    {
+                      "name": "UCOs__next_steps_stale",
+                      "expression": "`UCOs`.`next_steps_stale`"
                     },
                     {
                       "name": "`hygiene_rules`",
@@ -8253,6 +8265,7 @@
                       "type": "numeral.js",
                       "format": "$0,0"
                     },
+                    "headerTooltip": "Cell Red: amount decreased. Cell Green: amount increased",
                     "displayName": "Qtr $DBUs",
                     "actions": {
                       "hover": {
@@ -8379,15 +8392,21 @@
                     }
                   },
                   {
+                    "fieldName": "UCOs__planned_techwin_date",
+                    "columnWidth": 100,
+                    "displayName": "Tech win"
+                  },
+                  {
                     "fieldName": "UCOs__target_onboarding_date",
                     "useForSearch": false,
-                    "columnWidth": 110,
+                    "columnWidth": 130,
                     "contentAlignment": "right",
                     "format": {
                       "type": "date",
                       "date": "year-month-day",
                       "leadingZeros": true
                     },
+                    "headerTooltip": "Date red: slippage risk.",
                     "displayName": "Onboarding",
                     "actions": {
                       "hover": {
@@ -8426,6 +8445,7 @@
                       "date": "year-week",
                       "leadingZeros": true
                     },
+                    "headerTooltip": "Cell Red: the target date slipped. Cell Green: target date accelerated. Date red: slippage risk.",
                     "displayName": "Live",
                     "actions": {
                       "hover": {
@@ -8484,7 +8504,8 @@
                   {
                     "fieldName": "UCOs__stage",
                     "useForSearch": false,
-                    "columnWidth": 80,
+                    "headerTooltip": "Cell Red: Stage regressed. Cell Green: stage progressed",
+                    "columnWidth": 100,
                     "displayName": "Stage",
                     "actions": {
                       "hover": {
@@ -8775,6 +8796,15 @@
                     }
                   },
                   {
+                    "fieldName": "UCOs__ASQ_Summary_HTML",
+                    "columnWidth": 300,
+                    "displayName": "ASQ Summary",
+                    "style": {
+                      "type": "html",
+                      "highlightLinks": false
+                    }
+                  },
+                  {
                     "fieldName": "UCOs__usecase_description",
                     "useForSearch": true,
                     "columnWidth": 300,
@@ -8787,12 +8817,28 @@
                     "displayName": "Next Steps"
                   },
                   {
-                    "fieldName": "UCOs__ASQ_Summary_HTML",
-                    "columnWidth": 300,
-                    "displayName": "ASQ Summary",
+                    "fieldName": "UCOs__next_steps_last_updated_date",
+                    "columnWidth": 110,
+                    "headerTooltip": "Extracted from the Next Steps. The date of the latest next step is red when older than 30 days.",
+                    "displayName": "NS Date",
                     "style": {
-                      "type": "html",
-                      "highlightLinks": false
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "true"
+                            },
+                            "operator": "=",
+                            "fieldName": "UCOs__next_steps_stale"
+                          },
+                          "foregroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 4
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -8809,19 +8855,19 @@
                     }
                   },
                   {
-                    "fieldName": "UCOs__dsa",
-                    "columnWidth": 150,
-                    "displayName": "DSA"
-                  },
-                  {
                     "fieldName": "UCOs__manager_notes",
                     "columnWidth": 300,
                     "displayName": "Manager Notes"
                   },
                   {
+                    "fieldName": "UCOs__dsa",
+                    "columnWidth": 150,
+                    "displayName": "DSA"
+                  },
+                  {
                     "fieldName": "UCOs__implementation_partner_name",
                     "columnWidth": 150,
-                    "displayName": "Impl Partner"
+                    "displayName": "Partner"
                   },
                   {
                     "fieldName": "UCOs__migration_source_platform_adj",
@@ -8946,8 +8992,8 @@
             }
           },
           "position": {
-            "x": 6,
-            "y": 15,
+            "x": 8,
+            "y": 14,
             "width": 1,
             "height": 1
           }
@@ -9075,7 +9121,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "Health",
+                  "value": "Health Status",
                   "fields": []
                 }
               },
@@ -9091,7 +9137,7 @@
             }
           },
           "position": {
-            "x": 8,
+            "x": 9,
             "y": 14,
             "width": 2,
             "height": 1
@@ -9330,7 +9376,7 @@
             }
           },
           "position": {
-            "x": 8,
+            "x": 6,
             "y": 15,
             "width": 1,
             "height": 1
@@ -9379,8 +9425,8 @@
             }
           },
           "position": {
-            "x": 9,
-            "y": 15,
+            "x": 11,
+            "y": 14,
             "width": 1,
             "height": 1
           }
@@ -9433,7 +9479,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "IN/<br>OUT",
+                  "value": "IN/\n\nOUT",
                   "fields": []
                 },
                 "showDescription": true,
@@ -9608,6 +9654,55 @@
                   {
                     "fieldName": "eval_path",
                     "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_eval_path"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 15,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "stale",
+            "queries": [
+              {
+                "name": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_next_steps_stale",
+                "query": {
+                  "datasetName": "d284f3b9",
+                  "fields": [
+                    {
+                      "name": "next_steps_stale",
+                      "expression": "`next_steps_stale`"
+                    },
+                    {
+                      "name": "next_steps_stale_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Stale?",
+                  "fields": []
+                }
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "next_steps_stale",
+                    "queryName": "dashboards/01f026a97f4419b1bafe9b65e9d0a2c1/datasets/01f19a38d77c1c8a87da496861cca80b_next_steps_stale"
                   }
                 ]
               }
@@ -12312,6 +12407,10 @@
                       "expression": "`UCOs`.`demand_plan_next_steps`"
                     },
                     {
+                      "name": "UCOs__next_steps_last_updated_date",
+                      "expression": "`UCOs`.`next_steps_last_updated_date`"
+                    },
+                    {
                       "name": "UCOs__ASQ_Summary_HTML",
                       "expression": "`UCOs`.`ASQ_Summary_HTML`"
                     },
@@ -12393,6 +12492,9 @@
                     },
                     {
                       "expression": "IN_RANGE(`UCOs`.`stage_number`, 2, 4)"
+                    },
+                    {
+                      "expression": "`UCOs`.`next_steps_stale` IN ('true')"
                     }
                   ],
                   "disaggregated": true,
@@ -12413,7 +12515,7 @@
               "frame": {
                 "showTitle": true,
                 "title": {
-                  "value": "UCOs stuck in stage for >60 days and Health Satus not \"Red\". Stages between U2 and U4 only.",
+                  "value": "UCOs stuck in stage for >60 days AND Health Satus not \"Red\" AND Next Steps not updated for > 60 days (Stages between U2 and U4 only)",
                   "fields": []
                 },
                 "showDescription": false,
@@ -12955,6 +13057,11 @@
                     "useForSearch": true,
                     "columnWidth": 300,
                     "displayName": "Demand Plan Next Steps"
+                  },
+                  {
+                    "fieldName": "UCOs__next_steps_last_updated_date",
+                    "columnWidth": 110,
+                    "displayName": "NS Date"
                   },
                   {
                     "fieldName": "UCOs__ASQ_Summary_HTML",
