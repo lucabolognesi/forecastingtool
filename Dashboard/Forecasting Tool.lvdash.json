@@ -8093,16 +8093,18 @@
               }
             ],
             "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Use Case Analysis - the progression il calculated based on a 28 day period. The below amounts are weighted projections.",
+                  "fields": []
+                }
+              },
               "jsonSpec": {
                 "type": "vega-lite",
                 "spec": "{\"$schema\":\"https://vega.github.io/schema/vega-lite/v6.json\",\"data\":{\"name\":\"databricks_query\"},\"width\":\"container\",\"height\":\"container\",\"padding\":0,\"transform\":[{\"calculate\":\"(true)?toNumber(datum.w):0\",\"as\":\"wc_total\"},{\"calculate\":\"(true)?1:0\",\"as\":\"cn_total\"},{\"calculate\":\"(toNumber(datum.stage_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?toNumber(datum.w):0\",\"as\":\"wc_sp\"},{\"calculate\":\"(toNumber(datum.stage_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?1:0\",\"as\":\"cn_sp\"},{\"calculate\":\"(toNumber(datum.stage_regressed_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_sr\"},{\"calculate\":\"(toNumber(datum.stage_regressed_count)>0)?1:0\",\"as\":\"cn_sr\"},{\"calculate\":\"(toNumber(datum.live_date_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?toNumber(datum.w):0\",\"as\":\"wc_la\"},{\"calculate\":\"(toNumber(datum.live_date_advanced_count)>0 && !(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline'))?1:0\",\"as\":\"cn_la\"},{\"calculate\":\"(toNumber(datum.live_date_regressed_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_ls\"},{\"calculate\":\"(toNumber(datum.live_date_regressed_count)>0)?1:0\",\"as\":\"cn_ls\"},{\"calculate\":\"(toNumber(datum.amount_grew_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_au\"},{\"calculate\":\"(toNumber(datum.amount_grew_count)>0)?1:0\",\"as\":\"cn_au\"},{\"calculate\":\"(toNumber(datum.amount_shrank_count)>0)?toNumber(datum.w):0\",\"as\":\"wc_ad\"},{\"calculate\":\"(toNumber(datum.amount_shrank_count)>0)?1:0\",\"as\":\"cn_ad\"},{\"calculate\":\"(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline')?toNumber(datum.w):0\",\"as\":\"wc_nu\"},{\"calculate\":\"(datum.change_type_label=='Positive change' && datum.amount_change_description=='New in pipeline')?1:0\",\"as\":\"cn_nu\"},{\"calculate\":\"(datum.slippage_risk!=null && datum.slippage_risk!='No Risk')?toNumber(datum.w):0\",\"as\":\"wc_sl\"},{\"calculate\":\"(datum.slippage_risk!=null && datum.slippage_risk!='No Risk')?1:0\",\"as\":\"cn_sl\"},{\"aggregate\":[{\"op\":\"sum\",\"field\":\"wc_total\",\"as\":\"wc_total\"},{\"op\":\"sum\",\"field\":\"cn_total\",\"as\":\"cn_total\"},{\"op\":\"sum\",\"field\":\"wc_sp\",\"as\":\"wc_sp\"},{\"op\":\"sum\",\"field\":\"cn_sp\",\"as\":\"cn_sp\"},{\"op\":\"sum\",\"field\":\"wc_sr\",\"as\":\"wc_sr\"},{\"op\":\"sum\",\"field\":\"cn_sr\",\"as\":\"cn_sr\"},{\"op\":\"sum\",\"field\":\"wc_la\",\"as\":\"wc_la\"},{\"op\":\"sum\",\"field\":\"cn_la\",\"as\":\"cn_la\"},{\"op\":\"sum\",\"field\":\"wc_ls\",\"as\":\"wc_ls\"},{\"op\":\"sum\",\"field\":\"cn_ls\",\"as\":\"cn_ls\"},{\"op\":\"sum\",\"field\":\"wc_au\",\"as\":\"wc_au\"},{\"op\":\"sum\",\"field\":\"cn_au\",\"as\":\"cn_au\"},{\"op\":\"sum\",\"field\":\"wc_ad\",\"as\":\"wc_ad\"},{\"op\":\"sum\",\"field\":\"cn_ad\",\"as\":\"cn_ad\"},{\"op\":\"sum\",\"field\":\"wc_nu\",\"as\":\"wc_nu\"},{\"op\":\"sum\",\"field\":\"cn_nu\",\"as\":\"cn_nu\"},{\"op\":\"sum\",\"field\":\"wc_sl\",\"as\":\"wc_sl\"},{\"op\":\"sum\",\"field\":\"cn_sl\",\"as\":\"cn_sl\"}],\"groupby\":[]},{\"fold\":[\"wc_total\",\"wc_sp\",\"wc_sr\",\"wc_la\",\"wc_ls\",\"wc_au\",\"wc_ad\",\"wc_nu\",\"wc_sl\"],\"as\":[\"mkey\",\"val\"]},{\"calculate\":\"datum.mkey=='wc_total'?'0':(datum.mkey=='wc_nu'?'1':(datum.mkey=='wc_sp'?'2':(datum.mkey=='wc_la'?'3':(datum.mkey=='wc_au'?'4':(datum.mkey=='wc_sr'?'5':(datum.mkey=='wc_ls'?'6':(datum.mkey=='wc_ad'?'7':(datum.mkey=='wc_sl'?'8':''))))))))\",\"as\":\"col\"},{\"calculate\":\"datum.mkey=='wc_total'?'Total UCOs':(datum.mkey=='wc_sp'?'Stage Progression':(datum.mkey=='wc_sr'?'Stage Regression':(datum.mkey=='wc_la'?'Live Date Accel.':(datum.mkey=='wc_ls'?'Live Date pushed back':(datum.mkey=='wc_au'?'Amount Up':(datum.mkey=='wc_ad'?'Amount Down':(datum.mkey=='wc_nu'?'New UCOs':(datum.mkey=='wc_sl'?'Slippage Warnings':''))))))))\",\"as\":\"label\"},{\"calculate\":\"datum.mkey=='wc_total'?(toNumber(datum.cn_total)):(datum.mkey=='wc_sp'?(toNumber(datum.cn_sp)):(datum.mkey=='wc_sr'?(toNumber(datum.cn_sr)):(datum.mkey=='wc_la'?(toNumber(datum.cn_la)):(datum.mkey=='wc_ls'?(toNumber(datum.cn_ls)):(datum.mkey=='wc_au'?(toNumber(datum.cn_au)):(datum.mkey=='wc_ad'?(toNumber(datum.cn_ad)):(datum.mkey=='wc_nu'?(toNumber(datum.cn_nu)):(datum.mkey=='wc_sl'?(toNumber(datum.cn_sl)):(0)))))))))\",\"as\":\"cnt\"},{\"calculate\":\"((toNumber(datum.val))<0?'-':'')+'$'+(abs(toNumber(datum.val))>=1e9?format(abs(toNumber(datum.val))/1e9,',.2f')+'B':abs(toNumber(datum.val))>=1e6?format(abs(toNumber(datum.val))/1e6,',.2f')+'M':abs(toNumber(datum.val))>=1e3?format(abs(toNumber(datum.val))/1e3,',.2f')+'k':format(abs(toNumber(datum.val)),',.2f'))\",\"as\":\"valfmt\"},{\"calculate\":\"format(datum.cnt,',d')+(datum.cnt==1?' use case':' use cases')\",\"as\":\"cntfmt\"},{\"calculate\":\"datum.mkey=='wc_total'?'#1B3139':((datum.mkey=='wc_sp'||datum.mkey=='wc_la'||datum.mkey=='wc_au'||datum.mkey=='wc_nu')?'#1B8A4B':'#C4262E')\",\"as\":\"valcolor\"},{\"calculate\":\"datum.mkey=='wc_total'?'#5A6E75':((datum.mkey=='wc_sp'||datum.mkey=='wc_la'||datum.mkey=='wc_au'||datum.mkey=='wc_nu')?'#1B8A4B':'#C4262E')\",\"as\":\"lblcolor\"}],\"config\":{\"view\":{\"stroke\":null},\"autosize\":{\"type\":\"fit\",\"contains\":\"content\"}},\"layer\":[{\"mark\":{\"type\":\"rect\",\"cornerRadius\":7,\"fill\":\"#F5F6F7\",\"stroke\":\"#D0D3D6\",\"strokeWidth\":1},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":-24,\"fontSize\":10,\"fontWeight\":600,\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"label\"},\"color\":{\"field\":\"lblcolor\",\"type\":\"nominal\",\"scale\":null,\"legend\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":2,\"fontSize\":19,\"fontWeight\":700,\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"valfmt\"},\"color\":{\"field\":\"valcolor\",\"type\":\"nominal\",\"scale\":null,\"legend\":null}}},{\"mark\":{\"type\":\"text\",\"dy\":24,\"fontSize\":12,\"fill\":\"#5A6E75\",\"align\":\"center\"},\"encoding\":{\"x\":{\"field\":\"col\",\"type\":\"ordinal\",\"scale\":{\"type\":\"band\",\"domain\":[\"0\",\"1\",\"2\",\"3\",\"4\",\"5\",\"6\",\"7\",\"8\"],\"paddingInner\":0.05,\"paddingOuter\":0},\"axis\":null},\"y\":{\"datum\":\"R\",\"type\":\"nominal\",\"scale\":{\"type\":\"band\",\"domain\":[\"R\"],\"paddingInner\":0,\"paddingOuter\":0},\"axis\":null},\"text\":{\"field\":\"cntfmt\"}}}]}"
               },
               "version": 1,
-              "frame": {
-                "showTitle": true,
-                "title": "Use Case Analysis - the progression il calculated based on a 28 day period.",
-                "version": 1
-              },
               "widgetType": "custom-vega-viz",
               "encodings": {
                 "fields": [
@@ -9295,22 +9297,22 @@
               }
             ],
             "spec": {
-              "displayRowNumbers": true,
-              "version": 2,
-              "rowsPerPage": 25,
-              "freezeUpToColumnNumber": 2,
               "frame": {
                 "showTitle": true,
+                "showDescription": false,
                 "title": {
                   "value": "UCO with a negative change in the last 14 days",
                   "fields": []
                 },
-                "showDescription": false,
                 "description": {
                   "value": "Order by the quarter of interest to identify the top contributing use cases by $DBUs. We are assuming that the onboarding and live dates occur on day 15 of the month",
                   "fields": []
                 }
               },
+              "displayRowNumbers": true,
+              "version": 2,
+              "rowsPerPage": 25,
+              "freezeUpToColumnNumber": 2,
               "widgetType": "table",
               "encodings": {
                 "columns": [
