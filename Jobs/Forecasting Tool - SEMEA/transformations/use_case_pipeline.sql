@@ -99,7 +99,7 @@ where pop.period = '${period}'
 
 -- DBTITLE 1,forecast_usecases_filtered
 CREATE OR REFRESH MATERIALIZED VIEW usecases_filtered AS
-select ae.user_id, ae.ae_email, use_case_detail.usecase_id, usecase_name, use_case_detail.account_id, account_name, estimated_monthly_dollar_dbus, eval_path, coalesce(dsa_user_name, 'No') as dsa_user_name, coalesce(implementation_partner_name, 'No') as implementation_partner_name, target_onboarding_date, target_live_date
+select ae.user_id, ae.ae_email, use_case_detail.usecase_id, usecase_name, use_case_detail.account_id, account_name, coalesce(estimated_monthly_dollar_dbus, 0) as estimated_monthly_dollar_dbus, eval_path, coalesce(dsa_user_name, 'No') as dsa_user_name, coalesce(implementation_partner_name, 'No') as implementation_partner_name, target_onboarding_date, target_live_date
   , dateadd(day, 14, date_trunc('month',target_onboarding_date)) as target_onboarding_date_15 
   , dateadd(day, 14, date_trunc('month',target_live_date)) as target_live_date_15
   , datediff(target_live_date, target_onboarding_date) as total_ramping_days 
@@ -221,7 +221,7 @@ where use_case_detail.Business_Unit = '${business_unit}'
 and sales_subregion_level_1 = '${region_level_1}'
 and is_incremental = true --Excludes upgrades
 and stage_number <= 5 --Filter out 'Disqualified', 'Lost' and 'Live' UCOs.
-and coalesce(estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.
+-- and coalesce(estimated_monthly_dollar_dbus, 0) > 0 -- Excludes zero-valued use cases.
 
 -- COMMAND ----------
 
